@@ -39,22 +39,21 @@ module char_ram(clk_i, cs_i, we_i, adr_i, dat_i, dat_o, dot_clk_i, ce_i,
 input clk_i;
 input cs_i;
 input we_i;
-input [14:0] adr_i;
+input [15:0] adr_i;
 input [7:0] dat_i;
-output reg [31:0] dat_o = 32'd0;
+output [7:0] dat_o;
 input dot_clk_i;
 input ce_i;
 input [15:0] fontAddress_i;
-input [19:0] char_code_i;
+input [12:0] char_code_i;
 input [5:0] maxScanpix_i;
 input [5:0] maxscanline_i;
 input [5:0] scanline_i;
 output reg [63:0] bmp_o;
 
-(* ram_style="block" *)
-reg [7:0] mem [0:32767];
-reg [14:0] radr;
-reg [14:0] rcc, rcc0, rcc1;
+reg [7:0] mem [0:65535];
+reg [15:0] radr;
+reg [15:0] rcc, rcc0, rcc1;
 reg [2:0] rcc200, rcc201, rcc202;
 reg [63:0] dat1;
 reg [63:0] bmp1;
@@ -63,7 +62,7 @@ reg [7:0] bmp [0:7];
 reg [63:0] buf2;
 
 initial begin
-`include "d:\\cores2021\\Thor\\rtl\\soc\\memory\\char_bitmaps_12x18.v";
+`include "d:\\cores2022\\rfPhoenix\\rtl\\soc\\memory\\char_bitmaps_12x18.v";
 end
 
 wire pe_cs;
@@ -72,6 +71,9 @@ edge_det ued1 (.rst(1'b0), .clk(clk_i), .ce(1'b1), .i(cs_i), .pe(pe_cs), .ne(), 
 always_ff @(posedge clk_i)
   if (cs_i & we_i)
 	  mem[adr_i] <= dat_i;
+always_ff @(posedge clk_i)
+	radr <= adr_i;
+assign dat_o = mem[radr];
 
 // Char code is already delated two clocks relative to ce
 // Assume that characters are always going to be at least four clocks wide.
