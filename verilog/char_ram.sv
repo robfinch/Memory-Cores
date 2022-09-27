@@ -36,6 +36,7 @@
 //
 module char_ram(clk_i, cs_i, we_i, adr_i, dat_i, dat_o, dot_clk_i, ce_i,
   fontAddress_i, char_code_i, maxScanpix_i, maxscanline_i, scanline_i, bmp_o);
+parameter pFontFile = "char_bitmaps_12x18.mem";
 input clk_i;
 input cs_i;
 input we_i;
@@ -51,29 +52,132 @@ input [5:0] maxscanline_i;
 input [5:0] scanline_i;
 output reg [63:0] bmp_o;
 
-reg [7:0] mem [0:65535];
-reg [15:0] radr;
+wire [7:0] memo;
 reg [15:0] rcc, rcc0, rcc1;
 reg [2:0] rcc200, rcc201, rcc202;
-reg [63:0] dat1;
 reg [63:0] bmp1;
-reg [3:0] bndx, b2ndx;
+reg [4:0] bndx, stpndx;
 reg [7:0] bmp [0:7];
-reg [63:0] buf2;
-
-initial begin
-`include "d:\\cores2022\\rfPhoenix\\rtl\\soc\\memory\\char_bitmaps_12x18.v";
-end
 
 wire pe_cs;
 edge_det ued1 (.rst(1'b0), .clk(clk_i), .ce(1'b1), .i(cs_i), .pe(pe_cs), .ne(), .ee());
 
-always_ff @(posedge clk_i)
-  if (cs_i & we_i)
-	  mem[adr_i] <= dat_i;
-always_ff @(posedge clk_i)
-	radr <= adr_i;
-assign dat_o = mem[radr];
+
+// xpm_memory_tdpram: True Dual Port RAM
+// Xilinx Parameterized Macro, version 2020.2
+
+xpm_memory_tdpram #(
+  .ADDR_WIDTH_A(16),
+  .ADDR_WIDTH_B(16),
+  .AUTO_SLEEP_TIME(0),
+  .BYTE_WRITE_WIDTH_A(8),
+  .BYTE_WRITE_WIDTH_B(8),
+  .CASCADE_HEIGHT(0),
+  .CLOCKING_MODE("independent_clock"), // String
+  .ECC_MODE("no_ecc"),            // String
+  .MEMORY_INIT_FILE(pFontFile),	  // String
+  .MEMORY_INIT_PARAM(""),        // String
+  .MEMORY_OPTIMIZATION("true"),   // String
+  .MEMORY_PRIMITIVE("block"),      // String
+  .MEMORY_SIZE(524288),
+  .MESSAGE_CONTROL(0),
+  .READ_DATA_WIDTH_A(8),
+  .READ_DATA_WIDTH_B(8),
+  .READ_LATENCY_A(2),
+  .READ_LATENCY_B(1),
+  .READ_RESET_VALUE_A("0"),       // String
+  .READ_RESET_VALUE_B("0"),       // String
+  .RST_MODE_A("SYNC"),            // String
+  .RST_MODE_B("SYNC"),            // String
+  .SIM_ASSERT_CHK(0),             // DECIMAL; 0=disable simulation messages, 1=enable simulation messages
+  .USE_EMBEDDED_CONSTRAINT(0),    // DECIMAL
+  .USE_MEM_INIT(1),
+  .WAKEUP_TIME("disable_sleep"),  // String
+  .WRITE_DATA_WIDTH_A(8),
+  .WRITE_DATA_WIDTH_B(8),
+  .WRITE_MODE_A("no_change"),     // String
+  .WRITE_MODE_B("no_change")      // String
+)
+xpm_memory_tdpram_inst (
+  .dbiterra(),             // 1-bit output: Status signal to indicate double bit error occurrence
+                                   // on the data output of port A.
+
+  .dbiterrb(),             // 1-bit output: Status signal to indicate double bit error occurrence
+                                   // on the data output of port A.
+
+  .douta(dat_o),                   // READ_DATA_WIDTH_A-bit output: Data output for port A read operations.
+  .doutb(memo),                    // READ_DATA_WIDTH_B-bit output: Data output for port B read operations.
+  .sbiterra(),             // 1-bit output: Status signal to indicate single bit error occurrence
+                                   // on the data output of port A.
+
+  .sbiterrb(),             // 1-bit output: Status signal to indicate single bit error occurrence
+                                   // on the data output of port B.
+
+  .addra(adr_i),                   // ADDR_WIDTH_A-bit input: Address for port A write and read operations.
+  .addrb(rcc1), 	                  // ADDR_WIDTH_B-bit input: Address for port B write and read operations.
+  .clka(clk_i),                     // 1-bit input: Clock signal for port A. Also clocks port B when
+                                   // parameter CLOCKING_MODE is "common_clock".
+
+  .clkb(~dot_clk_i),               // 1-bit input: Clock signal for port B when parameter CLOCKING_MODE is
+                                   // "independent_clock". Unused when parameter CLOCKING_MODE is
+                                   // "common_clock".
+
+  .dina(dat_i),                     // WRITE_DATA_WIDTH_A-bit input: Data input for port A write operations.
+  .dinb(8'h00),                     // WRITE_DATA_WIDTH_B-bit input: Data input for port B write operations.
+  .ena(cs_i),                       // 1-bit input: Memory enable signal for port A. Must be high on clock
+                                   // cycles when read or write operations are initiated. Pipelined
+                                   // internally.
+
+  .enb(1'b1),                       // 1-bit input: Memory enable signal for port B. Must be high on clock
+                                   // cycles when read or write operations are initiated. Pipelined
+                                   // internally.
+
+  .injectdbiterra(1'b0), // 1-bit input: Controls double bit error injection on input data when
+                                   // ECC enabled (Error injection capability is not available in
+                                   // "decode_only" mode).
+
+  .injectdbiterrb(1'b0), // 1-bit input: Controls double bit error injection on input data when
+                                   // ECC enabled (Error injection capability is not available in
+                                   // "decode_only" mode).
+
+  .injectsbiterra(1'b0), // 1-bit input: Controls single bit error injection on input data when
+                                   // ECC enabled (Error injection capability is not available in
+                                   // "decode_only" mode).
+
+  .injectsbiterrb(1'b0), // 1-bit input: Controls single bit error injection on input data when
+                                   // ECC enabled (Error injection capability is not available in
+                                   // "decode_only" mode).
+
+  .regcea(cs_i),                 // 1-bit input: Clock Enable for the last register stage on the output
+                                   // data path.
+
+  .regceb(1'b1),                 // 1-bit input: Clock Enable for the last register stage on the output
+                                   // data path.
+
+  .rsta(1'b0),                     // 1-bit input: Reset signal for the final port A output register stage.
+                                   // Synchronously resets output port douta to the value specified by
+                                   // parameter READ_RESET_VALUE_A.
+
+  .rstb(1'b0),                     // 1-bit input: Reset signal for the final port B output register stage.
+                                   // Synchronously resets output port doutb to the value specified by
+                                   // parameter READ_RESET_VALUE_B.
+
+  .sleep(1'b0),                   // 1-bit input: sleep signal to enable the dynamic power saving feature.
+  .wea(we_i),                       // WRITE_DATA_WIDTH_A/BYTE_WRITE_WIDTH_A-bit input: Write enable vector
+                                   // for port A input data port dina. 1 bit wide when word-wide writes are
+                                   // used. In byte-wide write configurations, each bit controls the
+                                   // writing one byte of dina to address addra. For example, to
+                                   // synchronously write only bits [15-8] of dina when WRITE_DATA_WIDTH_A
+                                   // is 32, wea would be 4'b0010.
+
+  .web(1'b0)                        // WRITE_DATA_WIDTH_B/BYTE_WRITE_WIDTH_B-bit input: Write enable vector
+                                   // for port B input data port dinb. 1 bit wide when word-wide writes are
+                                   // used. In byte-wide write configurations, each bit controls the
+                                   // writing one byte of dinb to address addrb. For example, to
+                                   // synchronously write only bits [15-8] of dinb when WRITE_DATA_WIDTH_B
+                                   // is 32, web would be 4'b0010.
+
+);
 
 // Char code is already delated two clocks relative to ce
 // Assume that characters are always going to be at least four clocks wide.
@@ -83,12 +187,13 @@ always_ff @(posedge dot_clk_i)
     rcc <= char_code_i*maxscanline_i+scanline_i;
 // Clock #1
 always @(posedge dot_clk_i)
-  casez(maxScanpix_i[5:3])
-  3'b1??: rcc0 <= {rcc,3'b0};
-//  3'b110: rcc0 <= {rcc,2'b0} + {rcc,1'b0};
-//  3'b101: rcc0 <= {rcc,2'b0} + rcc;
-  3'b01?: rcc0 <= {rcc,2'b0};
-//  3'b010: rcc0 <= {rcc,1'b0} + rcc;
+  case(maxScanpix_i[5:3])
+  3'b111: rcc0 <= {rcc,3'b0};
+  3'b110:	rcc0 <= {rcc,2'b0} + {rcc,1'b0} + rcc;
+  3'b101: rcc0 <= {rcc,2'b0} + {rcc,1'b0};
+  3'b100: rcc0 <= {rcc,2'b0} + rcc;
+  3'b011: rcc0 <= {rcc,2'b0};
+  3'b010: rcc0 <= {rcc,1'b0} + rcc;
   3'b001: rcc0 <= {rcc,1'b0};
   3'b000: rcc0 <=  rcc;
   endcase
@@ -96,18 +201,13 @@ always @(posedge dot_clk_i)
 always_ff @(posedge dot_clk_i)
   if (ce_i) begin
     rcc1 <= {fontAddress_i[15:3],3'b0}+rcc0;
-    casez(maxScanpix_i[5:3])
-    3'b1??: bndx <= 4'd7;
-    3'b01?: bndx <= 4'd3;
-    3'b001: bndx <= 4'd1;
-    3'b000: bndx <= 4'd0;
-    endcase
+    bndx <= 5'd0;
   end
   else begin
-    if (~bndx[3]) begin
-      bmp[bndx[2:0]] <= mem[rcc1];
+    if (bndx[2:0] <= maxScanpix_i[5:3]) begin
+      bmp[bndx[2:0]] <= memo;
       rcc1 <= rcc1 + 1'd1;
-      bndx <= bndx - 1'd1;
+      bndx <= bndx + 1'd1;
     end
   end
 always @(posedge dot_clk_i)
