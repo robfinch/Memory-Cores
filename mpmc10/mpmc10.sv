@@ -33,6 +33,8 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
 // 12000 LUTs, BRAM
+//
+// Read channels always wait until there is valid data in the cache.
 // ============================================================================
 //
 //`define RED_SCREEN	1'b1
@@ -55,37 +57,37 @@ input app_wdf_rdy,
 output app_wdf_wren,
 input [127:0] app_rd_data,
 input ch0clk, ch1clk, ch2clk, ch3clk, ch4clk, ch5clk, ch6clk, ch7clk,
-input axi_request_readwrite128_t ch0i,
-output axi_response_readwrite128_t ch0o,
-input axi_request_readwrite256_t ch1i,
-output axi_response_readwrite256_t ch1o,
-input axi_request_readwrite256_t ch2i,
-output axi_response_readwrite256_t ch2o,
-input axi_request_readwrite256_t ch3i,
-output axi_response_readwrite256_t ch3o,
-input axi_request_readwrite256_t ch4i,
-output axi_response_readwrite256_t ch4o,
-input axi_request_readwrite256_t ch5i,
-output axi_response_readwrite256_t ch5o,
-input axi_request_readwrite256_t ch6i,
-output axi_response_readwrite256_t ch6o,
-input axi_request_readwrite256_t ch7i,
-output axi_response_readwrite256_t ch7o
+input faxi_readwrite_request128_t ch0i,
+output faxi_readwrite_response128_t ch0o,
+input faxi_readwrite_request256_t ch1i,
+output faxi_readwrite_response256_t ch1o,
+input faxi_readwrite_request256_t ch2i,
+output faxi_readwrite_response256_t ch2o,
+input faxi_readwrite_request256_t ch3i,
+output faxi_readwrite_response256_t ch3o,
+input faxi_readwrite_request256_t ch4i,
+output faxi_readwrite_response256_t ch4o,
+input faxi_readwrite_request256_t ch5i,
+output faxi_readwrite_response256_t ch5o,
+input faxi_readwrite_request256_t ch6i,
+output faxi_readwrite_response256_t ch6o,
+input faxi_readwrite_request256_t ch7i,
+output faxi_readwrite_response256_t ch7o
 );
 parameter NAR = 2;
 
-axi_request_readwrite128_t ch0is;
-axi_request_readwrite256_t ch1is;
-axi_request_readwrite256_t ch2is;
-axi_request_readwrite256_t ch3is;
-axi_request_readwrite256_t ch4is;
-axi_request_readwrite256_t ch5is;
-axi_request_readwrite256_t ch6is;
-axi_request_readwrite256_t ch7is;
+faxi_readwrite_request128_t ch0is;
+faxi_readwrite_request256_t ch1is;
+faxi_readwrite_request256_t ch2is;
+faxi_readwrite_request256_t ch3is;
+faxi_readwrite_request256_t ch4is;
+faxi_readwrite_request256_t ch5is;
+faxi_readwrite_request256_t ch6is;
+faxi_readwrite_request256_t ch7is;
 
-axi_request_readwrite256_t req_fifoi;
-axi_request_readwrite256_t req_fifoo;
-axi_request_write256_t ld;
+faxi_readwrite_request256_t req_fifoi;
+faxi_readwrite_request256_t req_fifoo;
+faxi_write_request256_t ld;
 
 wire almost_full;
 wire [4:0] cnt;
@@ -146,13 +148,13 @@ always_comb
 begin
 	// A request for channel zero is allowed only every 256 clocks.
 	req[0] <= (!ch0_hit_s & ch0_cnt[8]);
-	req[1] <= ch1o.read.RRESP==AXI_DECERR || ch1is.write.AWVALID;
-	req[2] <= ch2o.read.RRESP==AXI_DECERR || ch2is.write.AWVALID;
-	req[3] <= ch3o.read.RRESP==AXI_DECERR || ch3is.write.AWVALID;
-	req[4] <= ch4o.read.RRESP==AXI_DECERR || ch4is.write.AWVALID;
+	req[1] <= ch1o.read.RRESP==FAXI_DECERR || ch1is.write.AWVALID;
+	req[2] <= ch2o.read.RRESP==FAXI_DECERR || ch2is.write.AWVALID;
+	req[3] <= ch3o.read.RRESP==FAXI_DECERR || ch3is.write.AWVALID;
+	req[4] <= ch4o.read.RRESP==FAXI_DECERR || ch4is.write.AWVALID;
 	req[5] <= (!ch5_hit_s & ch5_cnt[8]);
-	req[6] <= ch6o.read.RRESP==AXI_DECERR || ch6is.write.AWVALID;
-	req[7] <= ch7o.read.RRESP==AXI_DECERR || ch7is.write.AWVALID;
+	req[6] <= ch6o.read.RRESP==FAXI_DECERR || ch6is.write.AWVALID;
+	req[7] <= ch7o.read.RRESP==FAXI_DECERR || ch7is.write.AWVALID;
 end
 
 // Register signals onto mem_ui_clk domain
@@ -248,18 +250,6 @@ mpmc10_cache ucache1
 	.ch6o(ch6o.read),
 	.ch7o(ch7o.read)
 );
-
-always_comb
-begin
-	ch1o.read.RVALID = ch1o.read.RRESP != AXI_DECERR;
-	ch1o.read.RDATA = ch1o.read.RDATA;
-end
-
-always_comb
-begin
-	ch7o.read.RVALID = ch7o.read.RRESP != AXI_DECERR;
-	ch7o.read.RDATA = ch7o.read.RDATA;
-end
 
 mpmc10_strm_read_cache ustrm0
 (

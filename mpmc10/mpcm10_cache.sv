@@ -34,12 +34,13 @@
 //
 // ============================================================================
 //
+import faxi_pkg::*;
 import mpmc10_pkg::*;
 
 module mpmc10_cache(input rst, wclk, inv, 
-	input axi_request_write256_t wchi, 
-	output axi_response_write_t wcho, 
-	input axi_request_write256_t ld,
+	input faxi_write_request256_t wchi, 
+	output faxi_write_response_t wcho, 
+	input faxi_write_request256_t ld,
 	input ch0clk, 
 	input ch1clk, 
 	input ch2clk, 
@@ -48,22 +49,22 @@ module mpmc10_cache(input rst, wclk, inv,
 	input ch5clk, 
 	input ch6clk, 
 	input ch7clk, 
-	input axi_request_read_t ch0i,
-	input axi_request_read_t ch1i,
-	input axi_request_read_t ch2i,
-	input axi_request_read_t ch3i,
-	input axi_request_read_t ch4i,
-	input axi_request_read_t ch5i,
-	input axi_request_read_t ch6i,
-	input axi_request_read_t ch7i,
-	output axi_response_read256_t ch0o,
-	output axi_response_read256_t ch1o,
-	output axi_response_read256_t ch2o,
-	output axi_response_read256_t ch3o,
-	output axi_response_read256_t ch4o,
-	output axi_response_read256_t ch5o,
-	output axi_response_read256_t ch6o,
-	output axi_response_read256_t ch7o
+	input faxi_read_request_t ch0i,
+	input faxi_read_request_t ch1i,
+	input faxi_read_request_t ch2i,
+	input faxi_read_request_t ch3i,
+	input faxi_read_request_t ch4i,
+	input faxi_read_request_t ch5i,
+	input faxi_read_request_t ch6i,
+	input faxi_read_request_t ch7i,
+	output faxi_read_response256_t ch0o,
+	output faxi_read_response256_t ch1o,
+	output faxi_read_response256_t ch2o,
+	output faxi_read_response256_t ch3o,
+	output faxi_read_response256_t ch4o,
+	output faxi_read_response256_t ch5o,
+	output faxi_read_response256_t ch6o,
+	output faxi_read_response256_t ch7o
 );
 
 integer n,n2,n3;
@@ -118,23 +119,23 @@ assign ch5o.ARREADY = 1'b1;
 assign ch6o.ARREADY = 1'b1;
 assign ch7o.ARREADY = 1'b1;
 
-always_ff @(posedge ch0clk) radrr0 <= ch0i.ARADDR;
-always_ff @(posedge ch1clk) radrr1 <= ch1i.ARADDR;
-always_ff @(posedge ch2clk) radrr2 <= ch2i.ARADDR;
-always_ff @(posedge ch3clk) radrr3 <= ch3i.ARADDR;
-always_ff @(posedge ch4clk) radrr4 <= ch4i.ARADDR;
-always_ff @(posedge ch5clk) radrr5 <= ch5i.ARADDR;
-always_ff @(posedge ch6clk) radrr6 <= ch6i.ARADDR;
-always_ff @(posedge ch7clk) radrr7 <= ch7i.ARADDR;
+always_ff @(posedge ch0clk) radrr0 <= ch0i.ad.AADDR;
+always_ff @(posedge ch1clk) radrr1 <= ch1i.ad.AADDR;
+always_ff @(posedge ch2clk) radrr2 <= ch2i.ad.AADDR;
+always_ff @(posedge ch3clk) radrr3 <= ch3i.ad.AADDR;
+always_ff @(posedge ch4clk) radrr4 <= ch4i.ad.AADDR;
+always_ff @(posedge ch5clk) radrr5 <= ch5i.ad.AADDR;
+always_ff @(posedge ch6clk) radrr6 <= ch6i.ad.AADDR;
+always_ff @(posedge ch7clk) radrr7 <= ch7i.ad.AADDR;
 
-always_ff @(posedge ch0clk) ch0o.RID <= ch0i.ARID;
-always_ff @(posedge ch1clk) ch1o.RID <= ch1i.ARID;
-always_ff @(posedge ch2clk) ch2o.RID <= ch2i.ARID;
-always_ff @(posedge ch3clk) ch3o.RID <= ch3i.ARID;
-always_ff @(posedge ch4clk) ch4o.RID <= ch4i.ARID;
-always_ff @(posedge ch5clk) ch5o.RID <= ch5i.ARID;
-always_ff @(posedge ch6clk) ch6o.RID <= ch6i.ARID;
-always_ff @(posedge ch7clk) ch7o.RID <= ch7i.ARID;
+always_ff @(posedge ch0clk) ch0o.RID <= ch0i.ad.AID;
+always_ff @(posedge ch1clk) ch1o.RID <= ch1i.ad.AID;
+always_ff @(posedge ch2clk) ch2o.RID <= ch2i.ad.AID;
+always_ff @(posedge ch3clk) ch3o.RID <= ch3i.ad.AID;
+always_ff @(posedge ch4clk) ch4o.RID <= ch4i.ad.AID;
+always_ff @(posedge ch5clk) ch5o.RID <= ch5i.ad.AID;
+always_ff @(posedge ch6clk) ch6o.RID <= ch6i.ad.AID;
+always_ff @(posedge ch7clk) ch7o.RID <= ch7i.ad.AID;
 
 reg [8:0] rclkp;
 always_comb
@@ -153,15 +154,15 @@ end
 reg [6:0] radr [0:8];
 always_comb
 begin
-	radr[0] = ch0i.ARADDR[11:5];
-	radr[1] = ch1i.ARADDR[11:5];
-	radr[2] = ch2i.ARADDR[11:5];
-	radr[3] = ch3i.ARADDR[11:5];
-	radr[4] = ch4i.ARADDR[11:5];
-	radr[5] = ch5i.ARADDR[11:5];
-	radr[6] = ch6i.ARADDR[11:5];
-	radr[7] = ch7i.ARADDR[11:5];
-	radr[8] = wchi.AWADDR[11:5];
+	radr[0] = ch0i.ad.AADDR[11:5];
+	radr[1] = ch1i.ad.AADDR[11:5];
+	radr[2] = ch2i.ad.AADDR[11:5];
+	radr[3] = ch3i.ad.AADDR[11:5];
+	radr[4] = ch4i.ad.AADDR[11:5];
+	radr[5] = ch5i.ad.AADDR[11:5];
+	radr[6] = ch6i.ad.AADDR[11:5];
+	radr[7] = ch7i.ad.AADDR[11:5];
+	radr[8] = wchi.ad.AADDR[11:5];
 end
 
    // xpm_memory_sdpram: Simple Dual Port RAM
@@ -272,23 +273,23 @@ generate begin : gReaddat
 		always_comb	hit7a[g] = (doutb[7][g].tag==radrr7[31:13]) && (vbito7a[g]==1'b1);
 		always_comb	hit8a[g] = (doutb[8][g].tag==radrr8[31:13]) && (vbito8a[g]==1'b1);
 			
-		always_comb ch0o.RLAST = 1'b1;
-		always_comb ch1o.RLAST = 1'b1;
-		always_comb ch2o.RLAST = 1'b1;
-		always_comb ch3o.RLAST = 1'b1;
-		always_comb ch4o.RLAST = 1'b1;
-		always_comb ch5o.RLAST = 1'b1;
-		always_comb ch6o.RLAST = 1'b1;
-		always_comb ch7o.RLAST = 1'b1;
+		always_ff @(posedge ch0clk) ch0o.RLAST <= ch0i.ad.ACOUNT==ch0i.ad.ALEN;
+		always_ff @(posedge ch1clk) ch1o.RLAST <= ch1i.ad.ACOUNT==ch1i.ad.ALEN;
+		always_ff @(posedge ch2clk) ch2o.RLAST <= ch2i.ad.ACOUNT==ch2i.ad.ALEN;
+		always_ff @(posedge ch3clk) ch3o.RLAST <= ch3i.ad.ACOUNT==ch3i.ad.ALEN;
+		always_ff @(posedge ch4clk) ch4o.RLAST <= ch4i.ad.ACOUNT==ch4i.ad.ALEN;
+		always_ff @(posedge ch5clk) ch5o.RLAST <= ch5i.ad.ACOUNT==ch5i.ad.ALEN;
+		always_ff @(posedge ch6clk) ch6o.RLAST <= ch6i.ad.ACOUNT==ch6i.ad.ALEN;
+		always_ff @(posedge ch7clk) ch7o.RLAST <= ch7i.ad.ACOUNT==ch7i.ad.ALEN;
 		
-		always_comb ch0o.RVALID = 1'b1;
-		always_comb ch1o.RVALID = 1'b1;
-		always_comb ch2o.RVALID = 1'b1;
-		always_comb ch3o.RVALID = 1'b1;
-		always_comb ch4o.RVALID = 1'b1;
-		always_comb ch5o.RVALID = 1'b1;
-		always_comb ch6o.RVALID = 1'b1;
-		always_comb ch7o.RVALID = 1'b1;
+		always_comb ch0o.RVALID = |hit0a;
+		always_comb ch1o.RVALID = |hit1a;
+		always_comb ch2o.RVALID = |hit2a;
+		always_comb ch3o.RVALID = |hit3a;
+		always_comb ch4o.RVALID = |hit4a;
+		always_comb ch5o.RVALID = |hit5a;
+		always_comb ch6o.RVALID = |hit6a;
+		always_comb ch7o.RVALID = |hit7a;
 	end
 end
 endgenerate
@@ -348,38 +349,43 @@ if (rst) begin
 end
 else begin
 	if (|wchi.WSTRB)
-		vbit[wchi.AWWAY][wchi.AWADDR[11:5]] <= 1'b1;
+		vbit[wchi.ad.AWAY][wchi.ad.AADDR[11:5]] <= 1'b1;
 	else if (inv)
-		vbit[wchi.AWWAY][wchi.AWADDR[11:5]] <= 1'b0;
+		vbit[wchi.ad.AWAY][wchi.ad.AADDR[11:5]] <= 1'b0;
 end
 
-always_comb ch0o.RRESP = |hit0a ? AXI_OKAY : AXI_DECERR;
-always_comb ch1o.RRESP = |hit1a ? AXI_OKAY : AXI_DECERR;
-always_comb ch2o.RRESP = |hit2a ? AXI_OKAY : AXI_DECERR;
-always_comb ch3o.RRESP = |hit3a ? AXI_OKAY : AXI_DECERR;
-always_comb ch4o.RRESP = |hit4a ? AXI_OKAY : AXI_DECERR;
-always_comb ch5o.RRESP = |hit5a ? AXI_OKAY : AXI_DECERR;
-always_comb ch6o.RRESP = |hit6a ? AXI_OKAY : AXI_DECERR;
-always_comb ch7o.RRESP = |hit7a ? AXI_OKAY : AXI_DECERR;
+// Pass back decode error to indicate a miss.
+always_comb ch0o.RRESP = |hit0a ? FAXI_OKAY : FAXI_DECERR;
+always_comb ch1o.RRESP = |hit1a ? FAXI_OKAY : FAXI_DECERR;
+always_comb ch2o.RRESP = |hit2a ? FAXI_OKAY : FAXI_DECERR;
+always_comb ch3o.RRESP = |hit3a ? FAXI_OKAY : FAXI_DECERR;
+always_comb ch4o.RRESP = |hit4a ? FAXI_OKAY : FAXI_DECERR;
+always_comb ch5o.RRESP = |hit5a ? FAXI_OKAY : FAXI_DECERR;
+always_comb ch6o.RRESP = |hit6a ? FAXI_OKAY : FAXI_DECERR;
+always_comb ch7o.RRESP = |hit7a ? FAXI_OKAY : FAXI_DECERR;
 
 // Update the cache only if there was a write hit or if loading the cache line
 // due to a read miss. For a read miss the entire line is updated, otherwise
 // just the part of the line relevant to the write is updated.
 always_ff @(posedge wclk)
 begin
-	wadr <= ld.AWVALID ? ld.AWADDR : wchi.AWADDR;
+	wadr <= ld.ad.AWVALID ? ld.ad.AWADDR : wchi.ad.AWADDR;
 	wstrb <= ld.WVALID ? ld.WSTRB : wchi.WSTRB & {36{|hit8a}};
 	wvalid <= ld.WVALID ? 1'b1 : wchi.WVALID & |hit8a;
 end
 
 // Merge write data into cache line.
 generate begin : gWrData
-	for (g = 0; g < 36; g = g + 1)
+	for (g = 0; g < 32; g = g + 1)
 		always_comb
 			if (ld.WVALID)
 				wdata[g*8+7:g*8] <= ld.WDATA[g*8+7:g*8];
 			else
 				wdata[g*8+7:g*8] <= wstrb[g] ? wchi.WDATA[g*8+7:g*8] : wrdata[g*8+7:g*8];
+	always_comb
+		wdata[263:256] <= wstrb[32] ? (ld.WVALID ? {ld.WTAG,ld.WMOD} : {wchi.WTAG,wchi.WMOD}) : wrdata[263:256];
+	always_comb
+		wdata[287:264] <= wstrb[33] ? (ld.WVALID ? {ld.WTAG,ld.WMOD} : {wchi.WTAG,wchi.WMOD}) : wrdata[287:264];
 end
 endgenerate
 
@@ -391,11 +397,12 @@ if (rst)
 	awready <= 1'b1;
 else begin
 	awready <= 1'b1;
-	wcho.BRESP <= AXI_SLVERR;
+	wcho.BRESP <= FAXI_SLVERR;
+	wcho.BVALID <= 1'b0;
 	if (wchi.AWVALID)
 		awready <= 1'b0;
 	if (wchi.AWVALID & ~ld.AWVALID) begin
-		wcho.BRESP <= AXI_OKAY;
+		wcho.BRESP <= FAXI_OKAY;
 		wcho.BID <= wchi.AWID;
 		wcho.BVALID <= 1'b1;
 	end

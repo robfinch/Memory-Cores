@@ -44,19 +44,19 @@ input we;
 input cr;
 input [3:0] wch;
 input [31:0] adr;
-input [3:0] resv_ch [0:NAR-1];
-input [31:0] resv_adr [0:NAR-1];
+input [3:0] resv_ch [0:mpmc10_pkg::NAR-1];
+input [31:0] resv_adr [0:mpmc10_pkg::NAR-1];
 output reg rb;
 
 integer n5;
 always_ff @(posedge clk)
-if (state==IDLE) begin
+if (state==mpmc10_pkg::IDLE) begin
   if (we) begin
     if (cr) begin
-      rb <= FALSE;
-    	for (n5 = 0; n5 < NAR; n5 = n5 + 1)
+      rb <= mpmc10_pkg::FALSE;
+    	for (n5 = 0; n5 < mpmc10_pkg::NAR; n5 = n5 + 1)
 	      if ((resv_ch[n5]==wch) && (resv_adr[n5][31:5]==adr[31:5]))
-  	      rb <= TRUE;
+  	      rb <= mpmc10_pkg::TRUE;
     end
   end
 end

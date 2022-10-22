@@ -46,17 +46,26 @@ input rdy;
 input [5:0] num_strips;
 output reg [5:0] strip_cnt;
 
+reg on;
 always_ff @(posedge clk)
-if (state==IDLE)
+if (state==IDLE) begin
 	strip_cnt <= 6'd0;
+	on <= 1'b0;
+end
 else begin
-	if (state==WRITE_DATA0 && wdf_rdy) begin
+	if (state==PRESET3)
+		on <= 1'b1;
+	if (state==WRITE_DATA0 && wdf_rdy && on) begin
   	if (strip_cnt != num_strips)
     	strip_cnt <= strip_cnt + 3'd1;
+    else
+    	on <= 1'b0;
   end
-  else if (state==READ_DATA1 && rdy) begin
+  else if (state==READ_DATA1 && rdy && on) begin
   	if (strip_cnt != num_strips)
 	  	strip_cnt <= strip_cnt + 3'd1;
+	  else
+	  	on <= 1'b0;
 	end
 end
 

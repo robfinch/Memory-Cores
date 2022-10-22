@@ -43,11 +43,21 @@ input valid;
 input [5:0] num_strips;
 output reg [5:0] strip_cnt;
 
+reg on;
 always_ff @(posedge clk)
-if (state==IDLE)
+if (state==IDLE) begin
 	strip_cnt <= 6'd0;
-else if (valid)
-	if (strip_cnt != num_strips)
-  	strip_cnt <= strip_cnt + 3'd1;
+	on <= 1'b0;
+end
+else begin
+	if (state==READ_DATA0)
+		on <= 1'b1;
+	if (valid && on) begin
+		if (strip_cnt != num_strips)
+  		strip_cnt <= strip_cnt + 3'd1;
+  	else
+  		on <= 1'b0;
+  end
+end
 
 endmodule

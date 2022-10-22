@@ -38,8 +38,8 @@ import mpmc10_pkg::*;
 
 module mpmc10_sync256(clk, i, o);
 input clk;
-input axi_request_readwrite256_t i;
-output axi_request_readwrite256_t o;
+input faxi_readwrite_request256_t i;
+output faxi_readwrite_request256_t o;
 
 always_ff @(posedge clk)
 begin

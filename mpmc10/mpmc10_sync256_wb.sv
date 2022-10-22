@@ -32,42 +32,19 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
-// A bit of a misnomer. This is the address used to load the cache, it is the
-// cache write address. The cache is loaded via memory read cycles not memory
-// write cycles.
 // ============================================================================
 //
+import wishbone_pkg::*;
 import mpmc10_pkg::*;
 
-module mpmc10_waddr_gen(rst, clk, state, valid, num_strips, strip_cnt, addr_base, addr);
-input rst;
+module mpmc10_sync256_wb(clk, i, o);
 input clk;
-input [3:0] state;
-input valid;
-input [5:0] num_strips;
-input [5:0] strip_cnt;
-input [31:0] addr_base;
-output reg [31:0] addr;
-
-reg on;		// Used to ignore extra data
+input wb_write_request256_t i;
+output wb_write_request256_t o;
 
 always_ff @(posedge clk)
-if (rst) begin
-	addr <= 32'h1FFFFFFF;
-	on <= 1'b0;
-end
-else begin
-	if (state==READ_DATA0)
-		on <= 1'b1;
-	if (strip_cnt == num_strips && valid)
-		on <= 1'b0;
-	if (state==PRESET2)
-		addr <= {addr_base[31:4],4'h0};
-	else if (valid && strip_cnt != num_strips && on)
-		addr[31:4] <= addr[31:4] + 2'd1;
-	// Increment the address if we had to start a new burst.
-//	else if (state==WRITE_DATA3 && req_strip_cnt!=num_strips)
-//		app_addr <= app_addr + {req_strip_cnt,4'h0};	// works for only 1 missed burst
+begin
+	o <= i;
 end
 
 endmodule

@@ -50,9 +50,9 @@ always_ff @(posedge clk)
 if (rst)
 	addr <= 32'h1FFFFFFF;
 else begin
-	if (state==PRESET2)
+	if (state==mpmc10_pkg::PRESET2)
 		addr <= addr_base;
-	else if (state==READ_DATA1 && rdy && strip_cnt != num_strips)
+	else if (state==mpmc10_pkg::READ_DATA1 && rdy && strip_cnt != num_strips)
 		addr[31:4] <= addr[31:4] + 2'd1;
 	// Increment the address if we had to start a new burst.
 //	else if (state==WRITE_DATA3 && req_strip_cnt!=num_strips)

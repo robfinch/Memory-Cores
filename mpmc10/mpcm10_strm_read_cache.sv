@@ -37,7 +37,7 @@
 import mpmc10_pkg::*;
 
 module mpmc10_strm_read_cache(rst, wclk, wr, wadr, wdat, inv,
-	rclk, radr, rdat, hit
+	rclk, rd, radr, rdat, hit
 );
 input rst;
 input wclk;
@@ -46,6 +46,7 @@ input [31:0] wadr;
 input [127:0] wdat;
 input inv;
 input rclk;
+input rd;
 input [31:0] radr;
 output [127:0] rdat;
 output reg hit;
@@ -105,7 +106,7 @@ xpm_memory_sdpram_inst (
   .ena(wr),          					// 1-bit input: Memory enable signal for port A. Must be high on clock
                                    // cycles when write operations are initiated. Pipelined internally.
 
-  .enb(1'b1),                      // 1-bit input: Memory enable signal for port B. Must be high on clock
+  .enb(rd),                    // 1-bit input: Memory enable signal for port B. Must be high on clock
                                    // cycles when read operations are initiated. Pipelined internally.
 
   .injectdbiterra(1'b0), // 1-bit input: Controls double bit error injection on input data when
@@ -136,17 +137,17 @@ xpm_memory_sdpram_inst (
 always_ff @(posedge rclk)
 	radrr <= radr;
 always_ff @(posedge wclk)
-	if (wr)
+	if (wr && wadr[9:4]==6'h3F)
 		tags[wadr[12:10]] <= wadr[31:13];
 always_comb
 	tago <= tags[radrr[12:10]];
-always_ff @(posedge rclk)
+always_comb // @(posedge rclk)
 	vbito <= vbit[radrr[12:10]];
 always_ff @(posedge wclk)
 if (rst)
 	vbit <= 'b0;
 else begin
-	if (wr)
+	if (wr && wadr[9:4]==6'h3F)
 		vbit[wadr[12:10]] <= 1'b1;
 	else if (inv)
 		vbit[wadr[12:10]] <= 1'b0;

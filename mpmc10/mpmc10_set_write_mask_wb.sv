@@ -32,42 +32,35 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
-// A bit of a misnomer. This is the address used to load the cache, it is the
-// cache write address. The cache is loaded via memory read cycles not memory
-// write cycles.
 // ============================================================================
 //
 import mpmc10_pkg::*;
 
-module mpmc10_waddr_gen(rst, clk, state, valid, num_strips, strip_cnt, addr_base, addr);
-input rst;
+module mpmc10_set_write_mask_wb(clk, state, we, sel, adr, mask);
+parameter WID=16;
 input clk;
 input [3:0] state;
-input valid;
-input [5:0] num_strips;
-input [5:0] strip_cnt;
-input [31:0] addr_base;
-output reg [31:0] addr;
-
-reg on;		// Used to ignore extra data
+input we;
+input [WID-1:0] sel;
+input [31:0] adr;
+output reg [WID-1:0] mask;
 
 always_ff @(posedge clk)
-if (rst) begin
-	addr <= 32'h1FFFFFFF;
-	on <= 1'b0;
+	tMask(256,we,sel,adr[4:0],mask);
+
+task tMask;
+input [7:0] widi;
+input wei;
+input [WID-1:0] seli;
+input [4:0] adri;
+output [15:0] masko;
+begin
+if (state==IDLE)
+	if (wei)
+		masko <= ~seli;
+	else
+		masko <= 16'h0000;	// read all bytes
 end
-else begin
-	if (state==READ_DATA0)
-		on <= 1'b1;
-	if (strip_cnt == num_strips && valid)
-		on <= 1'b0;
-	if (state==PRESET2)
-		addr <= {addr_base[31:4],4'h0};
-	else if (valid && strip_cnt != num_strips && on)
-		addr[31:4] <= addr[31:4] + 2'd1;
-	// Increment the address if we had to start a new burst.
-//	else if (state==WRITE_DATA3 && req_strip_cnt!=num_strips)
-//		app_addr <= app_addr + {req_strip_cnt,4'h0};	// works for only 1 missed burst
-end
+endtask
 
 endmodule

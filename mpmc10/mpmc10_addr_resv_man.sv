@@ -125,7 +125,7 @@ else begin
 		if (enc==n7 && |srr)
 			reserve_adr({1'b0,n7[2:0]},adr[n7]);
 
-	if (state==IDLE) begin
+	if (state==mpmc10_pkg::IDLE) begin
 		if (we) begin
 	    if (cr) begin
 	    	for (n7 = 0; n7 < NAR; n7 = n7 + 1)
@@ -142,10 +142,10 @@ input [3:0] ch;
 input [31:0] adr;
 integer n8;
 begin
-	resv_held = FALSE;
+	resv_held = mpmc10_pkg::FALSE;
  	for (n8 = 0; n8 < NAR; n8 = n8 + 1)
  		if (resv_ch[n8]==ch && resv_adr[n8][31:5]==adr[31:5])
- 			resv_held = TRUE;
+ 			resv_held = mpmc10_pkg::TRUE;
 end
 endfunction
 

@@ -48,8 +48,8 @@ output reg wend;
 // true.
 always_ff @(posedge clk)
 begin
-	wend <= FALSE;
-	if (state==WRITE_DATA0 && rdy)
+	wend <= mpmc10_pkg::FALSE;
+	if (state==mpmc10_pkg::WRITE_DATA0 && rdy)
 		wend <= strip_cnt==num_strips;
 end
 

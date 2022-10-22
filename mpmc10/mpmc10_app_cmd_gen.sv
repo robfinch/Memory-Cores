@@ -44,6 +44,7 @@ output reg [2:0] cmd;
 // Strangely, for the DDR3 the default is to have a write command value,
 // overridden when a read is needed. The command is processed by the 
 // WRITE_DATAx states.
+// Transition CMD only when EN is low.
 
 always_ff @(posedge clk)
 begin

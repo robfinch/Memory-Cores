@@ -1,7 +1,7 @@
 `timescale 1ns / 1ps
 // ============================================================================
 //        __
-//   \\__/ o\    (C) 2015-2022  Robert Finch, Waterloo
+//   \\__/ o\    (C) 2022  Robert Finch, Waterloo
 //    \  __ /    All rights reserved.
 //     \/_//     robfinch<remove>@finitron.ca
 //       ||
@@ -32,42 +32,30 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
-// A bit of a misnomer. This is the address used to load the cache, it is the
-// cache write address. The cache is loaded via memory read cycles not memory
-// write cycles.
 // ============================================================================
 //
-import mpmc10_pkg::*;
-
-module mpmc10_waddr_gen(rst, clk, state, valid, num_strips, strip_cnt, addr_base, addr);
+module mpmc10_chcnt(rst, clk, hit, cnt);
+parameter BITS=7;
 input rst;
 input clk;
-input [3:0] state;
-input valid;
-input [5:0] num_strips;
-input [5:0] strip_cnt;
-input [31:0] addr_base;
-output reg [31:0] addr;
+input hit;
+output reg [BITS-1:0] cnt;
 
-reg on;		// Used to ignore extra data
+reg hit1;
 
 always_ff @(posedge clk)
 if (rst) begin
-	addr <= 32'h1FFFFFFF;
-	on <= 1'b0;
+	cnt <= {1'b1,{BITS-1{1'b0}}};
+	hit1 <= 1'b0;
 end
 else begin
-	if (state==READ_DATA0)
-		on <= 1'b1;
-	if (strip_cnt == num_strips && valid)
-		on <= 1'b0;
-	if (state==PRESET2)
-		addr <= {addr_base[31:4],4'h0};
-	else if (valid && strip_cnt != num_strips && on)
-		addr[31:4] <= addr[31:4] + 2'd1;
-	// Increment the address if we had to start a new burst.
-//	else if (state==WRITE_DATA3 && req_strip_cnt!=num_strips)
-//		app_addr <= app_addr + {req_strip_cnt,4'h0};	// works for only 1 missed burst
+	hit1 <= hit;
+	if (hit)
+		cnt <= {1'b1,{BITS-1{1'b0}}};
+	else if (hit1 & ~hit)	// neg. edge on hit
+		cnt <= 'd0;
+	else if (!cnt[BITS-1])
+		cnt <= cnt + 2'd1;
 end
 
 endmodule

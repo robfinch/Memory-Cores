@@ -46,9 +46,9 @@ output reg wren;
 // true.
 always_ff @(posedge clk)
 begin
-	wren <= FALSE;
-	if (state==WRITE_DATA0 && rdy)
-		wren <= TRUE;
+	wren <= mpmc10_pkg::FALSE;
+	if (state==mpmc10_pkg::WRITE_DATA0 && rdy)
+		wren <= mpmc10_pkg::TRUE;
 end
 
 endmodule
