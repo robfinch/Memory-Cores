@@ -38,7 +38,7 @@ import mpmc10_pkg::*;
 
 module mpmc10_app_cmd_gen(clk, state, cmd);
 input clk;
-input [3:0] state;
+input mpmc10_state_t state;
 output reg [2:0] cmd;
 
 // Strangely, for the DDR3 the default is to have a write command value,

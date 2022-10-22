@@ -39,7 +39,7 @@ import mpmc10_pkg::*;
 module mpmc10_mask_select(rst, clk, state, wmask, mask, mask2);
 input rst;
 input clk;
-input [3:0] state;
+input mpmc10_state_t state;
 input [15:0] wmask;
 output reg [15:0] mask;
 output reg [15:0] mask2;

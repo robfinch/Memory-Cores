@@ -44,22 +44,25 @@ parameter TRUE = 1'b1;
 parameter FALSE = 1'b0;
 parameter CMD_READ = 3'b001;
 parameter CMD_WRITE = 3'b000;
+
 // State machine states
-parameter IDLE = 4'd0;
-parameter PRESET1 = 4'd1;
-parameter PRESET2 = 4'd2;
-parameter WRITE_DATA0 = 4'd3;
-parameter WRITE_DATA1 = 4'd4;
-parameter WRITE_DATA2 = 4'd5;
-parameter WRITE_DATA3 = 4'd6;
-parameter READ_DATA = 4'd7;
-parameter READ_DATA0 = 4'd8;
-parameter READ_DATA1 = 4'd9;
-parameter READ_DATA2 = 4'd10;
-parameter WAIT_NACK = 4'd11;
-parameter WRITE_TRAMP = 4'd12;	// write trampoline
-parameter WRITE_TRAMP1 = 4'd13;
-parameter PRESET3 = 4'd14;
+typedef enum logic [3:0] {
+	IDLE = 4'd0,
+	PRESET1 = 4'd1,
+	PRESET2 = 4'd2,
+	WRITE_DATA0 = 4'd3,
+	WRITE_DATA1 = 4'd4,
+	WRITE_DATA2 = 4'd5,
+	WRITE_DATA3 = 4'd6,
+	READ_DATA = 4'd7,
+	READ_DATA0 = 4'd8,
+	READ_DATA1 = 4'd9,
+	READ_DATA2 = 4'd10,
+	WAIT_NACK = 4'd11,
+	WRITE_TRAMP = 4'd12,	// write trampoline
+	WRITE_TRAMP1 = 4'd13,
+	PRESET3 = 4'd14
+} mpmc10_state_t;
 
 typedef struct packed
 {

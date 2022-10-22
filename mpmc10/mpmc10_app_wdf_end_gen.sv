@@ -38,7 +38,7 @@ import mpmc10_pkg::*;
 
 module mpmc10_app_wdf_end_gen(clk, state, rdy, strip_cnt, num_strips, wend);
 input clk;
-input [3:0] state;
+input mpmc10_state_t state;
 input rdy;
 input [5:0] strip_cnt;
 input [5:0] num_strips;
@@ -49,7 +49,7 @@ output reg wend;
 always_ff @(posedge clk)
 begin
 	wend <= mpmc10_pkg::FALSE;
-	if (state==mpmc10_pkg::WRITE_DATA0 && rdy)
+	if (state==WRITE_DATA0 && rdy)
 		wend <= strip_cnt==num_strips;
 end
 

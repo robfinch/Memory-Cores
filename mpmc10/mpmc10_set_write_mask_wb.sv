@@ -39,7 +39,7 @@ import mpmc10_pkg::*;
 module mpmc10_set_write_mask_wb(clk, state, we, sel, adr, mask);
 parameter WID=16;
 input clk;
-input [3:0] state;
+input mpmc10_state_t state;
 input we;
 input [WID-1:0] sel;
 input [31:0] adr;

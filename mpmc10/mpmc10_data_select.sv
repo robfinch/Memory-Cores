@@ -39,13 +39,13 @@ import mpmc10_pkg::*;
 module mpmc10_data_select(clk, state, dati, dato);
 parameter WID=256;
 input clk;
-input [3:0] state;
+input mpmc10_state_t state;
 input [WID-1:0] dati;
 output reg [WID-1:0] dato;
 
 // Setting the write data
 always_ff @(posedge clk)
-if (state==mpmc10_pkg::IDLE) begin
+if (state==IDLE) begin
 	dato <= dati;
 end
 

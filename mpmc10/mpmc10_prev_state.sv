@@ -38,12 +38,12 @@ import mpmc10_pkg::*;
 
 module mpmc10_prev_state(clk, state, prev_state);
 input clk;
-input [3:0] state;
-output reg [3:0] prev_state;
+input mpmc10_state_t state;
+output mpmc10_state_t prev_state;
 
 always_ff @(posedge clk)
-if (state==mpmc10_pkg::IDLE)	// We can stay in the idle state as long as we like
-	prev_state <= mpmc10_pkg::IDLE;
+if (state==IDLE)	// We can stay in the idle state as long as we like
+	prev_state <= IDLE;
 else begin
 	if (state!=prev_state)
 		prev_state <= state;

@@ -38,7 +38,7 @@ import mpmc10_pkg::*;
 
 module mpmc10_resp_strip_cnt(clk, state, valid, num_strips, strip_cnt);
 input clk;
-input [3:0] state;
+input mpmc10_state_t state;
 input valid;
 input [5:0] num_strips;
 output reg [5:0] strip_cnt;

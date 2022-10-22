@@ -78,20 +78,53 @@ input wb_write_request128_t ch6i,
 output wb_read_response128_t ch6o,
 input wb_write_request128_t ch7i,
 output wb_read_response128_t ch7o,
-output [3:0] state
+output mpmc10_state_t state
 );
-parameter NAR = 2;
+parameter NAR = 2;			// Number of address reservations
+parameter CL = 3'd4;		// Cache read latency
+parameter STREAM0 = TRUE;
+parameter STREAM1 = FALSE;
+parameter STREAM2 = FALSE;
+parameter STREAM3 = FALSE;
+parameter STREAM4 = FALSE;
+parameter STREAM5 = TRUE;
+parameter STREAM6 = FALSE;
+parameter STREAM7 = FALSE;
 
 wb_write_request128_t ch0is;
 wb_write_request128_t ch0is2;
 wb_write_request128_t ch1is;
+wb_write_request128_t ch1is2;
 wb_write_request128_t ch2is;
+wb_write_request128_t ch2is2;
 wb_write_request128_t ch3is;
+wb_write_request128_t ch3is2;
 wb_write_request128_t ch4is;
+wb_write_request128_t ch4is2;
 wb_write_request128_t ch5is;
 wb_write_request128_t ch5is2;
 wb_write_request128_t ch6is;
+wb_write_request128_t ch6is2;
 wb_write_request128_t ch7is;
+wb_write_request128_t ch7is2;
+
+wb_read_response128_t ch0oa, ch0ob;
+wb_read_response128_t ch1oa, ch1ob;
+wb_read_response128_t ch2oa, ch2ob;
+wb_read_response128_t ch3oa, ch3ob;
+wb_read_response128_t ch4oa, ch4ob;
+wb_read_response128_t ch5oa, ch5ob;
+wb_read_response128_t ch6oa, ch6ob;
+wb_read_response128_t ch7oa, ch7ob;
+
+assign ch0o = STREAM0 ? ch0ob : ch0oa;
+assign ch1o = STREAM1 ? ch1ob : ch1oa;
+assign ch2o = STREAM2 ? ch2ob : ch2oa;
+assign ch3o = STREAM3 ? ch3ob : ch3oa;
+assign ch4o = STREAM4 ? ch4ob : ch4oa;
+assign ch5o = STREAM5 ? ch5ob : ch5oa;
+assign ch6o = STREAM6 ? ch6ob : ch6oa;
+assign ch7o = STREAM7 ? ch7ob : ch7oa;
 
 wb_write_request128_t req_fifoi;
 wb_write_request128_t req_fifoo;
@@ -102,8 +135,7 @@ integer n1,n2;
 wire almost_full;
 wire [4:0] cnt;
 reg wr_fifo;
-wire [3:0] prev_state;
-wire [3:0] state;
+mpmc10_state_t prev_state;
 wire rd_fifo;	// from state machine
 reg [5:0] num_strips;	// from fifo
 wire [5:0] req_strip_cnt;
@@ -120,19 +152,12 @@ wire [3:0] resv_ch [0:NAR-1];
 wire [31:0] resv_adr [0:NAR-1];
 wire rb1;
 reg [7:0] req;
-wire [1:0] wway;
 reg [127:0] rd_data_r;
 reg rd_data_valid_r;
 
-wire ch0_hit_s, ch5_hit_s;
+wire ch0_hit_s, ch1_hit_s, ch2_hit_s, ch3_hit_s;
+wire ch4_hit_s, ch5_hit_s, ch6_hit_s, ch7_hit_s;
 wire ch0_hit_ne, ch5_hit_ne;
-wire [8:0] ch0_cnt, ch5_cnt;
-wire [6:0] ch1_cnt;
-wire [6:0] ch2_cnt;
-wire [6:0] ch3_cnt;
-wire [6:0] ch4_cnt;
-wire [6:0] ch6_cnt;
-wire [6:0] ch7_cnt;
 
 always_ff @(posedge mem_ui_clk)
 	rd_data_r <= app_rd_data;
@@ -148,15 +173,6 @@ else begin
 		rst_ctr <= rst_ctr + 2'd1;
 	rstn <= rst_ctr[15];
 end
-
-mpmc10_chcnt #(.BITS(8)) uchc0(.rst(rst), .clk(mem_ui_clk), .hit(ch0_hit_s), .cnt(ch0_cnt));
-mpmc10_chcnt #(.BITS(7)) uchc1(.rst(rst), .clk(mem_ui_clk), .hit(ch1o.ack || !ch1is.stb), .cnt(ch1_cnt));
-mpmc10_chcnt #(.BITS(7)) uchc2(.rst(rst), .clk(mem_ui_clk), .hit(ch2o.ack || !ch2is.stb), .cnt(ch2_cnt));
-mpmc10_chcnt #(.BITS(7)) uchc3(.rst(rst), .clk(mem_ui_clk), .hit(ch3o.ack || !ch3is.stb), .cnt(ch3_cnt));
-mpmc10_chcnt #(.BITS(7)) uchc4(.rst(rst), .clk(mem_ui_clk), .hit(ch4o.ack || !ch4is.stb), .cnt(ch4_cnt));
-mpmc10_chcnt #(.BITS(8)) uchc5(.rst(rst), .clk(mem_ui_clk), .hit(ch5_hit_s), .cnt(ch5_cnt));
-mpmc10_chcnt #(.BITS(7)) uchc6(.rst(rst), .clk(mem_ui_clk), .hit(ch6o.ack || !ch6is.stb), .cnt(ch6_cnt));
-mpmc10_chcnt #(.BITS(7)) uchc7(.rst(rst), .clk(mem_ui_clk), .hit(ch7o.ack || !ch7is.stb), .cnt(ch7_cnt));
 
 reg [7:0] stb [0:7];
 always_comb stb[0] = ch0is.stb;
@@ -177,7 +193,7 @@ end
 else begin
 	for (n2 = 0; n2 < 8; n2 = n2 + 1)
 		if (stb[n2]) begin
-			if (!chcnt[n2][1])
+			if (chcnt[n2] < CL)
 				chcnt[n2] <= chcnt[n2] + 2'd1;
 		end
 		else
@@ -195,12 +211,11 @@ always_comb chack[5] = ch5o.ack;
 always_comb chack[6] = ch6o.ack;
 always_comb chack[7] = ch7o.ack;
 
-	// A request for channel zero is allowed only every 256 clocks.
 edge_det edch0 (
 	.rst(mem_ui_rst),
 	.clk(mem_ui_clk),
 	.ce(1'b1),
-	.i(!ch0_hit_s && ch0_cnt[7] && ch0is.stb && chcnt[0][1]),
+	.i((!ch0o.ack && ch0is.stb && !ch0is.we && chcnt[0]==CL) || (ch0is.we && ch0is.stb)),
 	.pe(pe_req[0]),
 	.ne(),
 	.ee()
@@ -209,7 +224,7 @@ edge_det edch1 (
 	.rst(mem_ui_rst),
 	.clk(mem_ui_clk),
 	.ce(1'b1),
-	.i((!ch1o.ack && ch1_cnt[6] && ch1is.stb && !ch1is.we && chcnt[1][1]) || (ch1is.we && ch1is.stb)),
+	.i((!ch1o.ack && ch1is.stb && !ch1is.we && chcnt[1]==CL) || (ch1is.we && ch1is.stb)),
 	.pe(pe_req[1]),
 	.ne(),
 	.ee()
@@ -218,7 +233,7 @@ edge_det edch2 (
 	.rst(mem_ui_rst),
 	.clk(mem_ui_clk),
 	.ce(1'b1),
-	.i((!ch2o.ack && ch2_cnt[6] && ch2is.stb && chcnt[2][1]) || (ch2is.we && ch2is.stb)),
+	.i((!ch2o.ack && ch2is.stb && !ch2is.we && chcnt[2]==CL) || (ch2is.we && ch2is.stb)),
 	.pe(pe_req[2]),
 	.ne(),
 	.ee()
@@ -227,7 +242,7 @@ edge_det edch3 (
 	.rst(mem_ui_rst),
 	.clk(mem_ui_clk),
 	.ce(1'b1),
-	.i((!ch3o.ack && ch3_cnt[6] && ch3is.stb && chcnt[3][1]) || (ch3is.we && ch3is.stb)),
+	.i((!ch3o.ack && ch3is.stb && !ch3is.we && chcnt[3]==CL) || (ch3is.we && ch3is.stb)),
 	.pe(pe_req[3]),
 	.ne(),
 	.ee()
@@ -236,7 +251,7 @@ edge_det edch4 (
 	.rst(mem_ui_rst),
 	.clk(mem_ui_clk),
 	.ce(1'b1),
-	.i((!ch4o.ack && ch4_cnt[6] && ch4is.stb && chcnt[4][1]) || (ch4is.we && ch4is.stb)),
+	.i((!ch4o.ack && ch4is.stb && !ch4is.we && chcnt[4]==CL) || (ch4is.we && ch4is.stb)),
 	.pe(pe_req[4]),
 	.ne(),
 	.ee()
@@ -245,7 +260,7 @@ edge_det edch5 (
 	.rst(mem_ui_rst),
 	.clk(mem_ui_clk),
 	.ce(1'b1),
-	.i(!ch5_hit_s && ch5_cnt[7] && ch5is.stb && chcnt[5][1]),
+	.i((!ch5_hit_s && ch5is.stb && !ch5is.we && chcnt[5]==CL) || (ch5is.we && ch5is.stb)),
 	.pe(pe_req[5]),
 	.ne(),
 	.ee()
@@ -254,7 +269,7 @@ edge_det edch6 (
 	.rst(mem_ui_rst),
 	.clk(mem_ui_clk),
 	.ce(1'b1),
-	.i((!ch6o.ack && ch6_cnt[3] && ch6is.stb && chcnt[6][1]) || (ch6is.we && ch6is.stb)),
+	.i((!ch6o.ack && ch6is.stb && !ch6is.we && chcnt[6]==CL) || (ch6is.we && ch6is.stb)),
 	.pe(pe_req[6]),
 	.ne(),
 	.ee()
@@ -263,7 +278,7 @@ edge_det edch7 (
 	.rst(mem_ui_rst),
 	.clk(mem_ui_clk),
 	.ce(1'b1),
-	.i((!ch7o.ack && ch7_cnt[6] && ch7is.stb && chcnt[7][1]) || (ch7is.we && ch7is.stb)),
+	.i((!ch7o.ack && ch7is.stb && !ch7is.we && chcnt[7]==CL) || (ch7is.we && ch7is.stb)),
 	.pe(pe_req[7]),
 	.ne(),
 	.ee()
@@ -329,17 +344,47 @@ mpmc10_sync128_wb usyn7
 	.o(ch7is)
 );
 
+// Streaming channels have a burst length of 64. Round the address to the burst
+// length.
 always_comb
 begin
 	ch0is2 <= ch0is;
 	ch0is2.adr <= {ch0is.adr[31:10],10'b0};
 end
-// For the sprite channel, the burst length is 64, round the address to the
-// burst length.
+always_comb
+begin
+	ch1is2 <= ch1is;
+	ch1is2.adr <= {ch1is.adr[31:10],10'b0};
+end
+always_comb
+begin
+	ch2is2 <= ch2is;
+	ch2is2.adr <= {ch2is.adr[31:10],10'b0};
+end
+always_comb
+begin
+	ch3is2 <= ch3is;
+	ch3is2.adr <= {ch3is.adr[31:10],10'b0};
+end
+always_comb
+begin
+	ch4is2 <= ch4is;
+	ch4is2.adr <= {ch4is.adr[31:10],10'b0};
+end
 always_comb
 begin
 	ch5is2 <= ch5is;
 	ch5is2.adr <= {ch5is.adr[31:10],10'b0};
+end
+always_comb
+begin
+	ch6is2 <= ch6is;
+	ch6is2.adr <= {ch6is.adr[31:10],10'b0};
+end
+always_comb
+begin
+	ch7is2 <= ch7is;
+	ch7is2.adr <= {ch7is.adr[31:10],10'b0};
 end
 
 always_comb
@@ -396,22 +441,22 @@ mpmc10_cache_wb ucache1
 	.wchi(req_fifoo),
 	.wcho(),
 	.ld(ld),
-	.ch0clk(ch0clk),
-	.ch1clk(ch1clk),
-	.ch2clk(ch2clk),
-	.ch3clk(ch3clk),
-	.ch4clk(ch4clk),
-	.ch5clk(ch5clk),
-	.ch6clk(ch6clk),
-	.ch7clk(ch7clk),
-	.ch0i('d0),
-	.ch1i(ch1is),
-	.ch2i(ch2is),
-	.ch3i(ch3is),
-	.ch4i(ch4is),
-	.ch5i('d0),
-	.ch6i(ch6is),
-	.ch7i(ch7is),
+	.ch0clk(STREAM0 ? 1'b0 : ch0clk),
+	.ch1clk(STREAM1 ? 1'b0 : ch1clk),
+	.ch2clk(STREAM2 ? 1'b0 : ch2clk),
+	.ch3clk(STREAM3 ? 1'b0 : ch3clk),
+	.ch4clk(STREAM4 ? 1'b0 : ch4clk),
+	.ch5clk(STREAM5 ? 1'b0 : ch5clk),
+	.ch6clk(STREAM6 ? 1'b0 : ch6clk),
+	.ch7clk(STREAM7 ? 1'b0 : ch7clk),
+	.ch0i(STREAM0 ? 'd0 : ch0is),
+	.ch1i(STREAM1 ? 'd0 : ch1is),
+	.ch2i(STREAM2 ? 'd0 : ch2is),
+	.ch3i(STREAM3 ? 'd0 : ch3is),
+	.ch4i(STREAM4 ? 'd0 : ch4is),
+	.ch5i(STREAM5 ? 'd0 : ch5is),
+	.ch6i(STREAM6 ? 'd0 : ch6is),
+	.ch7i(STREAM7 ? 'd0 : ch7is),
 	.ch0wack(ch0wack),
 	.ch1wack(ch1wack),
 	.ch2wack(ch2wack),
@@ -420,14 +465,14 @@ mpmc10_cache_wb ucache1
 	.ch5wack(ch5wack),
 	.ch6wack(ch6wack),
 	.ch7wack(ch7wack),
-	.ch0o(),
-	.ch1o(ch1o),
-	.ch2o(ch2o),
-	.ch3o(ch3o),
-	.ch4o(ch4o),
-	.ch5o(),
-	.ch6o(ch6o),
-	.ch7o(ch7o)
+	.ch0o(ch0oa),
+	.ch1o(ch1oa),
+	.ch2o(ch2oa),
+	.ch3o(ch3oa),
+	.ch4o(ch4oa),
+	.ch5o(ch5oa),
+	.ch6o(ch6oa),
+	.ch7o(ch7oa)
 );
 
 mpmc10_strm_read_cache ustrm0
@@ -441,8 +486,68 @@ mpmc10_strm_read_cache ustrm0
 	.rclk(mem_ui_clk),
 	.rd(ch0is.stb & ~ch0is.we),
 	.radr({ch0is.adr[31:4],4'h0}),
-	.rdat(ch0o.dat),
+	.rdat(ch0ob.dat),
 	.hit(ch0_hit_s)
+);
+
+mpmc10_strm_read_cache ustrm1
+(
+	.rst(rst),
+	.wclk(mem_ui_clk),
+	.wr(uch==4'd1 && rd_data_valid_r),
+	.wadr({app_waddr[31:4],4'h0}),
+	.wdat(rd_data_r),
+//	.inv(1'b0),
+	.rclk(mem_ui_clk),
+	.rd(ch1is.stb & ~ch1is.we),
+	.radr({ch1is.adr[31:4],4'h0}),
+	.rdat(ch1ob.dat),
+	.hit(ch1_hit_s)
+);
+
+mpmc10_strm_read_cache ustrm2
+(
+	.rst(rst),
+	.wclk(mem_ui_clk),
+	.wr(uch==4'd2 && rd_data_valid_r),
+	.wadr({app_waddr[31:4],4'h0}),
+	.wdat(rd_data_r),
+//	.inv(1'b0),
+	.rclk(mem_ui_clk),
+	.rd(ch2is.stb & ~ch2is.we),
+	.radr({ch2is.adr[31:4],4'h0}),
+	.rdat(ch2ob.dat),
+	.hit(ch2_hit_s)
+);
+
+mpmc10_strm_read_cache ustrm3
+(
+	.rst(rst),
+	.wclk(mem_ui_clk),
+	.wr(uch==4'd3 && rd_data_valid_r),
+	.wadr({app_waddr[31:4],4'h0}),
+	.wdat(rd_data_r),
+//	.inv(1'b0),
+	.rclk(mem_ui_clk),
+	.rd(ch3is.stb & ~ch3is.we),
+	.radr({ch3is.adr[31:4],4'h0}),
+	.rdat(ch3ob.dat),
+	.hit(ch3_hit_s)
+);
+
+mpmc10_strm_read_cache ustrm4
+(
+	.rst(rst),
+	.wclk(mem_ui_clk),
+	.wr(uch==4'd4 && rd_data_valid_r),
+	.wadr({app_waddr[31:4],4'h0}),
+	.wdat(rd_data_r),
+//	.inv(1'b0),
+	.rclk(mem_ui_clk),
+	.rd(ch4is.stb & ~ch4is.we),
+	.radr({ch4is.adr[31:4],4'h0}),
+	.rdat(ch4ob.dat),
+	.hit(ch4_hit_s)
 );
 
 mpmc10_strm_read_cache ustrm5
@@ -456,20 +561,48 @@ mpmc10_strm_read_cache ustrm5
 	.rclk(mem_ui_clk),
 	.rd(ch5is.stb & ~ch5is.we),
 	.radr({ch5is.adr[31:4],4'h0}),
-	.rdat(ch5o.dat),
+	.rdat(ch5ob.dat),
 	.hit(ch5_hit_s)
 );
 
-always_comb
-begin
-	ch0o.ack = ch0_hit_s & ch0i.stb;
-end
+mpmc10_strm_read_cache ustrm6
+(
+	.rst(rst),
+	.wclk(mem_ui_clk),
+	.wr(uch==4'd6 && rd_data_valid_r),
+	.wadr({app_waddr[31:4],4'h0}),
+	.wdat(rd_data_r),
+//	.inv(1'b0),
+	.rclk(mem_ui_clk),
+	.rd(ch6is.stb & ~ch6is.we),
+	.radr({ch6is.adr[31:4],4'h0}),
+	.rdat(ch6ob.dat),
+	.hit(ch6_hit_s)
+);
 
-always_comb
-begin
-	ch5o.ack = ch5_hit_s & ch5i.stb;
-//	ch5o.dat = {8{16'h7C00}};
-end
+mpmc10_strm_read_cache ustrm7
+(
+	.rst(rst),
+	.wclk(mem_ui_clk),
+	.wr(uch==4'd7 && rd_data_valid_r),
+	.wadr({app_waddr[31:4],4'h0}),
+	.wdat(rd_data_r),
+//	.inv(1'b0),
+	.rclk(mem_ui_clk),
+	.rd(ch7is.stb & ~ch7is.we),
+	.radr({ch7is.adr[31:4],4'h0}),
+	.rdat(ch7ob.dat),
+	.hit(ch7_hit_s)
+);
+
+always_comb	ch0ob.ack = ch0_hit_s & ch0i.stb;
+always_comb	ch1ob.ack = ch1_hit_s & ch1i.stb;
+always_comb	ch2ob.ack = ch2_hit_s & ch2i.stb;
+always_comb	ch3ob.ack = ch3_hit_s & ch3i.stb;
+always_comb	ch4ob.ack = ch4_hit_s & ch4i.stb;
+always_comb	ch5ob.ack = ch5_hit_s & ch5i.stb;
+always_comb	ch6ob.ack = ch6_hit_s & ch6i.stb;
+always_comb	ch7ob.ack = ch7_hit_s & ch7i.stb;
 
 wire [7:0] sel;
 wire rd_rst_busy;
@@ -493,14 +626,14 @@ roundRobin rr1
 
 always_comb
 	case(req_sel)
-	4'd0:	req_fifoi <= ch0is2;
-	4'd1:	req_fifoi <= ch1is;
-	4'd2:	req_fifoi <= ch2is;
-	4'd3:	req_fifoi <= ch3is;
-	4'd4:	req_fifoi <= ch4is;
-	4'd5:	req_fifoi <= ch5is2;
-	4'd6:	req_fifoi <= ch6is;
-	4'd7:	req_fifoi <= ch7is;
+	4'd0:	req_fifoi <= STREAM0 ? ch0is2 : ch0is;
+	4'd1:	req_fifoi <= STREAM1 ? ch1is2 : ch1is;
+	4'd2:	req_fifoi <= STREAM2 ? ch2is2 : ch2is;
+	4'd3:	req_fifoi <= STREAM3 ? ch3is2 : ch3is;
+	4'd4:	req_fifoi <= STREAM4 ? ch4is2 : ch4is;
+	4'd5:	req_fifoi <= STREAM5 ? ch5is2 : ch5is;
+	4'd6:	req_fifoi <= STREAM6 ? ch6is2 : ch6is;
+	4'd7:	req_fifoi <= STREAM7 ? ch7is2 : ch7is;
 	default:	req_fifoi <= 'd0;
 	endcase
 
@@ -608,6 +741,15 @@ else begin
 //		app_wdf_data <= rmw_data;
 end
 
+mpmc10_rd_fifo_gen urdf1
+(
+	.rst(rst|mem_ui_rst),
+	.clk(mem_ui_clk),
+	.state(state),
+	.empty(empty),
+	.rd_rst_busy(rd_rst_busy),
+	.rd(rd_fifo)
+);
 
 mpmc10_state_machine_wb usm1
 (
@@ -618,7 +760,6 @@ mpmc10_state_machine_wb usm1
 	.wdf_rdy(app_wdf_rdy),
 	.fifo_empty(empty),
 	.rd_rst_busy(rd_rst_busy),
-	.rd_fifo(rd_fifo),
 	.fifo_out(req_fifoo),
 	.state(state),
 	.num_strips(num_strips),

@@ -39,7 +39,7 @@ import mpmc10_pkg::*;
 // Reservation status bit
 module mpmc10_resv_bit(clk, state, wch, we, cr, adr, resv_ch, resv_adr, rb);
 input clk;
-input [3:0] state;
+input mpmc10_state_t state;
 input we;
 input cr;
 input [3:0] wch;
@@ -50,7 +50,7 @@ output reg rb;
 
 integer n5;
 always_ff @(posedge clk)
-if (state==mpmc10_pkg::IDLE) begin
+if (state==IDLE) begin
   if (we) begin
     if (cr) begin
       rb <= mpmc10_pkg::FALSE;

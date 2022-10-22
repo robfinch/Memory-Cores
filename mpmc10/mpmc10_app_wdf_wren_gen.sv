@@ -38,7 +38,7 @@ import mpmc10_pkg::*;
 
 module mpmc10_app_wdf_wren_gen(clk, state, rdy, wren);
 input clk;
-input [3:0] state;
+input mpmc10_state_t state;
 input rdy;
 output reg wren;
 
@@ -47,7 +47,7 @@ output reg wren;
 always_ff @(posedge clk)
 begin
 	wren <= mpmc10_pkg::FALSE;
-	if (state==mpmc10_pkg::WRITE_DATA0 && rdy)
+	if (state==WRITE_DATA0 && rdy)
 		wren <= mpmc10_pkg::TRUE;
 end
 

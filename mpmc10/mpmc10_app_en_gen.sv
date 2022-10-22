@@ -38,7 +38,7 @@ import mpmc10_pkg::*;
 
 module mpmc10_app_en_gen(clk, state, rdy, strip_cnt, num_strips, en);
 input clk;
-input [3:0] state;
+input mpmc10_state_t state;
 input rdy;
 input [5:0] strip_cnt;
 input [5:0] num_strips;
@@ -49,13 +49,13 @@ output reg en;
 always_ff @(posedge clk)
 begin
 	en <= mpmc10_pkg::FALSE;
-	if (state==mpmc10_pkg::WRITE_DATA1)
+	if (state==WRITE_DATA1)
 		en <= mpmc10_pkg::TRUE;
-	else if (state==mpmc10_pkg::WRITE_DATA2 && !rdy)
+	else if (state==WRITE_DATA2 && !rdy)
 		en <= mpmc10_pkg::TRUE;
-	else if (state==mpmc10_pkg::READ_DATA0)
+	else if (state==READ_DATA0)
 		en <= mpmc10_pkg::TRUE;
-	else if (state==mpmc10_pkg::READ_DATA1 && !(rdy && strip_cnt==num_strips))
+	else if (state==READ_DATA1 && !(rdy && strip_cnt==num_strips))
 		en <= mpmc10_pkg::TRUE;
 end
 

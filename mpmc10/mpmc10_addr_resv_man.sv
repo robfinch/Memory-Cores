@@ -44,7 +44,7 @@ module mpmc10_addr_resv_man(rst, clk, state,
 parameter NAR = 2;
 input rst;
 input clk;
-input [3:0] state;
+input mpmc10_state_t state;
 input [31:0] adr0;
 input [31:0] adr1;
 input [31:0] adr2;
@@ -125,7 +125,7 @@ else begin
 		if (enc==n7 && |srr)
 			reserve_adr({1'b0,n7[2:0]},adr[n7]);
 
-	if (state==mpmc10_pkg::IDLE) begin
+	if (state==IDLE) begin
 		if (we) begin
 	    if (cr) begin
 	    	for (n7 = 0; n7 < NAR; n7 = n7 + 1)

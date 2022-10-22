@@ -40,7 +40,7 @@ import mpmc10_pkg::*;
 
 module mpmc10_req_strip_cnt(clk, state, wdf_rdy, rdy, num_strips, strip_cnt);
 input clk;
-input [3:0] state;
+input mpmc10_state_t state;
 input wdf_rdy;
 input rdy;
 input [5:0] num_strips;
