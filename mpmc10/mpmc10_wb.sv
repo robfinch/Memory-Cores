@@ -47,6 +47,7 @@ input rst,
 input clk100MHz,
 input mem_ui_rst,
 input mem_ui_clk,
+input calib_complete,
 output reg rstn,
 output [31:0] app_waddr,
 input app_rdy,
@@ -131,7 +132,7 @@ wb_write_request128_t req_fifoo;
 wb_write_request128_t ld;
 
 genvar g;
-integer n1,n2;
+integer n1,n2,n3;
 wire almost_full;
 wire [4:0] cnt;
 reg wr_fifo;
@@ -200,7 +201,7 @@ else begin
 			chcnt[n2] <= 'd0;
 end
 
-reg [7:0] pe_req;
+wire [7:0] pe_req;
 reg [7:0] chack;
 always_comb chack[0] = ch0o.ack;
 always_comb chack[1] = ch1o.ack;
@@ -211,8 +212,14 @@ always_comb chack[5] = ch5o.ack;
 always_comb chack[6] = ch6o.ack;
 always_comb chack[7] = ch7o.ack;
 
+reg [7:0] reqa;
+always_comb reqa[1] = (!ch1o.ack && ch1is.stb && !ch1is.we && chcnt[1]==CL) || (ch1is.we && ch1is.stb);
+always_comb reqa[5] = (!ch5o.ack && ch5is.stb && !ch5is.we && chcnt[5]==CL) || (ch5is.we && ch5is.stb);
+
+wire rste = mem_ui_rst||rst||!calib_complete;
+
 edge_det edch0 (
-	.rst(mem_ui_rst),
+	.rst(rste),
 	.clk(mem_ui_clk),
 	.ce(1'b1),
 	.i((!ch0o.ack && ch0is.stb && !ch0is.we && chcnt[0]==CL) || (ch0is.we && ch0is.stb)),
@@ -221,16 +228,16 @@ edge_det edch0 (
 	.ee()
 );
 edge_det edch1 (
-	.rst(mem_ui_rst),
+	.rst(rste),
 	.clk(mem_ui_clk),
 	.ce(1'b1),
-	.i((!ch1o.ack && ch1is.stb && !ch1is.we && chcnt[1]==CL) || (ch1is.we && ch1is.stb)),
+	.i(reqa[1]),
 	.pe(pe_req[1]),
 	.ne(),
 	.ee()
 );
 edge_det edch2 (
-	.rst(mem_ui_rst),
+	.rst(rste),
 	.clk(mem_ui_clk),
 	.ce(1'b1),
 	.i((!ch2o.ack && ch2is.stb && !ch2is.we && chcnt[2]==CL) || (ch2is.we && ch2is.stb)),
@@ -239,7 +246,7 @@ edge_det edch2 (
 	.ee()
 );
 edge_det edch3 (
-	.rst(mem_ui_rst),
+	.rst(rste),
 	.clk(mem_ui_clk),
 	.ce(1'b1),
 	.i((!ch3o.ack && ch3is.stb && !ch3is.we && chcnt[3]==CL) || (ch3is.we && ch3is.stb)),
@@ -248,7 +255,7 @@ edge_det edch3 (
 	.ee()
 );
 edge_det edch4 (
-	.rst(mem_ui_rst),
+	.rst(rste),
 	.clk(mem_ui_clk),
 	.ce(1'b1),
 	.i((!ch4o.ack && ch4is.stb && !ch4is.we && chcnt[4]==CL) || (ch4is.we && ch4is.stb)),
@@ -257,16 +264,16 @@ edge_det edch4 (
 	.ee()
 );
 edge_det edch5 (
-	.rst(mem_ui_rst),
+	.rst(rste),
 	.clk(mem_ui_clk),
 	.ce(1'b1),
-	.i((!ch5_hit_s && ch5is.stb && !ch5is.we && chcnt[5]==CL) || (ch5is.we && ch5is.stb)),
+	.i(reqa[5]),
 	.pe(pe_req[5]),
 	.ne(),
 	.ee()
 );
 edge_det edch6 (
-	.rst(mem_ui_rst),
+	.rst(rste),
 	.clk(mem_ui_clk),
 	.ce(1'b1),
 	.i((!ch6o.ack && ch6is.stb && !ch6is.we && chcnt[6]==CL) || (ch6is.we && ch6is.stb)),
@@ -275,7 +282,7 @@ edge_det edch6 (
 	.ee()
 );
 edge_det edch7 (
-	.rst(mem_ui_rst),
+	.rst(rste),
 	.clk(mem_ui_clk),
 	.ce(1'b1),
 	.i((!ch7o.ack && ch7is.stb && !ch7is.we && chcnt[7]==CL) || (ch7is.we && ch7is.stb)),
@@ -284,15 +291,12 @@ edge_det edch7 (
 	.ee()
 );
 wire [3:0] req_sel;
-generate begin : gReq
-	for (g = 0; g < 8; g = g + 1)
-		always_ff @(posedge mem_ui_clk)
-			if (pe_req[g])
-				req[g] <= 1'b1;
-			else if (req_sel==g[3:0] || chack[g])
-				req[g] <= 1'b0;
-end
-endgenerate
+always_ff @(posedge mem_ui_clk)
+	for (n3 = 0; n3 < 8; n3 = n3 + 1)
+		if (pe_req[n3])
+			req[n3] <= 1'b1;
+		else if ((req_sel==n3[3:0]) || chack[n3])
+			req[n3] <= 1'b0;
 
 // Register signals onto mem_ui_clk domain
 mpmc10_sync128_wb usyn0
@@ -755,6 +759,7 @@ mpmc10_state_machine_wb usm1
 (
 	.rst(rst|mem_ui_rst),
 	.clk(mem_ui_clk),
+	.calib_complete(calib_complete),
 	.to(tocnt[9]),
 	.rdy(app_rdy),
 	.wdf_rdy(app_wdf_rdy),

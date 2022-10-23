@@ -36,11 +36,12 @@
 //
 import mpmc10_pkg::*;
 
-module mpmc10_state_machine_wb(rst, clk, to, rdy, wdf_rdy, fifo_empty,
+module mpmc10_state_machine_wb(rst, clk, calib_complete, to, rdy, wdf_rdy, fifo_empty,
 	rd_rst_busy, fifo_out, state,
 	num_strips, req_strip_cnt, resp_strip_cnt, rd_data_valid);
 input rst;
 input clk;
+input calib_complete;
 input to;							// state machine time-out
 input rdy;
 input wdf_rdy;
@@ -64,7 +65,7 @@ if (rst)
 else begin
 	case(state)
 	IDLE:
-		if (!fifo_empty && !rd_rst_busy)
+		if (!fifo_empty && !rd_rst_busy && calib_complete)
 			next_state <= PRESET1;
 		else
 			next_state <= IDLE;
@@ -125,8 +126,8 @@ else begin
 	default:	next_state <= IDLE;
 	endcase
 
-	// Is the state machine hung?
-	if (to)
+	// Is the state machine hung? Do not time out during calibration.
+	if (to && calib_complete)
 		next_state <= IDLE;
 end
 
