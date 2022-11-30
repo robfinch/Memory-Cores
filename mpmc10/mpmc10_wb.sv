@@ -130,6 +130,8 @@ assign ch7o = STREAM7 ? ch7ob : ch7oa;
 wb_write_request128_t req_fifoi;
 wb_write_request128_t req_fifoo;
 wb_write_request128_t ld;
+wb_write_request128_t fifo_mask;
+wb_write_request128_t fifoo = req_fifoo & fifo_mask;
 
 genvar g;
 integer n1,n2,n3;
@@ -148,7 +150,7 @@ reg [3:0] uch;		// update channel
 wire [15:0] wmask;
 wire [15:0] mem_wdf_mask2;
 reg [127:0] dat128;
-wire [255:0] dat256;
+wire [127:0] dat256;
 wire [3:0] resv_ch [0:NAR-1];
 wire [31:0] resv_adr [0:NAR-1];
 wire rb1;
@@ -396,8 +398,8 @@ begin
 	ld.bte <= wishbone_pkg::LINEAR;
 	ld.cti <= wishbone_pkg::CLASSIC;
 	ld.blen <= 'd0;
-	ld.cyc <= req_fifoo.stb && !req_fifoo.we && rd_data_valid_r && (uch!=4'd0 && uch!=4'd5);
-	ld.stb <= req_fifoo.stb && !req_fifoo.we && rd_data_valid_r && (uch!=4'd0 && uch!=4'd5);
+	ld.cyc <= fifoo.stb && !fifoo.we && rd_data_valid_r && (uch!=4'd0 && uch!=4'd5 && uch!=4'd15);
+	ld.stb <= fifoo.stb && !fifoo.we && rd_data_valid_r && (uch!=4'd0 && uch!=4'd5 && uch!=4'd15);
 	ld.we <= 1'b0;
 	ld.adr <= {app_waddr[31:4],4'h0};
 	ld.dat <= {app_waddr[31:14],8'h00,rd_data_r};	// modified=false,tag = high order address bits
@@ -441,8 +443,8 @@ mpmc10_cache_wb ucache1
 (
 	.rst(mem_ui_rst),
 	.wclk(mem_ui_clk),
-	.inv(),
-	.wchi(req_fifoo),
+	.inv(1'b0),
+	.wchi(fifoo),
 	.wcho(),
 	.ld(ld),
 	.ch0clk(STREAM0 ? 1'b0 : ch0clk),
@@ -612,7 +614,7 @@ wire [7:0] sel;
 wire rd_rst_busy;
 wire wr_rst_busy;
 wire cd_sel;
-change_det #(.WID(8)) ucdsel (.rst(rst), .clk(mem_ui_clk), .i(sel), .cd(cd_sel));
+change_det #(.WID(8)) ucdsel (.rst(rst), .ce(1'b1), .clk(mem_ui_clk), .i(sel), .cd(cd_sel));
 
 always_comb	//ff @(posedge mem_ui_clk)
 	wr_fifo = |sel & ~almost_full & ~wr_rst_busy & cd_sel;
@@ -638,7 +640,11 @@ always_comb
 	4'd5:	req_fifoi <= STREAM5 ? ch5is2 : ch5is;
 	4'd6:	req_fifoi <= STREAM6 ? ch6is2 : ch6is;
 	4'd7:	req_fifoi <= STREAM7 ? ch7is2 : ch7is;
-	default:	req_fifoi <= 'd0;
+	default:	
+		begin
+			req_fifoi <= 'd0;
+			req_fifoi.cid <= 4'd15;
+		end
 	endcase
 
 mpmc10_fifo ufifo1
@@ -659,11 +665,11 @@ mpmc10_fifo ufifo1
 );
 
 always_comb
-	uch <= req_fifoo.cid;
+	uch <= fifoo.cid;
 always_comb
-	num_strips <= req_fifoo.blen;
+	num_strips <= fifoo.blen;
 always_comb
-	adr <= req_fifoo.adr;
+	adr <= fifoo.adr;
 
 wire [2:0] app_addr3;	// dummy to make up 32-bits
 
@@ -695,7 +701,7 @@ mpmc10_set_write_mask_wb uswm1
 (
 	.clk(mem_ui_clk),
 	.state(state),
-	.we(req_fifoo.we), 
+	.we(fifoo.we), 
 	.sel(req_fifoo.sel[15:0]),
 	.adr(adr|{req_strip_cnt[0],4'h0}),
 	.mask(wmask)
@@ -739,7 +745,7 @@ always_ff @(posedge mem_ui_clk)
 if (mem_ui_rst)
   app_wdf_data <= 128'd0;
 else begin
-	if (state==PRESET2)
+	if (state==PRESET3)
 		app_wdf_data <= dat128x;
 //	else if (state==WRITE_TRAMP1)
 //		app_wdf_data <= rmw_data;
@@ -752,8 +758,19 @@ mpmc10_rd_fifo_gen urdf1
 	.state(state),
 	.empty(empty),
 	.rd_rst_busy(rd_rst_busy),
+	.calib_complete(calib_complete),
 	.rd(rd_fifo)
 );
+
+always_ff @(posedge mem_ui_clk)
+if (rst)
+	fifo_mask <= 'd0;
+else begin
+	if (rd_fifo)
+		fifo_mask <= {$bits(fifo_mask){1'b1}};
+	else if (state==IDLE)
+		fifo_mask <= 'd0;
+end
 
 mpmc10_state_machine_wb usm1
 (
@@ -847,10 +864,10 @@ mpmc10_resv_bit ursb1
 (
 	.clk(mem_ui_clk),
 	.state(state),
-	.wch(req_fifoo.cid),
-	.we(req_fifoo.stb & req_fifoo.we),
-	.cr(req_fifoo.csr & req_fifoo.we),
-	.adr(req_fifoo.adr),
+	.wch(fifoo.cid),
+	.we(fifoo.stb & fifoo.we),
+	.cr(fifoo.csr & fifoo.we),
+	.adr(fifoo.adr),
 	.resv_ch(resv_ch),
 	.resv_adr(resv_adr),
 	.rb(rb1)
@@ -877,10 +894,10 @@ mpmc10_addr_resv_man #(.NAR(NAR)) ursvm1
 	.sr5(1'b0),
 	.sr6(ch6is.csr & ch6is.stb & ~ch6is.we),
 	.sr7(ch7is.csr & ch7is.stb & ~ch7is.we),
-	.wch(req_fifoo.stb ? req_fifoo.cid : 4'd15),
-	.we(req_fifoo.stb & req_fifoo.we),
-	.wadr(req_fifoo.adr),
-	.cr(req_fifoo.csr & req_fifoo.stb & req_fifoo.we),
+	.wch(fifoo.stb ? fifoo.cid : 4'd15),
+	.we(fifoo.stb & fifoo.we),
+	.wadr(fifoo.adr),
+	.cr(fifoo.csr & fifoo.stb & fifoo.we),
 	.resv_ch(resv_ch),
 	.resv_adr(resv_adr)
 );

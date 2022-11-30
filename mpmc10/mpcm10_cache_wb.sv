@@ -91,13 +91,15 @@ end
 reg [31:0] radrr [0:8];
 reg wchi_stb, wchi_stb_r;
 reg [15:0] wchi_sel, wchi_sel_r;
-reg [31:0] wchi_adr;
+reg [31:0] wchi_adr, wchi_adr1;
 reg [127:0] wchi_dat;
 
 mpmc10_quad_cache_line_t doutb [0:8];
 mpmc10_quad_cache_line_t wrdata, wdata;
 
 reg [31:0] wadr;
+reg [127:0] lddat1, lddat2;
+reg [31:0] wadr2;
 reg wstrb;
 reg [$clog2(CACHE_ASSOC)-1:0] wway;
 
@@ -140,7 +142,8 @@ always_ff @(posedge ch5clk) radrr[5] <= ch5i.adr;
 always_ff @(posedge ch6clk) radrr[6] <= ch6i.adr;
 always_ff @(posedge ch7clk) radrr[7] <= ch7i.adr;
 always_ff @(posedge wclk) radrr[8] <= ld.cyc ? ld.adr : wchi.adr;
-always_ff @(posedge wclk) wchi_adr <= radrr[8];
+always_ff @(posedge wclk) wchi_adr1 <= wchi.adr;
+always_ff @(posedge wclk) wchi_adr <= wchi_adr1;
 
 always_ff @(posedge ch0clk) stb0 <= ch0i.stb;
 always_ff @(posedge ch1clk) stb1 <= ch1i.stb;
@@ -159,7 +162,7 @@ always_comb rstb[4] <= ch4i.stb & ~ch4i.we;
 always_comb rstb[5] <= ch5i.stb & ~ch5i.we;
 always_comb rstb[6] <= ch6i.stb & ~ch6i.we;
 always_comb rstb[7] <= ch7i.stb & ~ch7i.we;
-always_comb rstb[8] <= ld.stb | wchi.stb;
+always_comb rstb[8] <= ld.cyc ? ld.stb : wchi.stb;
 
 always_ff @(posedge wclk) wchi_stb_r <= wchi.stb;
 always_ff @(posedge wclk) wchi_stb <= wchi_stb_r;
@@ -388,7 +391,7 @@ else begin
 		b1 <= vbit[1][wadr[HIBIT:LOBIT]];
 		b2 <= vbit[2][wadr[HIBIT:LOBIT]];
 	end
-	if (|wchi_sel & wchi_stb & ~(ld.cyc|ldcycd1|ldcycd2))
+	if (|hit8a & |wchi_sel & wchi_stb & wchi.we & ~(ld.cyc|ldcycd1|ldcycd2))
 		vbit[wway][wadr[HIBIT:LOBIT]] <= 1'b1;
 	else if (inv)
 		vbit[wway][wadr[HIBIT:LOBIT]] <= 1'b0;
@@ -403,10 +406,8 @@ begin
 		wadr <= ld.adr;
 	else if (wchi_stb)
 		wadr <= wchi_adr;
-	wstrb <= ldcycd2 | (wchi_stb & |hit8a); 
+	wstrb <= ldcycd2 | (wchi_stb & |hit8a & wchi.we);
 end
-reg [127:0] lddat1, lddat2;
-reg [31:0] wadr2;
 always_ff @(posedge wclk)
 	wadr2 <= wadr;
 always_ff @(posedge wclk)
@@ -443,22 +444,22 @@ generate begin : gWrData
 			m2 <= wrdata.lines[2].modified;
 		end
 		if (!(ld.cyc|ldcycd1|ldcycd2)) begin
-			if (wchi_stb & hit8a[0])
+			if (wchi_stb & hit8a[0] & wchi.we)
 				wdata.lines[0].modified <= 1'b1;
 			else
 				wdata.lines[0].modified <= wrdata.lines[0].modified;
-			if (wchi_stb & hit8a[1])
+			if (wchi_stb & hit8a[1] & wchi.we)
 				wdata.lines[1].modified <= 1'b1;
 			else
-				wdata.lines[1].modified <= wrdata.lines[0].modified;
-			if (wchi_stb & hit8a[2])
+				wdata.lines[1].modified <= wrdata.lines[1].modified;
+			if (wchi_stb & hit8a[2] & wchi.we)
 				wdata.lines[2].modified <= 1'b1;
 			else
-				wdata.lines[2].modified <= wrdata.lines[0].modified;
-			if (wchi_stb & hit8a[3])
+				wdata.lines[2].modified <= wrdata.lines[2].modified;
+			if (wchi_stb & hit8a[3] & wchi.we)
 				wdata.lines[3].modified <= 1'b1;
 			else
-				wdata.lines[3].modified <= wrdata.lines[0].modified;
+				wdata.lines[3].modified <= wrdata.lines[3].modified;
 			// Tag stays the same, it was hit
 			wdata.lines[0].tag <= wrdata.lines[0].tag;
 			wdata.lines[1].tag <= wrdata.lines[1].tag;
@@ -477,22 +478,22 @@ generate begin : gWrData
 				wdata.lines[3].data[g*8+7:g*8] <= wrdata.lines[2].data[g*8+7:g*8];
 			end
 			if (!(ld.cyc|ldcycd1|ldcycd2)) begin
-				if (wchi_stb & hit8a[0])
+				if (wchi_stb & hit8a[0] & wchi.we)
 					wdata.lines[0].data[g*8+7:g*8] <= wchi_sel[g] ? wchi_dat[g*8+7:g*8] : wrdata.lines[0].data[g*8+7:g*8];
 				else
 					wdata.lines[0].data[g*8+7:g*8] <= wrdata.lines[0].data[g*8+7:g*8];
-				if (wchi_stb & hit8a[1])
+				if (wchi_stb & hit8a[1] & wchi.we)
 					wdata.lines[1].data[g*8+7:g*8] <= wchi_sel[g] ? wchi_dat[g*8+7:g*8] : wrdata.lines[1].data[g*8+7:g*8];
 				else
-					wdata.lines[1].data[g*8+7:g*8] <= wrdata.lines[0].data[g*8+7:g*8];
-				if (wchi_stb & hit8a[2])
+					wdata.lines[1].data[g*8+7:g*8] <= wrdata.lines[1].data[g*8+7:g*8];
+				if (wchi_stb & hit8a[2] & wchi.we)
 					wdata.lines[2].data[g*8+7:g*8] <= wchi_sel[g] ? wchi_dat[g*8+7:g*8] : wrdata.lines[2].data[g*8+7:g*8];
 				else
-					wdata.lines[2].data[g*8+7:g*8] <= wrdata.lines[0].data[g*8+7:g*8];
-				if (wchi_stb & hit8a[3])
+					wdata.lines[2].data[g*8+7:g*8] <= wrdata.lines[2].data[g*8+7:g*8];
+				if (wchi_stb & hit8a[3] & wchi.we)
 					wdata.lines[3].data[g*8+7:g*8] <= wchi_sel[g] ? wchi_dat[g*8+7:g*8] : wrdata.lines[3].data[g*8+7:g*8];
 				else
-					wdata.lines[3].data[g*8+7:g*8] <= wrdata.lines[0].data[g*8+7:g*8];
+					wdata.lines[3].data[g*8+7:g*8] <= wrdata.lines[3].data[g*8+7:g*8];
 			end
 		end
 end
@@ -507,7 +508,7 @@ if (rst)
 	wack <= 1'b0;
 else begin
 	wack <= 1'b0;
-	if (wchi.stb & ~ld.stb)
+	if (wchi.stb & ~ld.stb & wchi.we)
 		wack <= 1'b1;
 end
 assign wcho.ack = wack & wchi.stb;

@@ -50,13 +50,13 @@ always_ff @(posedge clk)
 begin
 	en <= mpmc10_pkg::FALSE;
 	if (state==WRITE_DATA1)
-		en <= mpmc10_pkg::TRUE;
-	else if (state==WRITE_DATA2 && !rdy)
-		en <= mpmc10_pkg::TRUE;
+		en <= TRUE;
+	else if (state==WRITE_DATA2 && !en)
+		en <= TRUE;
 	else if (state==READ_DATA0)
-		en <= mpmc10_pkg::TRUE;
+		en <= TRUE;
 	else if (state==READ_DATA1 && !(rdy && strip_cnt==num_strips))
-		en <= mpmc10_pkg::TRUE;
+		en <= TRUE;
 end
 
 endmodule

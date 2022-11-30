@@ -45,7 +45,7 @@ output reg [WID-1:0] dato;
 
 // Setting the write data
 always_ff @(posedge clk)
-if (state==IDLE) begin
+if (state==PRESET2) begin
 	dato <= dati;
 end
 

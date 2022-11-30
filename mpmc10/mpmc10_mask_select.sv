@@ -49,7 +49,7 @@ always_ff @(posedge clk)
 if (rst)
   mask2 <= 16'h0000;
 else begin
-	if (state==PRESET1)
+	if (state==PRESET2)
 		mask2 <= wmask;
 	// For RMW cycle all bytes are writtten.
 	else if (state==WRITE_TRAMP1)
@@ -59,7 +59,7 @@ always_ff @(posedge clk)
 if (rst)
   mask <= 16'h0000;
 else begin
-	if (state==PRESET2)
+	if (state==PRESET3)
 		mask <= mask2;
 end
 
