@@ -90,7 +90,7 @@ end
 
 reg [31:0] radrr [0:8];
 reg wchi_stb, wchi_stb_r;
-reg [15:0] wchi_sel, wchi_sel_r;
+reg [15:0] wchi_sel;
 reg [31:0] wchi_adr, wchi_adr1;
 reg [127:0] wchi_dat;
 
@@ -166,8 +166,7 @@ always_comb rstb[8] <= ld.cyc ? ld.stb : wchi.stb;
 
 always_ff @(posedge wclk) wchi_stb_r <= wchi.stb;
 always_ff @(posedge wclk) wchi_stb <= wchi_stb_r;
-always_ff @(posedge wclk) wchi_sel_r <= wchi.sel;
-always_ff @(posedge wclk) wchi_sel <= wchi_sel_r;
+always_ff @(posedge wclk) wchi_sel <= wchi.sel;
 always_ff @(posedge wclk) wchi_dat <= wchi.dat;
 
 reg [8:0] rclkp;
@@ -404,9 +403,8 @@ always_ff @(posedge wclk)
 begin
 	if (ld.cyc)
 		wadr <= ld.adr;
-	else if (wchi_stb)
-		wadr <= wchi_adr;
-	wstrb <= ldcycd2 | (wchi_stb & |hit8a & wchi.we);
+	else if (wchi.stb)
+		wadr <= wchi.adr;
 end
 always_ff @(posedge wclk)
 	wadr2 <= wadr;
@@ -414,6 +412,8 @@ always_ff @(posedge wclk)
 	lddat1 <= ld.dat;
 always_ff @(posedge wclk)
 	lddat2 <= lddat1;
+always_ff @(posedge wclk)
+	wstrb <= ldcycd2 | (wchi_stb & |hit8a & wchi.we);
 	
 // Merge write data into cache line.
 // For a load due to a read miss the entire line is updated.
@@ -508,7 +508,7 @@ if (rst)
 	wack <= 1'b0;
 else begin
 	wack <= 1'b0;
-	if (wchi.stb & ~ld.stb & wchi.we)
+	if (wchi_stb & ~ld.stb & wchi.we)
 		wack <= 1'b1;
 end
 assign wcho.ack = wack & wchi.stb;
