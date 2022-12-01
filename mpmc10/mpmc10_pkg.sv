@@ -66,7 +66,7 @@ typedef enum logic [3:0] {
 
 typedef struct packed
 {
-	logic [18:0] tag;
+	logic [31:4] tag;
 	logic modified;
 	logic [127:0] data;
 } mpmc10_cache_line_t;

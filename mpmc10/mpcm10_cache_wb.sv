@@ -295,15 +295,15 @@ generate begin : gReaddat
 		always_comb vbito7a[g] <= vbit[g][radrr[7][HIBIT:LOBIT]];
 		always_comb vbito8a[g] <= vbit[g][radrr[8][HIBIT:LOBIT]];
 		
-		always_ff @(posedge ch0clk)	hit0a[g] = (doutb[0].lines[g].tag==radrr[0][31:HIBIT+1]) && (vbito0a[g]==1'b1);
-		always_ff @(posedge ch1clk)	hit1a[g] = (doutb[1].lines[g].tag==radrr[1][31:HIBIT+1]) && (vbito1a[g]==1'b1);
-		always_ff @(posedge ch2clk)	hit2a[g] = (doutb[2].lines[g].tag==radrr[2][31:HIBIT+1]) && (vbito2a[g]==1'b1);
-		always_ff @(posedge ch3clk)	hit3a[g] = (doutb[3].lines[g].tag==radrr[3][31:HIBIT+1]) && (vbito3a[g]==1'b1);
-		always_ff @(posedge ch4clk)	hit4a[g] = (doutb[4].lines[g].tag==radrr[4][31:HIBIT+1]) && (vbito4a[g]==1'b1);
-		always_ff @(posedge ch5clk)	hit5a[g] = (doutb[5].lines[g].tag==radrr[5][31:HIBIT+1]) && (vbito5a[g]==1'b1);
-		always_ff @(posedge ch6clk)	hit6a[g] = (doutb[6].lines[g].tag==radrr[6][31:HIBIT+1]) && (vbito6a[g]==1'b1);
-		always_ff @(posedge ch7clk)	hit7a[g] = (doutb[7].lines[g].tag==radrr[7][31:HIBIT+1]) && (vbito7a[g]==1'b1);
-		always_ff @(posedge wclk)	hit8a[g] = (doutb[8].lines[g].tag==radrr[8][31:HIBIT+1]) && (vbito8a[g]==1'b1);
+		always_ff @(posedge ch0clk)	hit0a[g] = (doutb[0].lines[g].tag==radrr[0][31:LOBIT]) && (vbito0a[g]==1'b1);
+		always_ff @(posedge ch1clk)	hit1a[g] = (doutb[1].lines[g].tag==radrr[1][31:LOBIT]) && (vbito1a[g]==1'b1);
+		always_ff @(posedge ch2clk)	hit2a[g] = (doutb[2].lines[g].tag==radrr[2][31:LOBIT]) && (vbito2a[g]==1'b1);
+		always_ff @(posedge ch3clk)	hit3a[g] = (doutb[3].lines[g].tag==radrr[3][31:LOBIT]) && (vbito3a[g]==1'b1);
+		always_ff @(posedge ch4clk)	hit4a[g] = (doutb[4].lines[g].tag==radrr[4][31:LOBIT]) && (vbito4a[g]==1'b1);
+		always_ff @(posedge ch5clk)	hit5a[g] = (doutb[5].lines[g].tag==radrr[5][31:LOBIT]) && (vbito5a[g]==1'b1);
+		always_ff @(posedge ch6clk)	hit6a[g] = (doutb[6].lines[g].tag==radrr[6][31:LOBIT]) && (vbito6a[g]==1'b1);
+		always_ff @(posedge ch7clk)	hit7a[g] = (doutb[7].lines[g].tag==radrr[7][31:LOBIT]) && (vbito7a[g]==1'b1);
+		always_ff @(posedge wclk)	hit8a[g] = (doutb[8].lines[g].tag==radrr[8][31:LOBIT]) && (vbito8a[g]==1'b1);
 	end
 	always_comb ch0o.ack = (|hit0a & stb0) | (ch0wack & stb0);
 	always_comb ch1o.ack = (|hit1a & stb1) | (ch1wack & stb1);
@@ -426,11 +426,11 @@ generate begin : gWrData
 	always_ff @(posedge wclk)
 	begin
 		if (ldcycd2) begin
-			wdata.lines[0].tag <= {5'd0,wadr2[31:HIBIT+1]};			// set tag
+			wdata.lines[0].tag <= wadr2[31:LOBIT];			// set tag
 			wdata.lines[1].tag <= t0;
 			wdata.lines[2].tag <= t1;
 			wdata.lines[3].tag <= t2;
-			wdata.lines[0].modified <= 1'b0;											// clear modified flags
+			wdata.lines[0].modified <= 1'b0;						// clear modified flags
 			wdata.lines[1].modified <= m0;
 			wdata.lines[2].modified <= m1;
 			wdata.lines[3].modified <= m2;
