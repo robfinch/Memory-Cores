@@ -48,7 +48,7 @@ output reg en;
 // is not true, the command must be retried.
 always_ff @(posedge clk)
 begin
-	en <= mpmc10_pkg::FALSE;
+	en <= FALSE;
 	if (state==WRITE_DATA1)
 		en <= TRUE;
 	else if (state==WRITE_DATA2 && !en)

@@ -373,6 +373,7 @@ always_ff @(posedge wclk)
 	ldcycd1 <= ld.cyc;
 always_ff @(posedge wclk)
 	ldcycd2 <= ldcycd1;
+
 always_ff @(posedge wclk)
 if (rst) begin
 	for (n = 0; n < 4; n = n + 1)

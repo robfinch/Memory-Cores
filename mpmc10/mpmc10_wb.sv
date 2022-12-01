@@ -163,6 +163,7 @@ wire ch4_hit_s, ch5_hit_s, ch6_hit_s, ch7_hit_s;
 wire ch0_hit_ne, ch5_hit_ne;
 
 always_ff @(posedge mem_ui_clk)
+if (app_rd_data_valid)
 	rd_data_r <= app_rd_data;
 always_ff @(posedge mem_ui_clk)
 	rd_data_valid_r <= app_rd_data_valid;
@@ -398,12 +399,12 @@ begin
 	ld.bte <= wishbone_pkg::LINEAR;
 	ld.cti <= wishbone_pkg::CLASSIC;
 	ld.blen <= 'd0;
-	ld.cyc <= fifoo.stb && !fifoo.we && rd_data_valid_r && (uch!=4'd0 && uch!=4'd5 && uch!=4'd15);
+	ld.cyc <= fifoo.cyc && !fifoo.we && rd_data_valid_r && (uch!=4'd0 && uch!=4'd5 && uch!=4'd15);
 	ld.stb <= fifoo.stb && !fifoo.we && rd_data_valid_r && (uch!=4'd0 && uch!=4'd5 && uch!=4'd15);
 	ld.we <= 1'b0;
 	ld.adr <= {app_waddr[31:4],4'h0};
-	ld.dat <= {app_waddr[31:14],8'h00,rd_data_r};	// modified=false,tag = high order address bits
-	ld.sel <= {36{1'b1}};		// update all bytes
+	ld.dat <= rd_data_r;
+	ld.sel <= {16{1'b1}};		// update all bytes
 end
 
 reg ch0wack;
@@ -697,22 +698,13 @@ mpmc10_waddr_gen uwag1
 	.addr(app_waddr)
 );
 
-mpmc10_set_write_mask_wb uswm1
-(
-	.clk(mem_ui_clk),
-	.state(state),
-	.we(fifoo.we), 
-	.sel(req_fifoo.sel[15:0]),
-	.adr(adr|{req_strip_cnt[0],4'h0}),
-	.mask(wmask)
-);
-
 mpmc10_mask_select unsks1
 (
 	.rst(mem_ui_rst),
 	.clk(mem_ui_clk),
 	.state(state),
-	.wmask(wmask),
+	.we(fifoo.we), 
+	.wmask(req_fifoo.sel[15:0]),
 	.mask(app_wdf_mask),
 	.mask2(mem_wdf_mask2)
 );

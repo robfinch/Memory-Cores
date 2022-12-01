@@ -46,9 +46,9 @@ output reg wren;
 // true. It must be after en is asserted to set the command and address.
 always_ff @(posedge clk)
 begin
-	wren <= mpmc10_pkg::FALSE;
+	wren <= FALSE;
 	if (state==WRITE_DATA3)// WRITE_DATA0 && rdy)
-		wren <= mpmc10_pkg::TRUE;
+		wren <= TRUE;
 end
 
 endmodule
