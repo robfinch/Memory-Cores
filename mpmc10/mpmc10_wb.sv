@@ -1,7 +1,7 @@
 `timescale 1ns / 1ps
 // ============================================================================
 //        __
-//   \\__/ o\    (C) 2015-2022  Robert Finch, Waterloo
+//   \\__/ o\    (C) 2015-2023  Robert Finch, Waterloo
 //    \  __ /    All rights reserved.
 //     \/_//     robfinch<remove>@finitron.ca
 //       ||
@@ -32,12 +32,18 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
-// 16000 LUTs, 130 BRAM (64kB cache)
+// 26500 LUTs, 130 BRAM (64kB cache)
+// 21400 LUTs no AMO
 //
 // Read channels always wait until there is valid data in the cache.
 // ============================================================================
 //
 //`define RED_SCREEN	1'b1
+`define SUPPORT_AMO	1'b1
+//`define SUPPORT_AMO_TETRA	1'b1
+//`define SUPPORT_AMO_OCTA 1'b1
+//`define SUPPORT_AMO_SHIFT	1'b1
+//`define SUPPORT_AMO_MULTI_SHIFT	1'b1
 
 import wishbone_pkg::*;
 import mpmc10_pkg::*;
@@ -63,78 +69,98 @@ output app_wdf_end,
 input [127:0] app_rd_data,
 input app_rd_data_end,
 input ch0clk, ch1clk, ch2clk, ch3clk, ch4clk, ch5clk, ch6clk, ch7clk,
-input wb_write_request128_t ch0i,
-output wb_read_response128_t ch0o,
-input wb_write_request128_t ch1i,
-output wb_read_response128_t ch1o,
-input wb_write_request128_t ch2i,
-output wb_read_response128_t ch2o,
-input wb_write_request128_t ch3i,
-output wb_read_response128_t ch3o,
-input wb_write_request128_t ch4i,
-output wb_read_response128_t ch4o,
-input wb_write_request128_t ch5i,
-output wb_read_response128_t ch5o,
-input wb_write_request128_t ch6i,
-output wb_read_response128_t ch6o,
-input wb_write_request128_t ch7i,
-output wb_read_response128_t ch7o,
+input wb_cmd_request128_t ch0i,
+output wb_cmd_response128_t ch0o,
+input wb_cmd_request128_t ch1i,
+output wb_cmd_response128_t ch1o,
+input wb_cmd_request128_t ch2i,
+output wb_cmd_response128_t ch2o,
+input wb_cmd_request128_t ch3i,
+output wb_cmd_response128_t ch3o,
+input wb_cmd_request128_t ch4i,
+output wb_cmd_response128_t ch4o,
+input wb_cmd_request128_t ch5i,
+output wb_cmd_response128_t ch5o,
+input wb_cmd_request128_t ch6i,
+output wb_cmd_response128_t ch6o,
+input wb_cmd_request128_t ch7i,
+output wb_cmd_response128_t ch7o,
 output mpmc10_state_t state
 );
 parameter NAR = 2;			// Number of address reservations
 parameter CL = 3'd4;		// Cache read latency
-parameter STREAM0 = TRUE;
-parameter STREAM1 = FALSE;
-parameter STREAM2 = FALSE;
-parameter STREAM3 = FALSE;
-parameter STREAM4 = FALSE;
-parameter STREAM5 = TRUE;
-parameter STREAM6 = FALSE;
-parameter STREAM7 = FALSE;
+parameter STREAM0 = 1'b1;
+parameter STREAM1 = 1'b0;
+parameter STREAM2 = 1'b0;
+parameter STREAM3 = 1'b0;
+parameter STREAM4 = 1'b0;
+parameter STREAM5 = 1'b1;
+parameter STREAM6 = 1'b0;
+parameter STREAM7 = 1'b0;
+parameter RMW0 = 1'b0;
+parameter RMW1 = 1'b1;
+parameter RMW2 = 1'b0;
+parameter RMW3 = 1'b0;
+parameter RMW4 = 1'b0;
+parameter RMW5 = 1'b0;
+parameter RMW6 = 1'b0;
+parameter RMW7 = 1'b1;
 
-wb_write_request128_t ch0is;
-wb_write_request128_t ch0is2;
-wb_write_request128_t ch1is;
-wb_write_request128_t ch1is2;
-wb_write_request128_t ch2is;
-wb_write_request128_t ch2is2;
-wb_write_request128_t ch3is;
-wb_write_request128_t ch3is2;
-wb_write_request128_t ch4is;
-wb_write_request128_t ch4is2;
-wb_write_request128_t ch5is;
-wb_write_request128_t ch5is2;
-wb_write_request128_t ch6is;
-wb_write_request128_t ch6is2;
-wb_write_request128_t ch7is;
-wb_write_request128_t ch7is2;
+wb_cmd_request128_t ch0is;
+wb_cmd_request128_t ch0is2;
+wb_cmd_request128_t ch1is;
+wb_cmd_request128_t ch1is2;
+wb_cmd_request128_t ch2is;
+wb_cmd_request128_t ch2is2;
+wb_cmd_request128_t ch3is;
+wb_cmd_request128_t ch3is2;
+wb_cmd_request128_t ch4is;
+wb_cmd_request128_t ch4is2;
+wb_cmd_request128_t ch5is;
+wb_cmd_request128_t ch5is2;
+wb_cmd_request128_t ch6is;
+wb_cmd_request128_t ch6is2;
+wb_cmd_request128_t ch7is;
+wb_cmd_request128_t ch7is2;
 
-wb_read_response128_t ch0oa, ch0ob;
-wb_read_response128_t ch1oa, ch1ob;
-wb_read_response128_t ch2oa, ch2ob;
-wb_read_response128_t ch3oa, ch3ob;
-wb_read_response128_t ch4oa, ch4ob;
-wb_read_response128_t ch5oa, ch5ob;
-wb_read_response128_t ch6oa, ch6ob;
-wb_read_response128_t ch7oa, ch7ob;
+wb_cmd_response128_t ch0oa, ch0ob, ch0oc;
+wb_cmd_response128_t ch1oa, ch1ob, ch1oc;
+wb_cmd_response128_t ch2oa, ch2ob, ch2oc;
+wb_cmd_response128_t ch3oa, ch3ob, ch3oc;
+wb_cmd_response128_t ch4oa, ch4ob, ch4oc;
+wb_cmd_response128_t ch5oa, ch5ob, ch5oc;
+wb_cmd_response128_t ch6oa, ch6ob, ch6oc;
+wb_cmd_response128_t ch7oa, ch7ob, ch7oc;
 
-assign ch0o = STREAM0 ? ch0ob : ch0oa;
-assign ch1o = STREAM1 ? ch1ob : ch1oa;
-assign ch2o = STREAM2 ? ch2ob : ch2oa;
-assign ch3o = STREAM3 ? ch3ob : ch3oa;
-assign ch4o = STREAM4 ? ch4ob : ch4oa;
-assign ch5o = STREAM5 ? ch5ob : ch5oa;
-assign ch6o = STREAM6 ? ch6ob : ch6oa;
-assign ch7o = STREAM7 ? ch7ob : ch7oa;
+wire rmw0 = ch0is.cmd[4];
+wire rmw1 = ch1is.cmd[4];
+wire rmw2 = ch2is.cmd[4];
+wire rmw3 = ch3is.cmd[4];
+wire rmw4 = ch4is.cmd[4];
+wire rmw5 = ch5is.cmd[4];
+wire rmw6 = ch6is.cmd[4];
+wire rmw7 = ch7is.cmd[4];
 
-wb_write_request128_t req_fifoi;
-wb_write_request128_t req_fifoo;
-wb_write_request128_t ld;
-wb_write_request128_t fifo_mask;
-wb_write_request128_t fifoo = req_fifoo & fifo_mask;
+assign ch0o = STREAM0 ? ch0ob : rmw0 ? ch0oc : ch0oa;
+assign ch1o = STREAM1 ? ch1ob : rmw1 ? ch1oc : ch1oa;
+assign ch2o = STREAM2 ? ch2ob : rmw2 ? ch2oc : ch2oa;
+assign ch3o = STREAM3 ? ch3ob : rmw3 ? ch3oc : ch3oa;
+assign ch4o = STREAM4 ? ch4ob : rmw4 ? ch4oc : ch4oa;
+assign ch5o = STREAM5 ? ch5ob : rmw5 ? ch5oc : ch5oa;
+assign ch6o = STREAM6 ? ch6ob : rmw6 ? ch6oc : ch6oa;
+assign ch7o = STREAM7 ? ch7ob : rmw7 ? ch7oc : ch7oa;
+
+wb_cmd_request128_t req_fifoi;
+wb_cmd_request128_t req_fifoo;
+wb_cmd_request128_t ld;
+wb_cmd_request128_t fifo_mask;
+wb_cmd_request128_t fifoo = req_fifoo & fifo_mask;
 
 genvar g;
 integer n1,n2,n3;
+wire v;
+wire full;
+wire empty;
 wire almost_full;
 wire [4:0] cnt;
 reg wr_fifo;
@@ -144,7 +170,6 @@ reg [5:0] num_strips;	// from fifo
 wire [5:0] req_strip_cnt;
 wire [5:0] resp_strip_cnt;
 wire [15:0] tocnt;
-wire [31:0] app_waddr;
 reg [31:0] adr;
 reg [3:0] uch;		// update channel
 wire [15:0] wmask;
@@ -157,10 +182,12 @@ wire rb1;
 reg [7:0] req;
 reg [127:0] rd_data_r;
 reg rd_data_valid_r;
+reg cas_ok;
 
 wire ch0_hit_s, ch1_hit_s, ch2_hit_s, ch3_hit_s;
 wire ch4_hit_s, ch5_hit_s, ch6_hit_s, ch7_hit_s;
 wire ch0_hit_ne, ch5_hit_ne;
+wire hit0, hit1, hit2, hit3, hit4, hit5, hit6, hit7;
 
 always_ff @(posedge mem_ui_clk)
 if (app_rd_data_valid)
@@ -356,42 +383,42 @@ mpmc10_sync128_wb usyn7
 always_comb
 begin
 	ch0is2 <= ch0is;
-	ch0is2.adr <= {ch0is.adr[31:10],10'b0};
+	ch0is2.padr <= {ch0is.padr[31:10],10'b0};
 end
 always_comb
 begin
 	ch1is2 <= ch1is;
-	ch1is2.adr <= {ch1is.adr[31:10],10'b0};
+	ch1is2.padr <= {ch1is.padr[31:10],10'b0};
 end
 always_comb
 begin
 	ch2is2 <= ch2is;
-	ch2is2.adr <= {ch2is.adr[31:10],10'b0};
+	ch2is2.padr <= {ch2is.padr[31:10],10'b0};
 end
 always_comb
 begin
 	ch3is2 <= ch3is;
-	ch3is2.adr <= {ch3is.adr[31:10],10'b0};
+	ch3is2.padr <= {ch3is.padr[31:10],10'b0};
 end
 always_comb
 begin
 	ch4is2 <= ch4is;
-	ch4is2.adr <= {ch4is.adr[31:10],10'b0};
+	ch4is2.padr <= {ch4is.padr[31:10],10'b0};
 end
 always_comb
 begin
 	ch5is2 <= ch5is;
-	ch5is2.adr <= {ch5is.adr[31:10],10'b0};
+	ch5is2.padr <= {ch5is.padr[31:10],10'b0};
 end
 always_comb
 begin
 	ch6is2 <= ch6is;
-	ch6is2.adr <= {ch6is.adr[31:10],10'b0};
+	ch6is2.padr <= {ch6is.padr[31:10],10'b0};
 end
 always_comb
 begin
 	ch7is2 <= ch7is;
-	ch7is2.adr <= {ch7is.adr[31:10],10'b0};
+	ch7is2.padr <= {ch7is.padr[31:10],10'b0};
 end
 
 always_comb
@@ -402,8 +429,8 @@ begin
 	ld.cyc <= fifoo.cyc && !fifoo.we && rd_data_valid_r && (uch!=4'd0 && uch!=4'd5 && uch!=4'd15);
 	ld.stb <= fifoo.stb && !fifoo.we && rd_data_valid_r && (uch!=4'd0 && uch!=4'd5 && uch!=4'd15);
 	ld.we <= 1'b0;
-	ld.adr <= {app_waddr[31:4],4'h0};
-	ld.dat <= rd_data_r;
+	ld.padr <= {app_waddr[31:4],4'h0};
+	ld.data1 <= rd_data_r;
 	ld.sel <= {16{1'b1}};		// update all bytes
 end
 
@@ -479,7 +506,15 @@ mpmc10_cache_wb ucache1
 	.ch4o(ch4oa),
 	.ch5o(ch5oa),
 	.ch6o(ch6oa),
-	.ch7o(ch7oa)
+	.ch7o(ch7oa),
+	.ch0hit(hit0),
+	.ch1hit(hit1),
+	.ch2hit(hit2),
+	.ch3hit(hit3),
+	.ch4hit(hit4),
+	.ch5hit(hit5),
+	.ch6hit(hit6),
+	.ch7hit(hit7)
 );
 
 mpmc10_strm_read_cache ustrm0
@@ -489,10 +524,10 @@ mpmc10_strm_read_cache ustrm0
 	.wr(uch==4'd0 && rd_data_valid_r),
 	.wadr({app_waddr[31:4],4'h0}),
 	.wdat(rd_data_r),
-//	.inv(1'b0),
+	.inv(1'b0),
 	.rclk(mem_ui_clk),
 	.rd(ch0is.stb & ~ch0is.we),
-	.radr({ch0is.adr[31:4],4'h0}),
+	.radr({ch0is.padr[31:4],4'h0}),
 	.rdat(ch0ob.dat),
 	.hit(ch0_hit_s)
 );
@@ -504,10 +539,10 @@ mpmc10_strm_read_cache ustrm1
 	.wr(uch==4'd1 && rd_data_valid_r),
 	.wadr({app_waddr[31:4],4'h0}),
 	.wdat(rd_data_r),
-//	.inv(1'b0),
+	.inv(1'b0),
 	.rclk(mem_ui_clk),
 	.rd(ch1is.stb & ~ch1is.we),
-	.radr({ch1is.adr[31:4],4'h0}),
+	.radr({ch1is.padr[31:4],4'h0}),
 	.rdat(ch1ob.dat),
 	.hit(ch1_hit_s)
 );
@@ -519,10 +554,10 @@ mpmc10_strm_read_cache ustrm2
 	.wr(uch==4'd2 && rd_data_valid_r),
 	.wadr({app_waddr[31:4],4'h0}),
 	.wdat(rd_data_r),
-//	.inv(1'b0),
+	.inv(1'b0),
 	.rclk(mem_ui_clk),
 	.rd(ch2is.stb & ~ch2is.we),
-	.radr({ch2is.adr[31:4],4'h0}),
+	.radr({ch2is.padr[31:4],4'h0}),
 	.rdat(ch2ob.dat),
 	.hit(ch2_hit_s)
 );
@@ -534,10 +569,10 @@ mpmc10_strm_read_cache ustrm3
 	.wr(uch==4'd3 && rd_data_valid_r),
 	.wadr({app_waddr[31:4],4'h0}),
 	.wdat(rd_data_r),
-//	.inv(1'b0),
+	.inv(1'b0),
 	.rclk(mem_ui_clk),
 	.rd(ch3is.stb & ~ch3is.we),
-	.radr({ch3is.adr[31:4],4'h0}),
+	.radr({ch3is.padr[31:4],4'h0}),
 	.rdat(ch3ob.dat),
 	.hit(ch3_hit_s)
 );
@@ -549,10 +584,10 @@ mpmc10_strm_read_cache ustrm4
 	.wr(uch==4'd4 && rd_data_valid_r),
 	.wadr({app_waddr[31:4],4'h0}),
 	.wdat(rd_data_r),
-//	.inv(1'b0),
+	.inv(1'b0),
 	.rclk(mem_ui_clk),
 	.rd(ch4is.stb & ~ch4is.we),
-	.radr({ch4is.adr[31:4],4'h0}),
+	.radr({ch4is.padr[31:4],4'h0}),
 	.rdat(ch4ob.dat),
 	.hit(ch4_hit_s)
 );
@@ -564,10 +599,10 @@ mpmc10_strm_read_cache ustrm5
 	.wr(uch==4'd5 && rd_data_valid_r),
 	.wadr({app_waddr[31:4],4'h0}),
 	.wdat(rd_data_r),
-//	.inv(1'b0),
+	.inv(1'b0),
 	.rclk(mem_ui_clk),
 	.rd(ch5is.stb & ~ch5is.we),
-	.radr({ch5is.adr[31:4],4'h0}),
+	.radr({ch5is.padr[31:4],4'h0}),
 	.rdat(ch5ob.dat),
 	.hit(ch5_hit_s)
 );
@@ -579,10 +614,10 @@ mpmc10_strm_read_cache ustrm6
 	.wr(uch==4'd6 && rd_data_valid_r),
 	.wadr({app_waddr[31:4],4'h0}),
 	.wdat(rd_data_r),
-//	.inv(1'b0),
+	.inv(1'b0),
 	.rclk(mem_ui_clk),
 	.rd(ch6is.stb & ~ch6is.we),
-	.radr({ch6is.adr[31:4],4'h0}),
+	.radr({ch6is.padr[31:4],4'h0}),
 	.rdat(ch6ob.dat),
 	.hit(ch6_hit_s)
 );
@@ -594,10 +629,10 @@ mpmc10_strm_read_cache ustrm7
 	.wr(uch==4'd7 && rd_data_valid_r),
 	.wadr({app_waddr[31:4],4'h0}),
 	.wdat(rd_data_r),
-//	.inv(1'b0),
+	.inv(1'b0),
 	.rclk(mem_ui_clk),
 	.rd(ch7is.stb & ~ch7is.we),
-	.radr({ch7is.adr[31:4],4'h0}),
+	.radr({ch7is.padr[31:4],4'h0}),
 	.rdat(ch7ob.dat),
 	.hit(ch7_hit_s)
 );
@@ -670,7 +705,7 @@ always_comb
 always_comb
 	num_strips <= fifoo.blen;
 always_comb
-	adr <= fifoo.adr;
+	adr <= fifoo.padr;
 
 wire [2:0] app_addr3;	// dummy to make up 32-bits
 
@@ -709,16 +744,176 @@ mpmc10_mask_select unsks1
 	.mask2(mem_wdf_mask2)
 );
 
+wire [127:0] data128a;
+wire [127:0] data128b;
+
 mpmc10_data_select #(.WID(128)) uds1
 (
 	.clk(mem_ui_clk),
 	.state(state),
-	.dati(req_fifoo.dat),
-	.dato(dat256)
+	.dati1(req_fifoo.data1),
+	.dati2(req_fifoo.data2),
+	.dato1(data128a),
+	.dato2(data128b)
 );
 
+reg rmw_hit;
+reg rmw_ack;
+reg [127:0] opa, opa1, opb, opc, t1;
+reg [127:0] rmw_dat;
+`ifdef SUPPORT_AMO
 always_comb
-	dat128 <= dat256;//req_strip_cnt[0] ? dat256[255:128] : dat256[127:0];
+	case(req_fifoo.cid)
+	4'd0:	rmw_hit = hit0;
+	4'd1:	rmw_hit = hit1;
+	4'd2:	rmw_hit = hit2;
+	4'd3:	rmw_hit = hit3;
+	4'd4:	rmw_hit = hit4;
+	4'd5:	rmw_hit = hit5;
+	4'd6:	rmw_hit = hit6;
+	4'd7:	rmw_hit = hit7;
+	default:	rmw_hit = 1'b1;
+	endcase
+always_ff @(posedge mem_ui_clk)
+	opb <= data128a >> {req_fifoo.padr[4:0],3'b0};
+always_ff @(posedge mem_ui_clk)
+	opc <= data128b >> {req_fifoo.padr[4:0],3'b0};
+always_ff @(posedge mem_ui_clk)
+	case(req_fifoo.cid)
+	4'd0:	opa1 <= ch0oa.dat;
+	4'd1:	opa1 <= ch1oa.dat;
+	4'd2:	opa1 <= ch2oa.dat;
+	4'd3:	opa1 <= ch3oa.dat;
+	4'd4:	opa1 <= ch4oa.dat;
+	4'd5:	opa1 <= ch5oa.dat;
+	4'd6:	opa1 <= ch6oa.dat;
+	4'd7:	opa1 <= ch7oa.dat;
+	default:	opa1 <= 'd0;
+	endcase
+always_ff @(posedge mem_ui_clk)
+	opa <= opa1 >> {req_fifoo.padr[4:0],3'b0};
+always_ff @(posedge mem_ui_clk)
+case(req_fifoo.sz)
+`ifdef SUPPORT_AMO_TETRA
+wishbone_pkg::tetra:
+	case(req_fifoo.cmd)
+	CMD_ADD:	t1 <= opa[31:0] + opb[31:0];
+	CMD_AND:	t1 <= opa[31:0] & opb[31:0];
+	CMD_OR:		t1 <= opa[31:0] | opb[31:0];
+	CMD_EOR:	t1 <= opa[31:0] ^ opb[31:0];
+`ifdef SUPPORT_AMO_SHIFT
+	CMD_ASL:	t1 <= {opa[30:0],1'b0};
+	CMD_LSR:	t1 <= {1'b0,opa[31:1]};
+	CMD_ROL:	t1 <= {opa[30:0],opa[31]};
+	CMD_ROR:	t1 <= {opa[0],opa[31:1]};
+`endif
+`ifdef SUPPORT_AMO_MULTI_SHIFT	
+	CMD_ASL:	t1 <= opa[31:0] << opb[4:0];
+	CMD_LSR:	t1 <= opa[31:0] >> opb[4:0];
+`endif	
+	CMD_MINU:	t1 <= opa[31:0] < opb[31:0] ? opa[31:0] : opb[31:0];
+	CMD_MAXU:	t1 <= opa[31:0] > opb[31:0] ? opa[31:0] : opb[31:0];
+	CMD_MIN:	t1 <= $signed(opa[31:0]) < $signed(opb[31:0]) ? opa[31:0] : opb[31:0];
+	CMD_MAX:	t1 <= $signed(opa[31:0]) > $signed(opb[31:0]) ? opa[31:0] : opb[31:0];
+	CMD_CAS:	t1 <= opa[31:0]==opb[31:0] ? opc[31:0] : opb[31:0];
+	default:	t1 <= opa[31:0];
+	endcase
+`endif
+`ifdef SUPPORT_AMO_OCTA
+wishbone_pkg::octa:
+	case(req_fifoo.cmd)
+	CMD_ADD:	t1 <= opa[63:0] + opb[63:0];
+	CMD_AND:	t1 <= opa[63:0] & opb[63:0];
+	CMD_OR:		t1 <= opa[63:0] | opb[63:0];
+	CMD_EOR:	t1 <= opa[63:0] ^ opb[63:0];
+`ifdef SUPPORT_AMO_SHIFT
+	CMD_ASL:	t1 <= {opa[62:0],1'b0};
+	CMD_LSR:	t1 <= {1'b0,opa[63:1]};
+	CMD_ROL:	t1 <= {opa[62:0],opa[63]};
+	CMD_ROR:	t1 <= {opa[0],opa[63:1]};
+`endif
+`ifdef SUPPORT_AMO_MULTI_SHIFT	
+	CMD_ASL:	t1 <= opa[63:0] << opb[5:0];
+	CMD_LSR:	t1 <= opa[63:0] >> opb[5:0];
+`endif	
+	CMD_MINU:	t1 <= opa[63:0] < opb[63:0] ? opa[63:0] : opb[63:0];
+	CMD_MAXU:	t1 <= opa[63:0] > opb[63:0] ? opa[63:0] : opb[63:0];
+	CMD_MIN:	t1 <= $signed(opa[63:0]) < $signed(opb[63:0]) ? opa[63:0] : opb[63:0];
+	CMD_MAX:	t1 <= $signed(opa[63:0]) > $signed(opb[63:0]) ? opa[63:0] : opb[63:0];
+	CMD_CAS:	t1 <= opa[63:0]==opb[63:0] ? opc[63:0] : opb[63:0];
+	default:	t1 <= opa[63:0];
+	endcase
+`endif
+default:
+	case(req_fifoo.cmd)
+	CMD_ADD:	t1 <= opa[127:0] + opb[127:0];
+	CMD_AND:	t1 <= opa[127:0] & opb[127:0];
+	CMD_OR:		t1 <= opa[127:0] | opb[127:0];
+	CMD_EOR:	t1 <= opa[127:0] ^ opb[127:0];
+`ifdef SUPPORT_AMO_SHIFT
+	CMD_ASL:	t1 <= {opa[126:0],1'b0};
+	CMD_LSR:	t1 <= {1'b0,opa[127:1]};
+	CMD_ROL:	t1 <= {opa[126:0],opa[127]};
+	CMD_ROR:	t1 <= {opa[0],opa[127:1]};
+`endif
+`ifdef SUPPORT_AMO_MULTI_SHIFT	
+	CMD_ASL:	t1 <= opa[127:0] << opb[6:0];
+	CMD_LSR:	t1 <= opa[127:0] >> opb[6:0];
+`endif	
+	CMD_MINU:	t1 <= opa[127:0] < opb[127:0] ? opa[127:0] : opb[127:0];
+	CMD_MAXU:	t1 <= opa[127:0] > opb[127:0] ? opa[127:0] : opb[127:0];
+	CMD_MIN:	t1 <= $signed(opa[127:0]) < $signed(opb[127:0]) ? opa[127:0] : opb[127:0];
+	CMD_MAX:	t1 <= $signed(opa[127:0]) > $signed(opb[127:0]) ? opa[127:0] : opb[127:0];
+	CMD_CAS:	t1 <= opa[127:0]==opb[127:0] ? opc[127:0] : opb[127:0];
+	default:	t1 <= opa[127:0];
+	endcase
+endcase
+always_ff @(posedge mem_ui_clk)
+	rmw_dat <= t1 << {req_fifoo.padr[4:0],3'b0};
+
+always_ff @(posedge mem_ui_clk)
+if (mem_ui_rst) begin
+	ch0oc.dat <= 'd0;
+	ch1oc.dat <= 'd0;
+	ch2oc.dat <= 'd0;
+	ch3oc.dat <= 'd0;
+	ch4oc.dat <= 'd0;
+	ch5oc.dat <= 'd0;
+	ch6oc.dat <= 'd0;
+	ch7oc.dat <= 'd0;
+end
+else begin
+if (state==WRITE_TRAMP1)
+	case(req_fifoo.cid)
+	4'd0:	ch0oc.dat <= opa;
+	4'd1:	ch1oc.dat <= opa;
+	4'd2:	ch2oc.dat <= opa;
+	4'd3:	ch3oc.dat <= opa;
+	4'd4:	ch4oc.dat <= opa;
+	4'd5:	ch5oc.dat <= opa;
+	4'd6:	ch6oc.dat <= opa;
+	4'd7:	ch7oc.dat <= opa;
+	default:	;
+	endcase
+end
+always_ff @(posedge mem_ui_clk)
+if (mem_ui_rst)
+	rmw_ack <= 1'b0;
+else begin
+	if (state==WRITE_TRAMP1)
+		rmw_ack <= 1'b1;
+	else if (state==IDLE)
+		rmw_ack <= 1'b0;
+end
+always_comb	ch0oc.ack = ch0i.stb & rmw_ack & rmw0 && req_fifoo.cid==4'd0;
+always_comb	ch1oc.ack = ch1i.stb & rmw_ack & rmw1 && req_fifoo.cid==4'd1;
+always_comb	ch2oc.ack = ch2i.stb & rmw_ack & rmw2 && req_fifoo.cid==4'd2;
+always_comb	ch3oc.ack = ch3i.stb & rmw_ack & rmw3 && req_fifoo.cid==4'd3;
+always_comb	ch4oc.ack = ch4i.stb & rmw_ack & rmw4 && req_fifoo.cid==4'd4;
+always_comb	ch5oc.ack = ch5i.stb & rmw_ack & rmw5 && req_fifoo.cid==4'd5;
+always_comb	ch6oc.ack = ch6i.stb & rmw_ack & rmw6 && req_fifoo.cid==4'd6;
+always_comb	ch7oc.ack = ch7i.stb & rmw_ack & rmw7 && req_fifoo.cid==4'd7;
+`endif
 
 // Setting the data value. Unlike reads there is only a single strip involved.
 // Force unselected byte lanes to $FF
@@ -729,7 +924,7 @@ generate begin
 			if (mem_wdf_mask2[g])
 				dat128x[g*8+7:g*8] = 8'hFF;
 			else
-				dat128x[g*8+7:g*8] = dat128[g*8+7:g*8];
+				dat128x[g*8+7:g*8] = data128a[g*8+7:g*8];
 end
 endgenerate
 
@@ -739,8 +934,8 @@ if (mem_ui_rst)
 else begin
 	if (state==PRESET3)
 		app_wdf_data <= dat128x;
-//	else if (state==WRITE_TRAMP1)
-//		app_wdf_data <= rmw_data;
+	else if (state==WRITE_TRAMP1)
+		app_wdf_data <= rmw_dat;
 end
 
 mpmc10_rd_fifo_gen urdf1
@@ -779,7 +974,8 @@ mpmc10_state_machine_wb usm1
 	.num_strips(num_strips),
 	.req_strip_cnt(req_strip_cnt),
 	.resp_strip_cnt(resp_strip_cnt),
-	.rd_data_valid(rd_data_valid_r)
+	.rd_data_valid(rd_data_valid_r),
+	.rmw_hit(rmw_hit)
 );
 
 mpmc10_to_cnt utoc1
@@ -859,7 +1055,7 @@ mpmc10_resv_bit ursb1
 	.wch(fifoo.cid),
 	.we(fifoo.stb & fifoo.we),
 	.cr(fifoo.csr & fifoo.we),
-	.adr(fifoo.adr),
+	.adr(fifoo.padr),
 	.resv_ch(resv_ch),
 	.resv_adr(resv_adr),
 	.rb(rb1)
@@ -871,13 +1067,13 @@ mpmc10_addr_resv_man #(.NAR(NAR)) ursvm1
 	.clk(mem_ui_clk),
 	.state(state),
 	.adr0(32'h0),
-	.adr1(ch1is.adr),
-	.adr2(ch2is.adr),
-	.adr3(ch3is.adr),
-	.adr4(ch4is.adr),
+	.adr1(ch1is.padr),
+	.adr2(ch2is.padr),
+	.adr3(ch3is.padr),
+	.adr4(ch4is.padr),
 	.adr5(32'h0),
-	.adr6(ch6is.adr),
-	.adr7(ch7is.adr),
+	.adr6(ch6is.padr),
+	.adr7(ch7is.padr),
 	.sr0(1'b0),
 	.sr1(ch1is.csr & ch1is.stb & ~ch1is.we),
 	.sr2(ch2is.csr & ch2is.stb & ~ch2is.we),
@@ -888,7 +1084,7 @@ mpmc10_addr_resv_man #(.NAR(NAR)) ursvm1
 	.sr7(ch7is.csr & ch7is.stb & ~ch7is.we),
 	.wch(fifoo.stb ? fifoo.cid : 4'd15),
 	.we(fifoo.stb & fifoo.we),
-	.wadr(fifoo.adr),
+	.wadr(fifoo.padr),
 	.cr(fifoo.csr & fifoo.stb & fifoo.we),
 	.resv_ch(resv_ch),
 	.resv_adr(resv_adr)

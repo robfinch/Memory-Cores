@@ -48,15 +48,15 @@ output reg en;
 // is not true, the command must be retried.
 always_ff @(posedge clk)
 begin
-	en <= FALSE;
+	en <= 1'b0;
 	if (state==WRITE_DATA1)
-		en <= TRUE;
-	else if (state==WRITE_DATA2 && !en)
-		en <= TRUE;
+		en <= 1'b1;
+	else if (state==WRITE_DATA2 && !rdy)
+		en <= 1'b1;
 	else if (state==READ_DATA0)
-		en <= TRUE;
+		en <= 1'b1;
 	else if (state==READ_DATA1 && !(rdy && strip_cnt==num_strips))
-		en <= TRUE;
+		en <= 1'b1;
 end
 
 endmodule

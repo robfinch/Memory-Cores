@@ -53,10 +53,10 @@ always_ff @(posedge clk)
 if (state==IDLE) begin
   if (we) begin
     if (cr) begin
-      rb <= mpmc10_pkg::FALSE;
+      rb <= 1'b0;
     	for (n5 = 0; n5 < mpmc10_pkg::NAR; n5 = n5 + 1)
 	      if ((resv_ch[n5]==wch) && (resv_adr[n5][31:5]==adr[31:5]))
-  	      rb <= mpmc10_pkg::TRUE;
+  	      rb <= 1'b1;
     end
   end
 end
