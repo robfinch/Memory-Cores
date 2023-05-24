@@ -75,7 +75,7 @@ else begin
 	PRESET2:
 		next_state <= PRESET3;
 	PRESET3:
-		if (fifo_out.stb && fifo_out.cmd==CMD_STORE)
+		if (fifo_out.stb && fifo_out.cmd==wishbone_pkg::CMD_STORE)
 			next_state <= WRITE_DATA0;
 		else
 			next_state <= READ_DATA0;
@@ -116,10 +116,10 @@ else begin
 	READ_DATA2:
 		if (rd_data_valid && resp_strip_cnt==num_strips) begin
 			case(fifo_out.cmd)
-			CMD_LOAD,CMD_LOADZ:
+			wishbone_pkg::CMD_LOAD,wishbone_pkg::CMD_LOADZ:
 				next_state <= WAIT_NACK;
-			CMD_ADD,CMD_OR,CMD_AND,CMD_EOR,CMD_ASL,CMD_LSR,
-			CMD_MIN,CMD_MAX,CMD_MINU,CMD_MAXU,CMD_CAS:
+			wishbone_pkg::CMD_ADD,wishbone_pkg::CMD_OR,wishbone_pkg::CMD_AND,wishbone_pkg::CMD_EOR,wishbone_pkg::CMD_ASL,wishbone_pkg::CMD_LSR,
+			wishbone_pkg::CMD_MIN,wishbone_pkg::CMD_MAX,wishbone_pkg::CMD_MINU,wishbone_pkg::CMD_MAXU,wishbone_pkg::CMD_CAS:
 				next_state <= ALU;
 			default:
 				next_state <= WAIT_NACK;

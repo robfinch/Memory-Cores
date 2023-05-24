@@ -846,10 +846,10 @@ wishbone_pkg::octa:
 `endif
 default:
 	case(req_fifoo.cmd)
-	CMD_ADD:	t1 <= opa[127:0] + opb[127:0];
-	CMD_AND:	t1 <= opa[127:0] & opb[127:0];
-	CMD_OR:		t1 <= opa[127:0] | opb[127:0];
-	CMD_EOR:	t1 <= opa[127:0] ^ opb[127:0];
+	wishbone_pkg::CMD_ADD:	t1 <= opa[127:0] + opb[127:0];
+	wishbone_pkg::CMD_AND:	t1 <= opa[127:0] & opb[127:0];
+	wishbone_pkg::CMD_OR:		t1 <= opa[127:0] | opb[127:0];
+	wishbone_pkg::CMD_EOR:	t1 <= opa[127:0] ^ opb[127:0];
 `ifdef SUPPORT_AMO_SHIFT
 	CMD_ASL:	t1 <= {opa[126:0],1'b0};
 	CMD_LSR:	t1 <= {1'b0,opa[127:1]};
@@ -860,11 +860,11 @@ default:
 	CMD_ASL:	t1 <= opa[127:0] << opb[6:0];
 	CMD_LSR:	t1 <= opa[127:0] >> opb[6:0];
 `endif	
-	CMD_MINU:	t1 <= opa[127:0] < opb[127:0] ? opa[127:0] : opb[127:0];
-	CMD_MAXU:	t1 <= opa[127:0] > opb[127:0] ? opa[127:0] : opb[127:0];
-	CMD_MIN:	t1 <= $signed(opa[127:0]) < $signed(opb[127:0]) ? opa[127:0] : opb[127:0];
-	CMD_MAX:	t1 <= $signed(opa[127:0]) > $signed(opb[127:0]) ? opa[127:0] : opb[127:0];
-	CMD_CAS:	t1 <= opa[127:0]==opb[127:0] ? opc[127:0] : opb[127:0];
+	wishbone_pkg::CMD_MINU:	t1 <= opa[127:0] < opb[127:0] ? opa[127:0] : opb[127:0];
+	wishbone_pkg::CMD_MAXU:	t1 <= opa[127:0] > opb[127:0] ? opa[127:0] : opb[127:0];
+	wishbone_pkg::CMD_MIN:	t1 <= $signed(opa[127:0]) < $signed(opb[127:0]) ? opa[127:0] : opb[127:0];
+	wishbone_pkg::CMD_MAX:	t1 <= $signed(opa[127:0]) > $signed(opb[127:0]) ? opa[127:0] : opb[127:0];
+	wishbone_pkg::CMD_CAS:	t1 <= opa[127:0]==opb[127:0] ? opc[127:0] : opb[127:0];
 	default:	t1 <= opa[127:0];
 	endcase
 endcase

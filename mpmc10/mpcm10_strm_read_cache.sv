@@ -54,7 +54,7 @@ output reg hit;
 (* ram_style="distributed" *)
 reg [18:0] tags [0:7];
 (* ram_style="distributed" *)
-reg [7:0] vbit;
+reg [7:0] vbit = 'b0;
 reg [31:0] radrr;
 reg [18:0] tago;
 reg vbito;
@@ -145,7 +145,7 @@ always_comb // @(posedge rclk)
 	vbito <= vbit[radrr[12:10]];
 always_ff @(posedge wclk)
 if (rst)
-	vbit <= 'b0;
+	vbit[wadr[12:10]] <= 'b0;
 else begin
 	if (wr && wadr[9:4]==6'h3F)
 		vbit[wadr[12:10]] <= 1'b1;
