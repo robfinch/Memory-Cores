@@ -34,6 +34,8 @@
 //                                                                          
 // ============================================================================
 //
+import fta_bus_pkg::*;
+
 module scratchmem128pci(rst_i, clk_i, cs_config_i, cs_ram_i, blen_i, cti_i,
 	tid_i, tid_o, cid_i, cid_o, cyc_i, stb_i, next_o, ack_o, we_i, sel_i, adr_i, 
 	dat_i, dat_o, adr_o, ip, sp);
@@ -43,8 +45,8 @@ input cs_config_i;
 input cs_ram_i;
 input [5:0] blen_i;
 input [2:0] cti_i;
-input [7:0] tid_i;
-output reg [7:0] tid_o;
+input fta_tranid_t tid_i;
+output fta_tranid_t tid_o;
 input [3:0] cid_i;
 output reg [3:0] cid_o;
 input cyc_i;
@@ -299,7 +301,8 @@ end
                                        // ECC enabled (Error injection capability is not available in
                                        // "decode_only" mode).
 
-      .regcea(cs|rd_ack),                 // 1-bit input: Clock Enable for the last register stage on the output
+      .regcea(1'b1),                 // 1-bit input: Clock Enable for the last register stage on the output
+//      .regcea(cs|rd_ack),                 // 1-bit input: Clock Enable for the last register stage on the output
                                        // data path.
 
       .rsta(1'b0),                // 1-bit input: Reset signal for the final port A output register stage.
@@ -324,11 +327,11 @@ always_comb
 	else
 		dat_o <= 'd0;
 
-wire [7:0] tid3;
+fta_tranid_t tid3;
 wire [3:0] cid3;
 wire [31:0] adr3;
 vtdl #(.WID( 4), .DEP(16)) udlycid (.clk(clk_i), .ce(1'b1), .a(2), .d(cid_i), .q(cid3));
-vtdl #(.WID( 8), .DEP(16)) udlytid (.clk(clk_i), .ce(1'b1), .a(2), .d(tid_i), .q(tid3));
+vtdl #(.WID($bits(fta_tranid_t)), .DEP(16)) udlytid (.clk(clk_i), .ce(1'b1), .a(2), .d(tid_i), .q(tid3));
 vtdl #(.WID(32), .DEP(16)) udlyadr (.clk(clk_i), .ce(1'b1), .a(2), .d(adr_i), .q(adr3));
 always_ff @(posedge clk_i)
 	cid_o <= cid3;
