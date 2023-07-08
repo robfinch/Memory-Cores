@@ -1,7 +1,7 @@
 `timescale 1ns / 1ps
 // ============================================================================
 //        __
-//   \\__/ o\    (C) 2015-2022  Robert Finch, Waterloo
+//   \\__/ o\    (C) 2015-2023  Robert Finch, Waterloo
 //    \  __ /    All rights reserved.
 //     \/_//     robfinch<remove>@finitron.ca
 //       ||
@@ -63,12 +63,12 @@ xpm_fifo_sync #(
   .PROG_EMPTY_THRESH(3),    // DECIMAL
   .PROG_FULL_THRESH(27),     // DECIMAL
   .RD_DATA_COUNT_WIDTH(5),   // DECIMAL
-  .READ_DATA_WIDTH($bits(wb_cmd_request128_t)),      // DECIMAL
+  .READ_DATA_WIDTH($bits(fta_cmd_request128_t)),      // DECIMAL
   .READ_MODE("std"),         // String
   .SIM_ASSERT_CHK(0),        // DECIMAL; 0=disable simulation messages, 1=enable simulation messages
   .USE_ADV_FEATURES("070F"), // String
   .WAKEUP_TIME(0),           // DECIMAL
-  .WRITE_DATA_WIDTH($bits(wb_cmd_request128_t)),     // DECIMAL
+  .WRITE_DATA_WIDTH($bits(fta_cmd_request128_t)),     // DECIMAL
   .WR_DATA_COUNT_WIDTH(5)    // DECIMAL
 )
 xpm_fifo_sync_inst (

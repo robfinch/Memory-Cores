@@ -36,29 +36,14 @@
 //
 import fta_bus_pkg::*;
 
-module scratchmem128pci(rst_i, clk_i, cs_config_i, cs_ram_i, blen_i, cti_i,
-	tid_i, tid_o, cid_i, cid_o, cyc_i, stb_i, next_o, ack_o, we_i, sel_i, adr_i, 
-	dat_i, dat_o, adr_o, ip, sp);
+module scratchmem128pci_fta(rst_i, clk_i, cs_config_i, cs_ram_i, 
+	req, resp, ip, sp);
 input rst_i;
 input clk_i;
 input cs_config_i;
 input cs_ram_i;
-input [5:0] blen_i;
-input [2:0] cti_i;
-input fta_tranid_t tid_i;
-output fta_tranid_t tid_o;
-input [3:0] cid_i;
-output reg [3:0] cid_o;
-input cyc_i;
-input stb_i;
-output next_o;
-output reg ack_o;
-input we_i;
-input [15:0] sel_i;
-input [31:0] adr_i;
-input [127:0] dat_i;
-output reg [127:0] dat_o;
-output reg [31:0] adr_o;
+input fta_cmd_request128_t req;
+output fta_cmd_response128_t resp;
 input [31:0] ip;
 input [31:0] sp;
 
@@ -86,77 +71,39 @@ parameter CFG_IRQ_LINE = 8'hFF;
 localparam CFG_HEADER_TYPE = 8'h00;			// 00 = a general device
 
 
-integer n;
+fta_cmd_request128_t reqd;
 
-reg [17:4] radr;
-reg [31:0] adr1;
-
-reg ack;
-reg we;
-reg [15:0] sel;
-reg [31:0] adr, adrd;
-reg [127:0] dati;
 reg cs_ram, cs_config;
 wire cs_bar0;
 wire [127:0] cfg_out;
 wire [127:0] ram_dat_o;
 
-/*
-initial begin
-`include "f:/cores2023/Thor/software/examples/rom.ver";
-end
-*/
 wire cs = cs_ram;
-assign next_o = 1'b0;//cs;
 reg csd;
-reg [127:0] datod;
-wire cfg_rd_ack, rd_ack0;
-
-reg [7:0] bndxd, bndxd1;
-reg [5:0] cnt;
-reg we2;
-reg [15:0] sel2;
-reg [31:0] adr2;
-reg [127:0] dati2;
+wire cfg_rd_ack;
 reg erc;
 
 wire rd_ack, wr_ack;
-vtdl #(.WID(1), .DEP(16)) udlyr (.clk(clk_i), .ce(1'b1), .a(3), .d((csd) & ~we), .q(rd_ack));
-vtdl #(.WID(1), .DEP(16)) udlyc (.clk(clk_i), .ce(1'b1), .a(1), .d((cs_config) & ~we), .q(cfg_rd_ack));
-vtdl #(.WID(1), .DEP(16)) udlyw (.clk(clk_i), .ce(1'b1), .a(1), .d((cs|cs_config) &  we & erc), .q(wr_ack));
-always_comb
-	ack_o <= (rd_ack|cfg_rd_ack|wr_ack);//(cs|cs_config);	
+vtdl #(.WID(1), .DEP(16)) udlyr (.clk(clk_i), .ce(1'b1), .a(1), .d((csd) & ~reqd.we), .q(rd_ack));
+vtdl #(.WID(1), .DEP(16)) udlyc (.clk(clk_i), .ce(1'b1), .a(0), .d((cs_config) & ~reqd.we), .q(cfg_rd_ack));
+vtdl #(.WID(1), .DEP(16)) udlyw (.clk(clk_i), .ce(1'b1), .a(0), .d((csd|cs_config) &  reqd.we & erc), .q(wr_ack));
+always_ff @(posedge clk_i)
+	resp.ack <= (rd_ack|cfg_rd_ack|wr_ack);//(cs|cs_config);	
 
 always_ff @(posedge clk_i)
-	cs_config <= cs_config_i & cyc_i & stb_i &&
-		adr_i[27:20]==CFG_BUS &&
-		adr_i[19:15]==CFG_DEVICE &&
-		adr_i[14:12]==CFG_FUNC;
+	cs_config <= cs_config_i & req.cyc & req.stb &&
+		req.padr[27:20]==CFG_BUS &&
+		req.padr[19:15]==CFG_DEVICE &&
+		req.padr[14:12]==CFG_FUNC;
 
 always_ff @(posedge clk_i)
-	erc <= cti_i==fta_bus_pkg::ERC;
+	reqd <= req;
 always_ff @(posedge clk_i)
-	csd <= cs_ram_i && cyc_i && stb_i;
+	erc <= req.cti==fta_bus_pkg::ERC;
+always_ff @(posedge clk_i)
+	csd <= cs_ram_i && req.cyc && req.stb;
 always_comb
 	cs_ram <= csd && cs_bar0;
-always_ff @(posedge clk_i)
-	we <= we_i;
-always_ff @(posedge clk_i)
-	sel <= sel_i;
-always_ff @(posedge clk_i)
-	adr <= adr_i;
-always_ff @(posedge clk_i)
-	adrd <= adr_i;
-always_ff @(posedge clk_i)
-	dati <= dat_i;
-always_ff @(posedge clk_i)
-	we2 <= we;
-always_ff @(posedge clk_i)
-	sel2 <= sel;
-always_ff @(posedge clk_i)
-	adr2 <= adr;
-always_ff @(posedge clk_i)
-	dati2 <= dati;
 
 pci128_config #(
 	.CFG_BUS(CFG_BUS),
@@ -185,10 +132,10 @@ ucfg1
 	.irq_i(1'b0),
 	.irq_o(),
 	.cs_config_i(cs_config), 
-	.we_i(we),
-	.sel_i(sel),
-	.adr_i(adr),
-	.dat_i(dat),
+	.we_i(reqd.we),
+	.sel_i(reqd.sel),
+	.adr_i(reqd.padr),
+	.dat_i(reqd.data1),
 	.dat_o(cfg_out),
 	.cs_bar0_o(cs_bar0),
 	.cs_bar1_o(),
@@ -197,53 +144,17 @@ ucfg1
 );
 
 always_ff @(posedge clk_i)
-	if (cs & we_i) begin
-		$display ("%d %h: wrote to scratchmem: %h=%h:%h", $time, ip, adr_i, dat_i, sel_i);
-		/*
-		if (adr_i[14:3]==15'h3e9 && dat_i==64'h00) begin
-		  $display("3e9=00");
-		  $finish;
-		end
-		*/
+	if (csd & reqd.we) begin
+		$display ("%d %h: wrote to scratchmem: %h=%h:%h", $time, ip, reqd.padr, reqd.data1, reqd.sel);
 	end
 
-wire pe_cs;
-edge_det u1(.rst(rst_i), .clk(clk_i), .ce(1'b1), .i(cs), .pe(pe_cs), .ne(), .ee() );
-
-reg [14:0] ctr;
-always_ff @(posedge clk_i)
-if (rst_i)
-	cnt <= 'd0;
-else begin
-	if (pe_cs) begin
-		if (cti_i==3'b000)
-			ctr <= adr_i[17:4];
-		else
-			ctr <= adr_i[17:4] + 12'd1;
-		cnt <= 'd0;
-	end
-	else if (cs && cnt!=blen_i+2'd1 && cti_i!=3'b000) begin
-		ctr <= ctr + 2'd1;
-		cnt <= cnt + 2'd1;
-	end
-end
-
-always_ff @(posedge clk_i)
-	radr <= pe_cs ? adr_i[17:4] : ctr;
-always_ff @(posedge clk_i)
-	bndxd1 <= tid_i;
-
-//assign dat_o = cs ? {smemH[radr],smemG[radr],smemF[radr],smemE[radr],
-//				smemD[radr],smemC[radr],smemB[radr],smemA[radr]} : 64'd0;
 reg [11:0] spr;
 always_ff @(posedge clk_i)
 	spr <= sp[17:4];
 
-always_ff @(posedge clk_i)
-begin
+//always_ff @(posedge clk_i)
+//begin
 //	datod <= rommem[radr];
-	bndxd <= bndxd1;
-	adr1 <= adrd;
 	/*
 	if (!we_i & cs)
 		$display("%d %h: read from scratchmem: %h=%h", $time, ip, radr, rommem[radr]);
@@ -252,7 +163,7 @@ begin
 //	for (n = -6; n < 8; n = n + 1) begin
 //		$display("%c%c %h %h", n==0 ? "-": " ", n==0 ?">" : " ",spr + n, rommem[spr+n]);
 //	end
-end
+//end
 
 
    // xpm_memory_spram: Single Port RAM
@@ -290,9 +201,9 @@ end
       .sbiterra(),             // 1-bit output: Status signal to indicate single bit error occurrence
                                        // on the data output of port A.
 
-      .addra(adr2[17:4]),             // ADDR_WIDTH_A-bit input: Address for port A write and read operations.
-      .clka(clk_i),                     // 1-bit input: Clock signal for port A.
-      .dina(dati2),                     // WRITE_DATA_WIDTH_A-bit input: Data input for port A write operations.
+      .addra(reqd.padr[17:4]),       // ADDR_WIDTH_A-bit input: Address for port A write and read operations.
+      .clka(clk_i),                  // 1-bit input: Clock signal for port A.
+      .dina(reqd.data1),             // WRITE_DATA_WIDTH_A-bit input: Data input for port A write operations.
       .ena(1'b1),                    // 1-bit input: Memory enable signal for port A. Must be high on clock
                                        // cycles when read or write operations are initiated. Pipelined
                                        // internally.
@@ -314,7 +225,7 @@ end
                                        // parameter READ_RESET_VALUE_A.
 
       .sleep(1'b0),                   // 1-bit input: sleep signal to enable the dynamic power saving feature.
-      .wea({16{we2}}&sel2)           // WRITE_DATA_WIDTH_A/BYTE_WRITE_WIDTH_A-bit input: Write enable vector
+      .wea({16{reqd.we}}&reqd.sel)     // WRITE_DATA_WIDTH_A/BYTE_WRITE_WIDTH_A-bit input: Write enable vector
                                        // for port A input data port dina. 1 bit wide when word-wide writes are
                                        // used. In byte-wide write configurations, each bit controls the
                                        // writing one byte of dina to address addra. For example, to
@@ -325,45 +236,26 @@ end
 				
 always_ff @(posedge clk_i)
 	if (cfg_rd_ack)
-		dat_o <= cfg_out;
+		resp.dat <= cfg_out;
 	else
-		dat_o <= ram_dat_o;
+		resp.dat <= ram_dat_o;
 
 fta_tranid_t tid3;
 wire [3:0] cid3;
 wire [31:0] adr3;
-vtdl #(.WID( 4), .DEP(16)) udlycid (.clk(clk_i), .ce(1'b1), .a(3), .d(cid_i), .q(cid3));
-vtdl #(.WID($bits(fta_tranid_t)), .DEP(16)) udlytid (.clk(clk_i), .ce(1'b1), .a(3), .d(tid_i), .q(tid3));
-vtdl #(.WID(32), .DEP(16)) udlyadr (.clk(clk_i), .ce(1'b1), .a(3), .d(adr_i), .q(adr3));
+vtdl #(.WID( 4), .DEP(16)) udlycid (.clk(clk_i), .ce(1'b1), .a(2), .d(req.cid), .q(cid3));
+vtdl #(.WID($bits(fta_tranid_t)), .DEP(16)) udlytid (.clk(clk_i), .ce(1'b1), .a(2), .d(req.tid), .q(tid3));
+vtdl #(.WID(32), .DEP(16)) udlyadr (.clk(clk_i), .ce(1'b1), .a(2), .d(req.padr), .q(adr3));
 always_ff @(posedge clk_i)
-	cid_o <= cid3;
+	resp.cid <= cid3;
 always_ff @(posedge clk_i)
-	tid_o <= tid3;
+	resp.tid <= tid3;
 always_ff @(posedge clk_i)
-	adr_o <= adr3;
-/*			
-always_ff @(posedge clk_i)
-if (rst_i) begin
-	tid_o <= 'd0;
-	adr_o <= 'd0;
-end
-else begin
-	if (cs_ram) begin
-		tid_o <= bndxd;
-		adr_o <= adr1;
-	end
-	else begin
-		tid_o <= 'd0;
-		adr_o <= 'd0;
-	end
-*/
-	/*
-	if (cs_i|rd_ack) begin
-		dat_o <= datod;
-	end
-	else
-		dat_o <= 128'd0;
-	*/
-//end
+	resp.adr <= adr3;
+assign resp.next = 'd0;
+assign resp.stall = 'd0;
+assign resp.err = 'd0;
+assign resp.rty = 'd0;
+assign resp.pri = 4'd7;
 
 endmodule

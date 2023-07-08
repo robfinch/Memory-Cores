@@ -91,7 +91,6 @@ parameter HIBIT=13;
 
 integer n,n2,n3,n4,n5;
 
-(* ram_style="distributed" *)
 reg [1023:0] vbit [0:CACHE_ASSOC-1];
 
 reg [31:0] radrr [0:8];
@@ -319,14 +318,14 @@ generate begin : gReaddat
 	always_comb ch5hit = |hit5a & stb5;
 	always_comb ch6hit = |hit6a & stb6;
 	always_comb ch7hit = |hit7a & stb7;
-	always_comb ch0o.ack = (|hit0a && stb0 && (ch0i.cmd==wishbone_pkg::CMD_LOAD||ch0i.cmd==wishbone_pkg::CMD_LOADZ)) | (ch0wack & stb0);
-	always_comb ch1o.ack = (|hit1a && stb1 && (ch1i.cmd==wishbone_pkg::CMD_LOAD||ch1i.cmd==wishbone_pkg::CMD_LOADZ)) | (ch1wack & stb1);
-	always_comb ch2o.ack = (|hit2a && stb2 && (ch2i.cmd==wishbone_pkg::CMD_LOAD||ch2i.cmd==wishbone_pkg::CMD_LOADZ)) | (ch2wack & stb2);
-	always_comb ch3o.ack = (|hit3a && stb3 && (ch3i.cmd==wishbone_pkg::CMD_LOAD||ch3i.cmd==wishbone_pkg::CMD_LOADZ)) | (ch3wack & stb3);
-	always_comb ch4o.ack = (|hit4a && stb4 && (ch4i.cmd==wishbone_pkg::CMD_LOAD||ch4i.cmd==wishbone_pkg::CMD_LOADZ)) | (ch4wack & stb4);
-	always_comb ch5o.ack = (|hit5a && stb5 && (ch5i.cmd==wishbone_pkg::CMD_LOAD||ch5i.cmd==wishbone_pkg::CMD_LOADZ)) | (ch5wack & stb5);
-	always_comb ch6o.ack = (|hit6a && stb6 && (ch6i.cmd==wishbone_pkg::CMD_LOAD||ch6i.cmd==wishbone_pkg::CMD_LOADZ)) | (ch6wack & stb6);
-	always_comb ch7o.ack = (|hit7a && stb7 && (ch7i.cmd==wishbone_pkg::CMD_LOAD||ch7i.cmd==wishbone_pkg::CMD_LOADZ)) | (ch7wack & stb7);
+	always_comb ch0o.ack = (|hit0a && stb0 && (ch0i.cmd==fta_bus_pkg::CMD_LOAD||ch0i.cmd==fta_bus_pkg::CMD_LOADZ)) | (ch0wack & stb0);
+	always_comb ch1o.ack = (|hit1a && stb1 && (ch1i.cmd==fta_bus_pkg::CMD_LOAD||ch1i.cmd==fta_bus_pkg::CMD_LOADZ)) | (ch1wack & stb1);
+	always_comb ch2o.ack = (|hit2a && stb2 && (ch2i.cmd==fta_bus_pkg::CMD_LOAD||ch2i.cmd==fta_bus_pkg::CMD_LOADZ)) | (ch2wack & stb2);
+	always_comb ch3o.ack = (|hit3a && stb3 && (ch3i.cmd==fta_bus_pkg::CMD_LOAD||ch3i.cmd==fta_bus_pkg::CMD_LOADZ)) | (ch3wack & stb3);
+	always_comb ch4o.ack = (|hit4a && stb4 && (ch4i.cmd==fta_bus_pkg::CMD_LOAD||ch4i.cmd==fta_bus_pkg::CMD_LOADZ)) | (ch4wack & stb4);
+	always_comb ch5o.ack = (|hit5a && stb5 && (ch5i.cmd==fta_bus_pkg::CMD_LOAD||ch5i.cmd==fta_bus_pkg::CMD_LOADZ)) | (ch5wack & stb5);
+	always_comb ch6o.ack = (|hit6a && stb6 && (ch6i.cmd==fta_bus_pkg::CMD_LOAD||ch6i.cmd==fta_bus_pkg::CMD_LOADZ)) | (ch6wack & stb6);
+	always_comb ch7o.ack = (|hit7a && stb7 && (ch7i.cmd==fta_bus_pkg::CMD_LOAD||ch7i.cmd==fta_bus_pkg::CMD_LOADZ)) | (ch7wack & stb7);
 	always_comb ch0o.err = 1'b0;
 	always_comb ch1o.err = 1'b0;
 	always_comb ch2o.err = 1'b0;

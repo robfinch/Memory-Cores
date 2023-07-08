@@ -65,6 +65,7 @@ always_comb
 if (rst)
 	next_state <= IDLE;	
 else begin
+	next_state <= IDLE;
 	case(state)
 	IDLE:
 		if (!fifo_empty && !rd_rst_busy && calib_complete)
@@ -76,7 +77,7 @@ else begin
 	PRESET2:
 		next_state <= PRESET3;
 	PRESET3:
-		if (fifo_out.stb && fifo_out.cmd==wishbone_pkg::CMD_STORE)
+		if (fifo_out.stb && fifo_out.cmd==fta_bus_pkg::CMD_STORE)
 			next_state <= WRITE_DATA0;
 		else
 			next_state <= READ_DATA0;
@@ -117,11 +118,11 @@ else begin
 	READ_DATA2:
 		if (rd_data_valid && resp_strip_cnt==num_strips) begin
 			case(fifo_out.cmd)
-			wishbone_pkg::CMD_LOAD,wishbone_pkg::CMD_LOADZ:
+			fta_bus_pkg::CMD_LOAD,fta_bus_pkg::CMD_LOADZ:
 				next_state <= WAIT_NACK;
-			wishbone_pkg::CMD_ADD,wishbone_pkg::CMD_OR,wishbone_pkg::CMD_AND,wishbone_pkg::CMD_EOR,wishbone_pkg::CMD_ASL,wishbone_pkg::CMD_LSR,
-			wishbone_pkg::CMD_MIN,wishbone_pkg::CMD_MAX,wishbone_pkg::CMD_MINU,wishbone_pkg::CMD_MAXU,wishbone_pkg::CMD_CAS:
-				next_state <= ALU;
+			fta_bus_pkg::CMD_ADD,fta_bus_pkg::CMD_OR,fta_bus_pkg::CMD_AND,fta_bus_pkg::CMD_EOR,fta_bus_pkg::CMD_ASL,fta_bus_pkg::CMD_LSR,
+			fta_bus_pkg::CMD_MIN,fta_bus_pkg::CMD_MAX,fta_bus_pkg::CMD_MINU,fta_bus_pkg::CMD_MAXU,fta_bus_pkg::CMD_CAS:
+				next_state <= mpmc10_pkg::ALU;
 			default:
 				next_state <= WAIT_NACK;
 			endcase
@@ -129,16 +130,16 @@ else begin
 		else
 			next_state <= READ_DATA2;
 	
-	ALU:
+	mpmc10_pkg::ALU:
 		if (rmw_hit)
-			next_state <= ALU1;
-	ALU1:
-		next_state <= ALU2;
-	ALU2:
-		next_state <= ALU3;
-	ALU3:
-		next_state <= ALU4;
-	ALU4:
+			next_state <= mpmc10_pkg::ALU1;
+	mpmc10_pkg::ALU1:
+		next_state <= mpmc10_pkg::ALU2;
+	mpmc10_pkg::ALU2:
+		next_state <= mpmc10_pkg::ALU3;
+	mpmc10_pkg::ALU3:
+		next_state <= mpmc10_pkg::ALU4;
+	mpmc10_pkg::ALU4:
 		next_state <= WRITE_TRAMP1;
 		
 	WRITE_TRAMP1:
