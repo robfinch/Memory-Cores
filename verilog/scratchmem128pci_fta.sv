@@ -1,6 +1,6 @@
 // ============================================================================
 //        __
-//   \\__/ o\    (C) 2012-2023  Robert Finch, Waterloo
+//   \\__/ o\    (C) 2012-2024  Robert Finch, Waterloo
 //    \  __ /    All rights reserved.
 //     \/_//     robfinch<remove>@finitron.ca
 //       ||
@@ -47,8 +47,8 @@ output fta_cmd_response128_t resp;
 input [31:0] ip;
 input [31:0] sp;
 
-parameter IO_ADDR = 32'hFFFC0001;
-parameter IO_ADDR_MASK = 32'h00FC0000;
+parameter IO_ADDR = 32'hFFF80001;
+parameter IO_ADDR_MASK = 32'h00F80000;
 
 parameter CFG_BUS = 8'd0;
 parameter CFG_DEVICE = 5'd11;
@@ -86,7 +86,7 @@ reg erc;
 wire rd_ack, wr_ack;
 vtdl #(.WID(1), .DEP(16)) udlyr (.clk(clk_i), .ce(1'b1), .a(1), .d((csd) & ~reqd.we), .q(rd_ack));
 vtdl #(.WID(1), .DEP(16)) udlyc (.clk(clk_i), .ce(1'b1), .a(0), .d((cs_config) & ~reqd.we), .q(cfg_rd_ack));
-vtdl #(.WID(1), .DEP(16)) udlyw (.clk(clk_i), .ce(1'b1), .a(0), .d((csd|cs_config) &  reqd.we & erc), .q(wr_ack));
+vtdl #(.WID(1), .DEP(16)) udlyw (.clk(clk_i), .ce(1'b1), .a(1), .d((csd|cs_config) &  reqd.we & erc), .q(wr_ack));
 always_ff @(posedge clk_i)
 	resp.ack <= (rd_ack|cfg_rd_ack|wr_ack);//(cs|cs_config);	
 
@@ -150,7 +150,7 @@ always_ff @(posedge clk_i)
 
 reg [11:0] spr;
 always_ff @(posedge clk_i)
-	spr <= sp[17:4];
+	spr <= sp[18:4];
 
 //always_ff @(posedge clk_i)
 //begin
@@ -170,7 +170,7 @@ always_ff @(posedge clk_i)
    // Xilinx Parameterized Macro, version 2022.2
 
    xpm_memory_spram #(
-      .ADDR_WIDTH_A(14),              // DECIMAL
+      .ADDR_WIDTH_A(15),              // DECIMAL
       .AUTO_SLEEP_TIME(0),           // DECIMAL
       .BYTE_WRITE_WIDTH_A(8),       	// DECIMAL
       .CASCADE_HEIGHT(0),            // DECIMAL
@@ -179,7 +179,7 @@ always_ff @(posedge clk_i)
       .MEMORY_INIT_PARAM(""),       // String
       .MEMORY_OPTIMIZATION("true"),  // String
       .MEMORY_PRIMITIVE("block"),     // String
-      .MEMORY_SIZE(16384*128),            // DECIMAL
+      .MEMORY_SIZE(32768*128),       // DECIMAL
       .MESSAGE_CONTROL(0),           // DECIMAL
       .READ_DATA_WIDTH_A(128),        // DECIMAL
       .READ_LATENCY_A(2),            // DECIMAL
@@ -201,7 +201,7 @@ always_ff @(posedge clk_i)
       .sbiterra(),             // 1-bit output: Status signal to indicate single bit error occurrence
                                        // on the data output of port A.
 
-      .addra(reqd.padr[17:4]),       // ADDR_WIDTH_A-bit input: Address for port A write and read operations.
+      .addra(reqd.padr[18:4]),       // ADDR_WIDTH_A-bit input: Address for port A write and read operations.
       .clka(clk_i),                  // 1-bit input: Clock signal for port A.
       .dina(reqd.data1),             // WRITE_DATA_WIDTH_A-bit input: Data input for port A write operations.
       .ena(1'b1),                    // 1-bit input: Memory enable signal for port A. Must be high on clock
