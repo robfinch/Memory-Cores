@@ -38,6 +38,7 @@ import fta_bus_pkg::*;
 
 module scratchmem128pci_fta(rst_i, clk_i, cs_config_i, cs_ram_i, 
 	req, resp, ip, sp);
+parameter pInitFile = "f:\\cores2024\\Qupls\\software\\boot\\rom.ver";
 input rst_i;
 input clk_i;
 input cs_config_i;
@@ -71,12 +72,23 @@ parameter CFG_IRQ_LINE = 8'hFF;
 localparam CFG_HEADER_TYPE = 8'h00;			// 00 = a general device
 
 
+integer nn;
+genvar g;
 fta_cmd_request128_t reqd;
 
 reg cs_ram, cs_config;
 wire cs_bar0;
+
+/*
+reg [127:0] rommem [0:32767];
+initial begin
+	`include "f:\\cores2024\\Qupls\\software\\boot\\rom.ver";
+end
+reg [14:0] radr;
+*/
+
 wire [127:0] cfg_out;
-wire [127:0] ram_dat_o;
+reg [127:0] ram_dat_o, ram_dat;
 
 wire cs = cs_ram;
 reg csd;
@@ -233,6 +245,26 @@ always_ff @(posedge clk_i)
                                        // is 32, wea would be 4'b0010.
 
    );
+
+/*
+generate begin : gRam
+	for (g = 0; g < 16; g = g + 1)
+	always_ff @(posedge clk_i)
+		if (reqd.we)
+			if (reqd.sel[g])
+				rommem[reqd.padr[18:4]][g*8+7:g*8] <= reqd.data1[g*8+7:g*8];
+end
+endgenerate	
+
+always_ff @(posedge clk_i)
+	radr <= reqd.padr[18:4];		
+always_ff @(posedge clk_i)
+	ram_dat_o <= rommem[radr];
+*/
+/*	
+always_ff @(posedge clk_i)
+	ram_dat_o <= ram_dat;
+*/
 				
 always_ff @(posedge clk_i)
 	if (cfg_rd_ack)
@@ -252,10 +284,10 @@ always_ff @(posedge clk_i)
 	resp.tid <= tid3;
 always_ff @(posedge clk_i)
 	resp.adr <= adr3;
-assign resp.next = 'd0;
-assign resp.stall = 'd0;
-assign resp.err = 'd0;
-assign resp.rty = 'd0;
+assign resp.next = 1'd0;
+assign resp.stall = 1'd0;
+assign resp.err = fta_bus_pkg::OKAY;
+assign resp.rty = 1'd0;
 assign resp.pri = 4'd7;
 
 endmodule

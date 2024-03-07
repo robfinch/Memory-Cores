@@ -77,6 +77,7 @@ parameter CFG_IRQ_LINE = 8'hFF;
 
 localparam CFG_HEADER_TYPE = 8'h00;			// 00 = a general device
 
+integer n;
 reg csb;							// core select - gateway
 reg cs_config1,cs_config2;
 wire clka = clk;
@@ -84,11 +85,15 @@ wire clkb = clk;
 wire ena = 1'b1;
 wire enb = 1'b1;
 reg [8191:0] gate;		// gates 13 bits in a tid
+initial begin
+	for (n = 0; n < 8192; n = n + 1)
+		gate[n] = 1'b0;
+end
 reg gate_open;
 reg [12:0] tid_ndx;
 reg [27:0] tmp;
 reg [16:0] iadr;
-reg cs1,cs2,cs3,csb1,csb2,csb3;
+reg cs1,cs2,cs3,csb1,csb2;
 reg [15:0] addra, addra1;
 reg [15:0] addrb, addrb2, addrb3;
 reg [127:0] doutb;
@@ -179,7 +184,9 @@ always_ff @(posedge clk)
 	addra <= addra1;
 
 always_ff @(posedge clk)
-begin
+if (rst)
+	iadr <= SIZE;
+else begin
 	if (age)
 		iadr <= 17'd0;
 	else if (!cs & !csb && iadr!=SIZE)
@@ -224,14 +231,15 @@ if (rst) begin
 end
 else begin
 	// Active signals for only one cycle.
+	fta_req_o <= {$bits(fta_cmd_request128_t){1'b0}};
 	fta_resp_o <= {$bits(fta_cmd_response128_t){1'b0}};
 	// Normal request.
 	if (cs1) begin
 		// If a code area
-		if (doutb[31]) begin
+		if (~doutb[31]) begin
 			// and conforming or priv. match
 			if ((doutb[7:0]==8'h00 || doutb[7:0]==fta1.pl) 
-			&& fta1.key==doutb[30:8]
+			&& (fta1.key[19:0]==doutb[27:8] || doutb[27:8]==20'h0)
 			&& fta1.seg==fta_bus_pkg::CODE) begin
 				// allow through
 				fta_req_o <= fta1;
@@ -240,7 +248,6 @@ else begin
 			else begin
 				// report back a priv error
 				gate[fta1.tid] <= 1'b0;
-				fta_req_o <= {$bits(fta_cmd_request128_t){1'b0}};
 				fta_resp_o.cid <= fta1.cid;
 				fta_resp_o.next <= 1'b0;
 				fta_resp_o.stall <= 1'b0;
@@ -257,7 +264,7 @@ else begin
 		else begin
 			// and no priv required or priv. greater
 			if ((doutb[7:0]==8'h00 || doutb[7:0] <= fta1.pl)
-			&& fta1.key==doutb[30:8]
+			&& (fta1.key[19:0]==doutb[27:8] || doutb[27:8]==20'h0)
 			&& fta1.seg!=fta_bus_pkg::CODE) begin
 				// allow through
 				fta_req_o <= fta1;
@@ -266,7 +273,6 @@ else begin
 			else begin
 				// report back a priv error
 				gate[fta1.tid] <= 1'b0;
-				fta_req_o <= {$bits(fta_cmd_request128_t){1'b0}};
 				fta_resp_o.cid <= fta1.cid;
 				fta_resp_o.next <= 1'b0;
 				fta_resp_o.stall <= 1'b0;
@@ -278,10 +284,6 @@ else begin
 				fta_resp_o.adr <= fta1.padr;
 				fta_resp_o.dat <= 128'd0;
 			end
-		end
-		if (gate_open) begin
-			gate[fta_resp2.tid] <= 1'b0;
-			fta_resp_o <= fta_resp2;
 		end
 	end
 	// Request to read lot gate info.
@@ -309,6 +311,10 @@ else begin
 		fta_resp_o.tid <= fta2.tid;
 		fta_resp_o.adr <= fta2.padr;
 		fta_resp_o.dat <= cfg_out;
+	end
+	if (gate_open) begin
+		gate[fta_resp2.tid] <= 1'b0;
+		fta_resp_o <= fta_resp2;
 	end
 end
 
