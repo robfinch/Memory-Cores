@@ -43,8 +43,8 @@ input rst;
 input clk;
 input rd_fifo;
 input wr_fifo;
-input fta_cmd_request128_t req_fifoi;
-output fta_cmd_request128_t req_fifoo;
+input mpmc10_fifoe_t req_fifoi;
+output mpmc10_fifoe_t req_fifoo;
 output v;
 output full;
 output empty;
@@ -63,12 +63,12 @@ xpm_fifo_sync #(
   .PROG_EMPTY_THRESH(3),    // DECIMAL
   .PROG_FULL_THRESH(27),     // DECIMAL
   .RD_DATA_COUNT_WIDTH(5),   // DECIMAL
-  .READ_DATA_WIDTH($bits(fta_cmd_request128_t)),      // DECIMAL
+  .READ_DATA_WIDTH($bits(mpmc10_fifoe_t)),      // DECIMAL
   .READ_MODE("std"),         // String
   .SIM_ASSERT_CHK(0),        // DECIMAL; 0=disable simulation messages, 1=enable simulation messages
   .USE_ADV_FEATURES("070F"), // String
   .WAKEUP_TIME(0),           // DECIMAL
-  .WRITE_DATA_WIDTH($bits(fta_cmd_request128_t)),     // DECIMAL
+  .WRITE_DATA_WIDTH($bits(mpmc10_fifoe_t)),     // DECIMAL
   .WR_DATA_COUNT_WIDTH(5)    // DECIMAL
 )
 xpm_fifo_sync_inst (

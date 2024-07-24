@@ -150,11 +150,14 @@ assign ch5o = STREAM5 ? ch5ob : rmw5 ? ch5oc : ch5oa;
 assign ch6o = STREAM6 ? ch6ob : rmw6 ? ch6oc : ch6oa;
 assign ch7o = STREAM7 ? ch7ob : rmw7 ? ch7oc : ch7oa;
 
-fta_cmd_request128_t req_fifoi;
-fta_cmd_request128_t req_fifoo;
+mpmc10_fifoe_t req_fifoi;
+mpmc10_fifoe_t req_fifoo;
 fta_cmd_request128_t ld;
 fta_cmd_request128_t fifo_mask;
-fta_cmd_request128_t fifoo = req_fifoo & fifo_mask;
+mpmc10_fifoe_t fifoo;
+
+assign fifoo.req = req_fifoo.req & fifo_mask;
+assign fifoo.port = req_fifoo.port;
 
 genvar g;
 integer n1,n2,n3;
@@ -171,7 +174,7 @@ wire [5:0] req_strip_cnt;
 wire [5:0] resp_strip_cnt;
 wire [15:0] tocnt;
 reg [31:0] adr;
-reg [3:0] uch;		// update channel
+reg [3:0] uport;		// update port
 wire [15:0] wmask;
 wire [15:0] mem_wdf_mask2;
 reg [127:0] dat128;
@@ -426,8 +429,8 @@ begin
 	ld.bte <= fta_bus_pkg::LINEAR;
 	ld.cti <= fta_bus_pkg::CLASSIC;
 	ld.blen <= 'd0;
-	ld.cyc <= fifoo.cyc && !fifoo.we && rd_data_valid_r && (uch!=4'd0 && uch!=4'd5 && uch!=4'd15);
-	ld.stb <= fifoo.stb && !fifoo.we && rd_data_valid_r && (uch!=4'd0 && uch!=4'd5 && uch!=4'd15);
+	ld.cyc <= fifoo.req.cyc && !fifoo.req.we && rd_data_valid_r && (uport!=4'd0 && uport!=4'd5 && uport!=4'd15);
+	ld.stb <= fifoo.req.stb && !fifoo.req.we && rd_data_valid_r && (uport!=4'd0 && uport!=4'd5 && uport!=4'd15);
 	ld.we <= 1'b0;
 	ld.padr <= {app_waddr[31:4],4'h0};
 	ld.data1 <= rd_data_r;
@@ -454,7 +457,7 @@ begin
 	if (!ch6i.stb)	ch6wack <= 1'b0;
 	if (!ch7i.stb)	ch7wack <= 1'b0;
 	if (state==WRITE_DATA3)
-		case(uch)
+		case(uport)
 		4'd0:	ch0wack <= 1'b1;
 		4'd1: ch1wack <= 1'b1;
 		4'd2: ch2wack <= 1'b1;
@@ -521,7 +524,7 @@ mpmc10_strm_read_cache ustrm0
 (
 	.rst(rst),
 	.wclk(mem_ui_clk),
-	.wr(uch==4'd0 && rd_data_valid_r),
+	.wr(uport==4'd0 && rd_data_valid_r),
 	.wadr({app_waddr[31:4],4'h0}),
 	.wdat(rd_data_r),
 	.inv(1'b0),
@@ -536,7 +539,7 @@ mpmc10_strm_read_cache ustrm1
 (
 	.rst(rst),
 	.wclk(mem_ui_clk),
-	.wr(uch==4'd1 && rd_data_valid_r),
+	.wr(uport==4'd1 && rd_data_valid_r),
 	.wadr({app_waddr[31:4],4'h0}),
 	.wdat(rd_data_r),
 	.inv(1'b0),
@@ -551,7 +554,7 @@ mpmc10_strm_read_cache ustrm2
 (
 	.rst(rst),
 	.wclk(mem_ui_clk),
-	.wr(uch==4'd2 && rd_data_valid_r),
+	.wr(uport==4'd2 && rd_data_valid_r),
 	.wadr({app_waddr[31:4],4'h0}),
 	.wdat(rd_data_r),
 	.inv(1'b0),
@@ -566,7 +569,7 @@ mpmc10_strm_read_cache ustrm3
 (
 	.rst(rst),
 	.wclk(mem_ui_clk),
-	.wr(uch==4'd3 && rd_data_valid_r),
+	.wr(uport==4'd3 && rd_data_valid_r),
 	.wadr({app_waddr[31:4],4'h0}),
 	.wdat(rd_data_r),
 	.inv(1'b0),
@@ -581,7 +584,7 @@ mpmc10_strm_read_cache ustrm4
 (
 	.rst(rst),
 	.wclk(mem_ui_clk),
-	.wr(uch==4'd4 && rd_data_valid_r),
+	.wr(uport==4'd4 && rd_data_valid_r),
 	.wadr({app_waddr[31:4],4'h0}),
 	.wdat(rd_data_r),
 	.inv(1'b0),
@@ -596,7 +599,7 @@ mpmc10_strm_read_cache ustrm5
 (
 	.rst(rst),
 	.wclk(mem_ui_clk),
-	.wr(uch==4'd5 && rd_data_valid_r),
+	.wr(uport==4'd5 && rd_data_valid_r),
 	.wadr({app_waddr[31:4],4'h0}),
 	.wdat(rd_data_r),
 	.inv(1'b0),
@@ -611,7 +614,7 @@ mpmc10_strm_read_cache ustrm6
 (
 	.rst(rst),
 	.wclk(mem_ui_clk),
-	.wr(uch==4'd6 && rd_data_valid_r),
+	.wr(uport==4'd6 && rd_data_valid_r),
 	.wadr({app_waddr[31:4],4'h0}),
 	.wdat(rd_data_r),
 	.inv(1'b0),
@@ -626,7 +629,7 @@ mpmc10_strm_read_cache ustrm7
 (
 	.rst(rst),
 	.wclk(mem_ui_clk),
-	.wr(uch==4'd7 && rd_data_valid_r),
+	.wr(uport==4'd7 && rd_data_valid_r),
 	.wadr({app_waddr[31:4],4'h0}),
 	.wdat(rd_data_r),
 	.inv(1'b0),
@@ -667,21 +670,24 @@ roundRobin rr1
 );
 
 always_comb
+begin
+	req_fifoi.port <= req_sel;
 	case(req_sel)
-	4'd0:	req_fifoi <= STREAM0 ? ch0is2 : ch0is;
-	4'd1:	req_fifoi <= STREAM1 ? ch1is2 : ch1is;
-	4'd2:	req_fifoi <= STREAM2 ? ch2is2 : ch2is;
-	4'd3:	req_fifoi <= STREAM3 ? ch3is2 : ch3is;
-	4'd4:	req_fifoi <= STREAM4 ? ch4is2 : ch4is;
-	4'd5:	req_fifoi <= STREAM5 ? ch5is2 : ch5is;
-	4'd6:	req_fifoi <= STREAM6 ? ch6is2 : ch6is;
-	4'd7:	req_fifoi <= STREAM7 ? ch7is2 : ch7is;
+	4'd0:	req_fifoi.req <= STREAM0 ? ch0is2 : ch0is;
+	4'd1:	req_fifoi.req <= STREAM1 ? ch1is2 : ch1is;
+	4'd2:	req_fifoi.req <= STREAM2 ? ch2is2 : ch2is;
+	4'd3:	req_fifoi.req <= STREAM3 ? ch3is2 : ch3is;
+	4'd4:	req_fifoi.req <= STREAM4 ? ch4is2 : ch4is;
+	4'd5:	req_fifoi.req <= STREAM5 ? ch5is2 : ch5is;
+	4'd6:	req_fifoi.req <= STREAM6 ? ch6is2 : ch6is;
+	4'd7:	req_fifoi.req <= STREAM7 ? ch7is2 : ch7is;
 	default:	
 		begin
-			req_fifoi <= 'd0;
-			req_fifoi.cid <= 4'd15;
+			req_fifoi.req <= 'd0;
+			req_fifoi.port <= 4'd15;
 		end
 	endcase
+end
 
 mpmc10_fifo_fta ufifo1
 (
@@ -701,11 +707,11 @@ mpmc10_fifo_fta ufifo1
 );
 
 always_comb
-	uch <= fifoo.cid;
+	uport <= fifoo.port;
 always_comb
-	num_strips <= fifoo.blen;
+	num_strips <= fifoo.req.blen;
 always_comb
-	adr <= fifoo.padr;
+	adr <= fifoo.req.padr;
 
 wire [2:0] app_addr3;	// dummy to make up 32-bits
 
@@ -738,8 +744,8 @@ mpmc10_mask_select unsks1
 	.rst(mem_ui_rst),
 	.clk(mem_ui_clk),
 	.state(state),
-	.we(fifoo.we), 
-	.wmask(req_fifoo.sel[15:0]),
+	.we(fifoo.req.we), 
+	.wmask(req_fifoo.req.sel[15:0]),
 	.mask(app_wdf_mask),
 	.mask2(mem_wdf_mask2)
 );
@@ -751,8 +757,8 @@ mpmc10_data_select #(.WID(128)) uds1
 (
 	.clk(mem_ui_clk),
 	.state(state),
-	.dati1(req_fifoo.data1),
-	.dati2(req_fifoo.data2),
+	.dati1(req_fifoo.req.data1),
+	.dati2(req_fifoo.req.data2),
 	.dato1(data128a),
 	.dato2(data128b)
 );
@@ -763,7 +769,7 @@ reg [127:0] opa, opa1, opb, opc, t1;
 reg [127:0] rmw_dat;
 `ifdef SUPPORT_AMO
 always_comb
-	case(req_fifoo.cid)
+	case(req_fifoo.port)
 	4'd0:	rmw_hit = hit0;
 	4'd1:	rmw_hit = hit1;
 	4'd2:	rmw_hit = hit2;
@@ -775,11 +781,11 @@ always_comb
 	default:	rmw_hit = 1'b1;
 	endcase
 always_ff @(posedge mem_ui_clk)
-	opb <= data128a >> {req_fifoo.padr[4:0],3'b0};
+	opb <= data128a >> {req_fifoo.req.padr[4:0],3'b0};
 always_ff @(posedge mem_ui_clk)
-	opc <= data128b >> {req_fifoo.padr[4:0],3'b0};
+	opc <= data128b >> {req_fifoo.req.padr[4:0],3'b0};
 always_ff @(posedge mem_ui_clk)
-	case(req_fifoo.cid)
+	case(req_fifoo.port)
 	4'd0:	opa1 <= ch0oa.dat;
 	4'd1:	opa1 <= ch1oa.dat;
 	4'd2:	opa1 <= ch2oa.dat;
@@ -791,12 +797,12 @@ always_ff @(posedge mem_ui_clk)
 	default:	opa1 <= 'd0;
 	endcase
 always_ff @(posedge mem_ui_clk)
-	opa <= opa1 >> {req_fifoo.padr[4:0],3'b0};
+	opa <= opa1 >> {req_fifoo.req.padr[4:0],3'b0};
 always_ff @(posedge mem_ui_clk)
-case(req_fifoo.sz)
+case(req_fifoo.req.sz)
 `ifdef SUPPORT_AMO_TETRA
 fta_bus_pkg::tetra:
-	case(req_fifoo.cmd)
+	case(req_fifoo.req.cmd)
 	CMD_ADD:	t1 <= opa[31:0] + opb[31:0];
 	CMD_AND:	t1 <= opa[31:0] & opb[31:0];
 	CMD_OR:		t1 <= opa[31:0] | opb[31:0];
@@ -821,7 +827,7 @@ fta_bus_pkg::tetra:
 `endif
 `ifdef SUPPORT_AMO_OCTA
 fta_bus_pkg::octa:
-	case(req_fifoo.cmd)
+	case(req_fifoo.req.cmd)
 	CMD_ADD:	t1 <= opa[63:0] + opb[63:0];
 	CMD_AND:	t1 <= opa[63:0] & opb[63:0];
 	CMD_OR:		t1 <= opa[63:0] | opb[63:0];
@@ -845,7 +851,7 @@ fta_bus_pkg::octa:
 	endcase
 `endif
 default:
-	case(req_fifoo.cmd)
+	case(req_fifoo.req.cmd)
 	fta_bus_pkg::CMD_ADD:	t1 <= opa[127:0] + opb[127:0];
 	fta_bus_pkg::CMD_AND:	t1 <= opa[127:0] & opb[127:0];
 	fta_bus_pkg::CMD_OR:		t1 <= opa[127:0] | opb[127:0];
@@ -869,7 +875,7 @@ default:
 	endcase
 endcase
 always_ff @(posedge mem_ui_clk)
-	rmw_dat <= t1 << {req_fifoo.padr[4:0],3'b0};
+	rmw_dat <= t1 << {req_fifoo.req.padr[4:0],3'b0};
 
 always_ff @(posedge mem_ui_clk)
 if (mem_ui_rst) begin
@@ -884,7 +890,7 @@ if (mem_ui_rst) begin
 end
 else begin
 if (state==WRITE_TRAMP1)
-	case(req_fifoo.cid)
+	case(req_fifoo.port)
 	4'd0:	ch0oc.dat <= opa;
 	4'd1:	ch1oc.dat <= opa;
 	4'd2:	ch2oc.dat <= opa;
@@ -905,14 +911,14 @@ else begin
 	else if (state==IDLE)
 		rmw_ack <= 1'b0;
 end
-always_comb	ch0oc.ack = ch0i.stb & rmw_ack & rmw0 && req_fifoo.cid==4'd0;
-always_comb	ch1oc.ack = ch1i.stb & rmw_ack & rmw1 && req_fifoo.cid==4'd1;
-always_comb	ch2oc.ack = ch2i.stb & rmw_ack & rmw2 && req_fifoo.cid==4'd2;
-always_comb	ch3oc.ack = ch3i.stb & rmw_ack & rmw3 && req_fifoo.cid==4'd3;
-always_comb	ch4oc.ack = ch4i.stb & rmw_ack & rmw4 && req_fifoo.cid==4'd4;
-always_comb	ch5oc.ack = ch5i.stb & rmw_ack & rmw5 && req_fifoo.cid==4'd5;
-always_comb	ch6oc.ack = ch6i.stb & rmw_ack & rmw6 && req_fifoo.cid==4'd6;
-always_comb	ch7oc.ack = ch7i.stb & rmw_ack & rmw7 && req_fifoo.cid==4'd7;
+always_comb	ch0oc.ack = ch0i.stb & rmw_ack & rmw0 && req_fifoo.port==4'd0;
+always_comb	ch1oc.ack = ch1i.stb & rmw_ack & rmw1 && req_fifoo.port==4'd1;
+always_comb	ch2oc.ack = ch2i.stb & rmw_ack & rmw2 && req_fifoo.port==4'd2;
+always_comb	ch3oc.ack = ch3i.stb & rmw_ack & rmw3 && req_fifoo.port==4'd3;
+always_comb	ch4oc.ack = ch4i.stb & rmw_ack & rmw4 && req_fifoo.port==4'd4;
+always_comb	ch5oc.ack = ch5i.stb & rmw_ack & rmw5 && req_fifoo.port==4'd5;
+always_comb	ch6oc.ack = ch6i.stb & rmw_ack & rmw6 && req_fifoo.port==4'd6;
+always_comb	ch7oc.ack = ch7i.stb & rmw_ack & rmw7 && req_fifoo.port==4'd7;
 `endif
 
 // Setting the data value. Unlike reads there is only a single strip involved.
@@ -1052,10 +1058,10 @@ mpmc10_resv_bit ursb1
 (
 	.clk(mem_ui_clk),
 	.state(state),
-	.wch(fifoo.cid),
-	.we(fifoo.stb & fifoo.we),
-	.cr(fifoo.csr & fifoo.we),
-	.adr(fifoo.padr),
+	.wch(fifoo.port),
+	.we(fifoo.req.stb & fifoo.req.we),
+	.cr(fifoo.req.csr & fifoo.req.we),
+	.adr(fifoo.req.padr),
 	.resv_ch(resv_ch),
 	.resv_adr(resv_adr),
 	.rb(rb1)
@@ -1082,10 +1088,10 @@ mpmc10_addr_resv_man #(.NAR(NAR)) ursvm1
 	.sr5(1'b0),
 	.sr6(ch6is.csr & ch6is.stb & ~ch6is.we),
 	.sr7(ch7is.csr & ch7is.stb & ~ch7is.we),
-	.wch(fifoo.stb ? fifoo.cid : 4'd15),
-	.we(fifoo.stb & fifoo.we),
-	.wadr(fifoo.padr),
-	.cr(fifoo.csr & fifoo.stb & fifoo.we),
+	.wch(fifoo.req.stb ? fifoo.port : 4'd15),
+	.we(fifoo.req.stb & fifoo.req.we),
+	.wadr(fifoo.req.padr),
+	.cr(fifoo.req.csr & fifoo.req.stb & fifoo.req.we),
 	.resv_ch(resv_ch),
 	.resv_adr(resv_adr)
 );

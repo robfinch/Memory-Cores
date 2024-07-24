@@ -80,4 +80,10 @@ typedef struct packed
 	mpmc10_cache_line_t [CACHE_ASSOC-1:0] lines;
 } mpmc10_quad_cache_line_t;
 
+typedef struct packed {
+	fta_bus_pkg::fta_cmd_request128_t req;
+	logic [3:0] port;
+} mpmc10_fifoe_t;
+
+
 endpackage
