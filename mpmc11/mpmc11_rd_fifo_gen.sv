@@ -47,20 +47,21 @@ output reg rd;
 
 reg next_rd;
 
-always_ff @(posedge clk)
-	rd <= next_rd;
-
 always_comb
-if (rst)
-	next_rd <= 1'b0;
-else begin
-	next_rd <= 1'b0;
+begin
+	next_rd = 1'b0;
 	case(state)
-	IDLE:
+	mpmc11_pkg::IDLE:
 		if (!empty && !rd_rst_busy && calib_complete)
-			next_rd <= 1'b1;
+			next_rd = 1'b1;
 	default:	;
 	endcase
 end
+
+always_ff @(posedge clk)
+if (rst)
+	rd <= 1'b0;
+else
+	rd <= next_rd;
 
 endmodule

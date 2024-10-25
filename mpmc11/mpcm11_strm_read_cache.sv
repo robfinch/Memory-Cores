@@ -34,10 +34,11 @@
 //
 // ============================================================================
 //
-import mpmc10_pkg::*;
+import const_pkg::*;
+import mpmc11_pkg::*;
 
 module mpmc11_strm_read_cache(rst, wclk, wr, wadr, wdat, inv,
-	rclk, rd, radr, rdat, hit
+	rclk, req, resp, hit
 );
 input rst;
 input wclk;
@@ -46,17 +47,41 @@ input [31:0] wadr;
 input [WIDX8-1:0] wdat;
 input inv;
 input rclk;
-input rd;
-input [31:0] radr;
-output [WIDX8-1:0] rdat;
+input fta_cmd_request256_t req;
+output fta_cmd_response256_t resp;
 output reg hit;
 
+reg [WIDX8-1:0] rdat;
+reg rd;
+fta_cmd_request256_t reqh;
+reg [31:0] radr;
+
+// Latch incoming request until a hit is detected.
+always_ff @(posedge rclk)
+begin
+	resp.ack <= FALSE;
+	if (req.cyc) begin
+		reqh <= req;
+		resp.tid <= req.tid;
+		resp.adr <= req.padr;
+		rd <= req.cyc & ~req.we;
+	end
+	else if (hit) begin
+		reqh <= {$bits(fta_cmd_request256_t){1'b0}};
+		rd <= FALSE;
+		resp.ack <= reqh.cyc;
+		resp.dat <= rdat;
+	end
+end
+
+always_comb radr = {reqh.padr[31:5],5'h0};
+
 (* ram_style="distributed" *)
-reg [18:0] tags [0:7];
+reg [17:0] tags [0:7];
 (* ram_style="distributed" *)
 reg [7:0] vbit = 'b0;
 reg [31:0] radrr;
-reg [18:0] tago;
+reg [17:0] tago;
 reg vbito;
 
 xpm_memory_sdpram #(

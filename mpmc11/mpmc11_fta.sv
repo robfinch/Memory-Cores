@@ -59,7 +59,7 @@ output [31:0] app_waddr,
 input app_rdy,
 output app_en,
 output [2:0] app_cmd,
-output [28:0] app_addr,
+output [29:0] app_addr,
 input app_rd_data_valid,
 output [31:0] app_wdf_mask,
 output reg [WIDX8-1:0] app_wdf_data,
@@ -106,22 +106,24 @@ parameter RMW5 = 1'b0;
 parameter RMW6 = 1'b0;
 parameter RMW7 = 1'b1;
 
-fta_cmd_request256_t ch0is;
-fta_cmd_request256_t ch0is2;
-fta_cmd_request256_t ch1is;
-fta_cmd_request256_t ch1is2;
-fta_cmd_request256_t ch2is;
-fta_cmd_request256_t ch2is2;
-fta_cmd_request256_t ch3is;
-fta_cmd_request256_t ch3is2;
-fta_cmd_request256_t ch4is;
-fta_cmd_request256_t ch4is2;
-fta_cmd_request256_t ch5is;
-fta_cmd_request256_t ch5is2;
-fta_cmd_request256_t ch6is;
-fta_cmd_request256_t ch6is2;
-fta_cmd_request256_t ch7is;
-fta_cmd_request256_t ch7is2;
+fta_cmd_request256_t ch0i2;
+fta_cmd_request256_t ch1i2;
+fta_cmd_request256_t ch2i2;
+fta_cmd_request256_t ch3i2;
+fta_cmd_request256_t ch4i2;
+fta_cmd_request256_t ch5i2;
+fta_cmd_request256_t ch6i2;
+fta_cmd_request256_t ch7i2;
+fta_cmd_request256_t [7:0] chi;
+
+always_comb chi[0] = ch0i;
+always_comb chi[1] = ch1i;
+always_comb chi[2] = ch2i;
+always_comb chi[3] = ch3i;
+always_comb chi[4] = ch4i;
+always_comb chi[5] = ch5i;
+always_comb chi[6] = ch6i;
+always_comb chi[7] = ch7i;
 
 fta_cmd_response256_t ch0oa, ch0ob, ch0oc;
 fta_cmd_response256_t ch1oa, ch1ob, ch1oc;
@@ -131,6 +133,24 @@ fta_cmd_response256_t ch4oa, ch4ob, ch4oc;
 fta_cmd_response256_t ch5oa, ch5ob, ch5oc;
 fta_cmd_response256_t ch6oa, ch6ob, ch6oc;
 fta_cmd_response256_t ch7oa, ch7ob, ch7oc;
+fta_cmd_response256_t [7:0] chob;
+always_comb ch0ob = chob[0];
+always_comb ch1ob = chob[1];
+always_comb ch2ob = chob[2];
+always_comb ch3ob = chob[3];
+always_comb ch4ob = chob[4];
+always_comb ch5ob = chob[5];
+always_comb ch6ob = chob[6];
+always_comb ch7ob = chob[7];
+
+fta_cmd_request256_t ch0is;
+fta_cmd_request256_t ch1is;
+fta_cmd_request256_t ch2is;
+fta_cmd_request256_t ch3is;
+fta_cmd_request256_t ch4is;
+fta_cmd_request256_t ch5is;
+fta_cmd_request256_t ch6is;
+fta_cmd_request256_t ch7is;
 
 wire rmw0 = ch0is.cmd[4];
 wire rmw1 = ch1is.cmd[4];
@@ -141,6 +161,26 @@ wire rmw5 = ch5is.cmd[4];
 wire rmw6 = ch6is.cmd[4];
 wire rmw7 = ch7is.cmd[4];
 
+wire [7:0] chclk;
+assign chclk[0] = ch0clk;
+assign chclk[1] = ch1clk;
+assign chclk[2] = ch2clk;
+assign chclk[3] = ch3clk;
+assign chclk[4] = ch4clk;
+assign chclk[5] = ch5clk;
+assign chclk[6] = ch6clk;
+assign chclk[7] = ch7clk;
+
+wire [7:0] streaming;
+assign streaming[0] = STREAM0;
+assign streaming[1] = STREAM1;
+assign streaming[2] = STREAM2;
+assign streaming[3] = STREAM3;
+assign streaming[4] = STREAM4;
+assign streaming[5] = STREAM5;
+assign streaming[6] = STREAM6;
+assign streaming[7] = STREAM7;
+
 assign ch0o = STREAM0 ? ch0ob : rmw0 ? ch0oc : ch0oa;
 assign ch1o = STREAM1 ? ch1ob : rmw1 ? ch1oc : ch1oa;
 assign ch2o = STREAM2 ? ch2ob : rmw2 ? ch2oc : ch2oa;
@@ -150,7 +190,8 @@ assign ch5o = STREAM5 ? ch5ob : rmw5 ? ch5oc : ch5oa;
 assign ch6o = STREAM6 ? ch6ob : rmw6 ? ch6oc : ch6oa;
 assign ch7o = STREAM7 ? ch7ob : rmw7 ? ch7oc : ch7oa;
 
-mpmc11_fifoe_t req_fifoi;
+mpmc11_fifoe_t [7:0] req_fifoi;
+mpmc11_fifoe_t [7:0] req_fifog;
 mpmc11_fifoe_t req_fifoo;
 fta_cmd_request256_t ld;
 fta_cmd_request256_t fifo_mask;
@@ -161,14 +202,15 @@ assign fifoo.port = req_fifoo.port;
 
 genvar g;
 integer n1,n2,n3;
-wire v;
+reg v;
 wire full;
-wire empty;
+wire [7:0] empty;
 wire almost_full;
 wire [4:0] cnt;
-reg wr_fifo;
+reg [7:0] rd_fifo;
+reg [7:0] wr_fifo;
+wire rd_fifo_sm;
 mpmc11_state_t prev_state;
-wire rd_fifo;	// from state machine
 reg [5:0] num_strips;	// from fifo
 wire [5:0] req_strip_cnt;
 wire [5:0] resp_strip_cnt;
@@ -187,8 +229,7 @@ reg [WIDX8-1:0] rd_data_r;
 reg rd_data_valid_r;
 reg cas_ok;
 
-wire ch0_hit_s, ch1_hit_s, ch2_hit_s, ch3_hit_s;
-wire ch4_hit_s, ch5_hit_s, ch6_hit_s, ch7_hit_s;
+wire [7:0] ch_hit_s;
 wire ch0_hit_ne, ch5_hit_ne;
 wire hit0, hit1, hit2, hit3, hit4, hit5, hit6, hit7;
 
@@ -205,33 +246,33 @@ if (rst)
 else begin
 	if (!rst_ctr[15])
 		rst_ctr <= rst_ctr + 2'd1;
-	rstn <= rst_ctr[15];
+	rstn <= rst_ctr[15] || rst_ctr < 20'd16;
 end
 
-reg [7:0] stb [0:7];
-always_comb stb[0] = ch0is.stb;
-always_comb stb[1] = ch1is.stb;
-always_comb stb[2] = ch2is.stb;
-always_comb stb[3] = ch3is.stb;
-always_comb stb[4] = ch4is.stb;
-always_comb stb[5] = ch5is.stb;
-always_comb stb[6] = ch6is.stb;
-always_comb stb[7] = ch7is.stb;
+reg [7:0] cyc;
+always_comb cyc[0] = ch0is.cyc;
+always_comb cyc[1] = ch1is.cyc;
+always_comb cyc[2] = ch2is.cyc;
+always_comb cyc[3] = ch3is.cyc;
+always_comb cyc[4] = ch4is.cyc;
+always_comb cyc[5] = ch5is.cyc;
+always_comb cyc[6] = ch6is.cyc;
+always_comb cyc[7] = ch7is.cyc;
 
 reg [2:0] chcnt [0:7];
 always_ff @(posedge mem_ui_clk)
 if (rst) begin
 	for (n2 = 0; n2 < 8; n2 = n2 + 1)
-		chcnt[n2] <= 'd0;
+		chcnt[n2] <= 3'd0;
 end
 else begin
 	for (n2 = 0; n2 < 8; n2 = n2 + 1)
-		if (stb[n2]) begin
+		if (cyc[n2]) begin
 			if (chcnt[n2] < CL)
 				chcnt[n2] <= chcnt[n2] + 2'd1;
 		end
 		else
-			chcnt[n2] <= 'd0;
+			chcnt[n2] <= 3'd0;
 end
 
 wire [7:0] pe_req;
@@ -246,8 +287,14 @@ always_comb chack[6] = ch6o.ack;
 always_comb chack[7] = ch7o.ack;
 
 reg [7:0] reqa;
-always_comb reqa[1] = (!ch1o.ack && ch1is.stb && !ch1is.we && chcnt[1]==CL) || (ch1is.we && ch1is.stb);
-always_comb reqa[5] = (!ch5o.ack && ch5is.stb && !ch5is.we && chcnt[5]==CL) || (ch5is.we && ch5is.stb);
+always_comb reqa[0] = (!ch0o.ack && ch0is.cyc && !ch0is.we && chcnt[0]==CL) || (ch0is.we && ch0is.cyc);
+always_comb reqa[1] = (!ch1o.ack && ch1is.cyc && !ch1is.we && chcnt[1]==CL) || (ch1is.we && ch1is.cyc);
+always_comb reqa[2] = (!ch2o.ack && ch2is.cyc && !ch2is.we && chcnt[2]==CL) || (ch2is.we && ch2is.cyc);
+always_comb reqa[3] = (!ch3o.ack && ch3is.cyc && !ch3is.we && chcnt[3]==CL) || (ch3is.we && ch3is.cyc);
+always_comb reqa[4] = (!ch4o.ack && ch4is.cyc && !ch4is.we && chcnt[4]==CL) || (ch4is.we && ch4is.cyc);
+always_comb reqa[5] = (!ch5o.ack && ch5is.cyc && !ch5is.we && chcnt[5]==CL) || (ch5is.we && ch5is.cyc);
+always_comb reqa[6] = (!ch6o.ack && ch6is.cyc && !ch6is.we && chcnt[6]==CL) || (ch6is.we && ch6is.cyc);
+always_comb reqa[7] = (!ch7o.ack && ch7is.cyc && !ch7is.we && chcnt[7]==CL) || (ch7is.we && ch7is.cyc);
 
 wire rste = mem_ui_rst||rst||!calib_complete;
 
@@ -255,7 +302,7 @@ edge_det edch0 (
 	.rst(rste),
 	.clk(mem_ui_clk),
 	.ce(1'b1),
-	.i((!ch0o.ack && ch0is.stb && !ch0is.we && chcnt[0]==CL) || (ch0is.we && ch0is.stb)),
+	.i(reqa[0]),
 	.pe(pe_req[0]),
 	.ne(),
 	.ee()
@@ -273,7 +320,7 @@ edge_det edch2 (
 	.rst(rste),
 	.clk(mem_ui_clk),
 	.ce(1'b1),
-	.i((!ch2o.ack && ch2is.stb && !ch2is.we && chcnt[2]==CL) || (ch2is.we && ch2is.stb)),
+	.i(reqa[2]),
 	.pe(pe_req[2]),
 	.ne(),
 	.ee()
@@ -282,7 +329,7 @@ edge_det edch3 (
 	.rst(rste),
 	.clk(mem_ui_clk),
 	.ce(1'b1),
-	.i((!ch3o.ack && ch3is.stb && !ch3is.we && chcnt[3]==CL) || (ch3is.we && ch3is.stb)),
+	.i(reqa[3]),
 	.pe(pe_req[3]),
 	.ne(),
 	.ee()
@@ -291,7 +338,7 @@ edge_det edch4 (
 	.rst(rste),
 	.clk(mem_ui_clk),
 	.ce(1'b1),
-	.i((!ch4o.ack && ch4is.stb && !ch4is.we && chcnt[4]==CL) || (ch4is.we && ch4is.stb)),
+	.i(reqa[4]),
 	.pe(pe_req[4]),
 	.ne(),
 	.ee()
@@ -309,7 +356,7 @@ edge_det edch6 (
 	.rst(rste),
 	.clk(mem_ui_clk),
 	.ce(1'b1),
-	.i((!ch6o.ack && ch6is.stb && !ch6is.we && chcnt[6]==CL) || (ch6is.we && ch6is.stb)),
+	.i(reqa[6]),
 	.pe(pe_req[6]),
 	.ne(),
 	.ee()
@@ -318,7 +365,7 @@ edge_det edch7 (
 	.rst(rste),
 	.clk(mem_ui_clk),
 	.ce(1'b1),
-	.i((!ch7o.ack && ch7is.stb && !ch7is.we && chcnt[7]==CL) || (ch7is.we && ch7is.stb)),
+	.i(reqa[7]),
 	.pe(pe_req[7]),
 	.ne(),
 	.ee()
@@ -382,55 +429,55 @@ mpmc11_sync256_fta usyn7
 );
 
 // Streaming channels have a burst length of 64. Round the address to the burst
-// length.
+// length???
 always_comb
 begin
-	ch0is2 <= ch0is;
-	ch0is2.padr <= {ch0is.padr[31:11],11'b0};
+	ch0i2 <= ch0i;
+	ch0i2.padr <= {ch0i.padr[31:5],5'b0};
 end
 always_comb
 begin
-	ch1is2 <= ch1is;
-	ch1is2.padr <= {ch1is.padr[31:11],11'b0};
+	ch1i2 <= ch1i;
+	ch1i2.padr <= {ch1i.padr[31:5],5'b0};
 end
 always_comb
 begin
-	ch2is2 <= ch2is;
-	ch2is2.padr <= {ch2is.padr[31:11],11'b0};
+	ch2i2 <= ch2i;
+	ch2i2.padr <= {ch2i.padr[31:5],5'b0};
 end
 always_comb
 begin
-	ch3is2 <= ch3is;
-	ch3is2.padr <= {ch3is.padr[31:11],11'b0};
+	ch3i2 <= ch3i;
+	ch3i2.padr <= {ch3i.padr[31:5],5'b0};
 end
 always_comb
 begin
-	ch4is2 <= ch4is;
-	ch4is2.padr <= {ch4is.padr[31:11],11'b0};
+	ch4i2 <= ch4i;
+	ch4i2.padr <= {ch4i.padr[31:5],5'b0};
 end
 always_comb
 begin
-	ch5is2 <= ch5is;
-	ch5is2.padr <= {ch5is.padr[31:11],11'b0};
+	ch5i2 <= ch5i;
+	ch5i2.padr <= {ch5i.padr[31:5],5'b0};
 end
 always_comb
 begin
-	ch6is2 <= ch6is;
-	ch6is2.padr <= {ch6is.padr[31:11],11'b0};
+	ch6i2 <= ch6i;
+	ch6i2.padr <= {ch6i.padr[31:5],5'b0};
 end
 always_comb
 begin
-	ch7is2 <= ch7is;
-	ch7is2.padr <= {ch7is.padr[31:11],11'b0};
+	ch7i2 <= ch7i;
+	ch7i2.padr <= {ch7i.padr[31:5],5'b0};
 end
 
 always_comb
 begin
 	ld.bte <= fta_bus_pkg::LINEAR;
 	ld.cti <= fta_bus_pkg::CLASSIC;
-	ld.blen <= 'd0;
+	ld.blen <= 6'd0;
 	ld.cyc <= fifoo.req.cyc && !fifoo.req.we && rd_data_valid_r && (uport!=4'd0 && uport!=4'd5 && uport!=4'd15);
-	ld.stb <= fifoo.req.stb && !fifoo.req.we && rd_data_valid_r && (uport!=4'd0 && uport!=4'd5 && uport!=4'd15);
+	ld.stb <= fifoo.req.cyc && !fifoo.req.we && rd_data_valid_r && (uport!=4'd0 && uport!=4'd5 && uport!=4'd15);
 	ld.we <= 1'b0;
 	ld.padr <= {app_waddr[31:5],5'h0};
 	ld.data1 <= rd_data_r;
@@ -448,14 +495,14 @@ reg ch7wack;
 
 always_ff @(posedge mem_ui_clk)
 begin
-	if (!ch0i.stb)	ch0wack <= 1'b0;
-	if (!ch1i.stb)	ch1wack <= 1'b0;
-	if (!ch2i.stb)	ch2wack <= 1'b0;
-	if (!ch3i.stb)	ch3wack <= 1'b0;
-	if (!ch4i.stb)	ch4wack <= 1'b0;
-	if (!ch5i.stb)	ch5wack <= 1'b0;
-	if (!ch6i.stb)	ch6wack <= 1'b0;
-	if (!ch7i.stb)	ch7wack <= 1'b0;
+	if (!ch0i.cyc)	ch0wack <= 1'b0;
+	if (!ch1i.cyc)	ch1wack <= 1'b0;
+	if (!ch2i.cyc)	ch2wack <= 1'b0;
+	if (!ch3i.cyc)	ch3wack <= 1'b0;
+	if (!ch4i.cyc)	ch4wack <= 1'b0;
+	if (!ch5i.cyc)	ch5wack <= 1'b0;
+	if (!ch6i.cyc)	ch6wack <= 1'b0;
+	if (!ch7i.cyc)	ch7wack <= 1'b0;
 	if (state==WRITE_DATA3)
 		case(uport)
 		4'd0:	ch0wack <= 1'b1;
@@ -486,14 +533,14 @@ mpmc11_cache_fta ucache1
 	.ch5clk(STREAM5 ? 1'b0 : ch5clk),
 	.ch6clk(STREAM6 ? 1'b0 : ch6clk),
 	.ch7clk(STREAM7 ? 1'b0 : ch7clk),
-	.ch0i(STREAM0 ? 'd0 : ch0is),
-	.ch1i(STREAM1 ? 'd0 : ch1is),
-	.ch2i(STREAM2 ? 'd0 : ch2is),
-	.ch3i(STREAM3 ? 'd0 : ch3is),
-	.ch4i(STREAM4 ? 'd0 : ch4is),
-	.ch5i(STREAM5 ? 'd0 : ch5is),
-	.ch6i(STREAM6 ? 'd0 : ch6is),
-	.ch7i(STREAM7 ? 'd0 : ch7is),
+	.ch0i(STREAM0 ? {$bits(fta_cmd_request256_t){1'b0}} : ch0is),
+	.ch1i(STREAM1 ? {$bits(fta_cmd_request256_t){1'b0}} : ch1is),
+	.ch2i(STREAM2 ? {$bits(fta_cmd_request256_t){1'b0}} : ch2is),
+	.ch3i(STREAM3 ? {$bits(fta_cmd_request256_t){1'b0}} : ch3is),
+	.ch4i(STREAM4 ? {$bits(fta_cmd_request256_t){1'b0}} : ch4is),
+	.ch5i(STREAM5 ? {$bits(fta_cmd_request256_t){1'b0}} : ch5is),
+	.ch6i(STREAM6 ? {$bits(fta_cmd_request256_t){1'b0}} : ch6is),
+	.ch7i(STREAM7 ? {$bits(fta_cmd_request256_t){1'b0}} : ch7is),
 	.ch0wack(ch0wack),
 	.ch1wack(ch1wack),
 	.ch2wack(ch2wack),
@@ -520,150 +567,44 @@ mpmc11_cache_fta ucache1
 	.ch7hit(hit7)
 );
 
-mpmc11_strm_read_cache ustrm0
+// A burst request has also been sent to the fifo. It will be cancelled out
+// when the state machine detects an already successful read of the streaming
+// channel.
+
+generate begin : gStreamCache
+for (g = 0; g < 8; g = g + 1) begin
+mpmc11_strm_read_cache ustrm
 (
 	.rst(rst),
 	.wclk(mem_ui_clk),
-	.wr(uport==4'd0 && rd_data_valid_r),
+	.wr(uport==g[3:0] && rd_data_valid_r),
 	.wadr({app_waddr[31:5],5'h0}),
 	.wdat(rd_data_r),
 	.inv(1'b0),
-	.rclk(mem_ui_clk),
-	.rd(ch0is.stb & ~ch0is.we),
-	.radr({ch0is.padr[31:5],5'h0}),
-	.rdat(ch0ob.dat),
-	.hit(ch0_hit_s)
+	.rclk(chclk[g]),
+	.req(chi[g]),
+	.resp(chob[g]),
+	.hit(ch_hit_s[g])
 );
-
-mpmc11_strm_read_cache ustrm1
-(
-	.rst(rst),
-	.wclk(mem_ui_clk),
-	.wr(uport==4'd1 && rd_data_valid_r),
-	.wadr({app_waddr[31:5],5'h0}),
-	.wdat(rd_data_r),
-	.inv(1'b0),
-	.rclk(mem_ui_clk),
-	.rd(ch1is.stb & ~ch1is.we),
-	.radr({ch1is.padr[31:5],5'h0}),
-	.rdat(ch1ob.dat),
-	.hit(ch1_hit_s)
-);
-
-mpmc11_strm_read_cache ustrm2
-(
-	.rst(rst),
-	.wclk(mem_ui_clk),
-	.wr(uport==4'd2 && rd_data_valid_r),
-	.wadr({app_waddr[31:5],5'h0}),
-	.wdat(rd_data_r),
-	.inv(1'b0),
-	.rclk(mem_ui_clk),
-	.rd(ch2is.stb & ~ch2is.we),
-	.radr({ch2is.padr[31:5],5'h0}),
-	.rdat(ch2ob.dat),
-	.hit(ch2_hit_s)
-);
-
-mpmc11_strm_read_cache ustrm3
-(
-	.rst(rst),
-	.wclk(mem_ui_clk),
-	.wr(uport==4'd3 && rd_data_valid_r),
-	.wadr({app_waddr[31:5],5'h0}),
-	.wdat(rd_data_r),
-	.inv(1'b0),
-	.rclk(mem_ui_clk),
-	.rd(ch3is.stb & ~ch3is.we),
-	.radr({ch3is.padr[31:5],5'h0}),
-	.rdat(ch3ob.dat),
-	.hit(ch3_hit_s)
-);
-
-mpmc11_strm_read_cache ustrm4
-(
-	.rst(rst),
-	.wclk(mem_ui_clk),
-	.wr(uport==4'd4 && rd_data_valid_r),
-	.wadr({app_waddr[31:5],5'h0}),
-	.wdat(rd_data_r),
-	.inv(1'b0),
-	.rclk(mem_ui_clk),
-	.rd(ch4is.stb & ~ch4is.we),
-	.radr({ch4is.padr[31:5],5'h0}),
-	.rdat(ch4ob.dat),
-	.hit(ch4_hit_s)
-);
-
-mpmc11_strm_read_cache ustrm5
-(
-	.rst(rst),
-	.wclk(mem_ui_clk),
-	.wr(uport==4'd5 && rd_data_valid_r),
-	.wadr({app_waddr[31:5],5'h0}),
-	.wdat(rd_data_r),
-	.inv(1'b0),
-	.rclk(mem_ui_clk),
-	.rd(ch5is.stb & ~ch5is.we),
-	.radr({ch5is.padr[31:5],5'h0}),
-	.rdat(ch5ob.dat),
-	.hit(ch5_hit_s)
-);
-
-mpmc11_strm_read_cache ustrm6
-(
-	.rst(rst),
-	.wclk(mem_ui_clk),
-	.wr(uport==4'd6 && rd_data_valid_r),
-	.wadr({app_waddr[31:5],5'h0}),
-	.wdat(rd_data_r),
-	.inv(1'b0),
-	.rclk(mem_ui_clk),
-	.rd(ch6is.stb & ~ch6is.we),
-	.radr({ch6is.padr[31:5],5'h0}),
-	.rdat(ch6ob.dat),
-	.hit(ch6_hit_s)
-);
-
-mpmc11_strm_read_cache ustrm7
-(
-	.rst(rst),
-	.wclk(mem_ui_clk),
-	.wr(uport==4'd7 && rd_data_valid_r),
-	.wadr({app_waddr[31:5],5'h0}),
-	.wdat(rd_data_r),
-	.inv(1'b0),
-	.rclk(mem_ui_clk),
-	.rd(ch7is.stb & ~ch7is.we),
-	.radr({ch7is.padr[31:5],5'h0}),
-	.rdat(ch7ob.dat),
-	.hit(ch7_hit_s)
-);
-
-always_comb	ch0ob.ack = ch0_hit_s & ch0i.stb;
-always_comb	ch1ob.ack = ch1_hit_s & ch1i.stb;
-always_comb	ch2ob.ack = ch2_hit_s & ch2i.stb;
-always_comb	ch3ob.ack = ch3_hit_s & ch3i.stb;
-always_comb	ch4ob.ack = ch4_hit_s & ch4i.stb;
-always_comb	ch5ob.ack = ch5_hit_s & ch5i.stb;
-always_comb	ch6ob.ack = ch6_hit_s & ch6i.stb;
-always_comb	ch7ob.ack = ch7_hit_s & ch7i.stb;
+end
+end
+endgenerate
 
 wire [7:0] sel;
-wire rd_rst_busy;
-wire wr_rst_busy;
+wire [7:0] rd_rst_busy;
+wire [7:0] wr_rst_busy;
 wire cd_sel;
-change_det #(.WID(8)) ucdsel (.rst(rst), .ce(1'b1), .clk(mem_ui_clk), .i(sel), .cd(cd_sel));
+change_det #(.WID($bits(mpmc11_fifoe_t))) ucdsel (.rst(rst), .ce(1'b1), .clk(mem_ui_clk), .i(req_fifoi), .cd(cd_sel));
 
-always_comb	//ff @(posedge mem_ui_clk)
-	wr_fifo = |sel & ~almost_full & ~wr_rst_busy & cd_sel;
+wire [7:0] reqo;
+wire [7:0] vg;
 
 roundRobin rr1
 (
 	.rst(rst),
 	.clk(mem_ui_clk),
 	.ce(1'b1),//~|req || chack[req_sel]),
-	.req(req),
+	.req(reqo),
 	.lock(8'h00),
 	.sel(sel),
 	.sel_enc(req_sel)
@@ -671,49 +612,66 @@ roundRobin rr1
 
 always_comb
 begin
-	req_fifoi.port <= req_sel;
-	case(req_sel)
-	4'd0:	req_fifoi.req <= STREAM0 ? ch0is2 : ch0is;
-	4'd1:	req_fifoi.req <= STREAM1 ? ch1is2 : ch1is;
-	4'd2:	req_fifoi.req <= STREAM2 ? ch2is2 : ch2is;
-	4'd3:	req_fifoi.req <= STREAM3 ? ch3is2 : ch3is;
-	4'd4:	req_fifoi.req <= STREAM4 ? ch4is2 : ch4is;
-	4'd5:	req_fifoi.req <= STREAM5 ? ch5is2 : ch5is;
-	4'd6:	req_fifoi.req <= STREAM6 ? ch6is2 : ch6is;
-	4'd7:	req_fifoi.req <= STREAM7 ? ch7is2 : ch7is;
-	default:	
-		begin
-			req_fifoi.req <= 'd0;
-			req_fifoi.port <= 4'd15;
-		end
-	endcase
+	req_fifoi[0].port <= 4'd0;
+	req_fifoi[0].req <= STREAM0 ? ch0i2 : ch0i;
+	req_fifoi[1].port <= 4'd1;
+	req_fifoi[1].req <= STREAM1 ? ch1i2 : ch1i;
+	req_fifoi[2].port <= 4'd2;
+	req_fifoi[2].req <= STREAM2 ? ch2i2 : ch2i;
+	req_fifoi[3].port <= 4'd3;
+	req_fifoi[3].req <= STREAM3 ? ch3i2 : ch3i;
+	req_fifoi[4].port <= 4'd4;
+	req_fifoi[4].req <= STREAM4 ? ch4i2 : ch4i;
+	req_fifoi[5].port <= 4'd5;
+	req_fifoi[5].req <= STREAM5 ? ch5i2 : ch5i;
+	req_fifoi[6].port <= 4'd6;
+	req_fifoi[6].req <= STREAM6 ? ch6i2 : ch6i;
+	req_fifoi[7].port <= 4'd7;
+	req_fifoi[7].req <= STREAM7 ? ch7i2 : ch7i;
 end
 
-mpmc11_fifo_fta ufifo1
+// An asynchronous fifo is used at the input to allow the clock to be different
+// than the ui_clk.
+
+generate begin : gInputFifos
+for (g = 0; g < 8; g = g + 1) begin
+assign reqo[g] = req_fifog[g].req.cyc;
+always_comb wr_fifo[g] = req_fifoi[g].req.cyc;
+always_comb rd_fifo[g] = sel[g] & rd_fifo_sm;
+
+mpmc11_asfifo_fta ufifo
 (
 	.rst(rst),
-	.clk(mem_ui_clk),
-	.rd_fifo(rd_fifo),
-	.wr_fifo(wr_fifo),
-	.req_fifoi(req_fifoi),
-	.req_fifoo(req_fifoo),
-	.v(v),
-	.full(full),
-	.empty(empty),
-	.almost_full(almost_full),
-	.rd_rst_busy(rd_rst_busy),
-	.wr_rst_busy(wr_rst_busy),
-	.cnt(cnt)
+	.rd_clk(mem_ui_clk),
+	.rd_fifo(rd_fifo[g]),
+	.wr_clk(chclk[g]),
+	.wr_fifo(wr_fifo[g]),
+	.req_fifoi(req_fifoi[g]),
+	.req_fifoo(req_fifog[g]),
+	.v(vg[g]),
+	.full(),
+	.empty(empty[g]),
+	.almost_full(),
+	.rd_rst_busy(rd_rst_busy[g]),
+	.wr_rst_busy(wr_rst_busy[g]),
+	.cnt()
 );
+end
+end
+endgenerate
 
 always_comb
-	uport <= fifoo.port;
+	v = vg[req_sel];
 always_comb
-	num_strips <= fifoo.req.blen;
+	req_fifoo = req_fifog[req_sel];
 always_comb
-	adr <= fifoo.req.padr;
+	uport = fifoo.port;
+always_comb
+	num_strips = fifoo.req.blen;
+always_comb
+	adr = fifoo.req.padr;
 
-wire [2:0] app_addr3;	// dummy to make up 32-bits
+wire [1:0] app_addr3;	// dummy to make up 32-bits
 
 mpmc11_addr_gen uag1
 (
@@ -911,21 +869,21 @@ else begin
 	else if (state==IDLE)
 		rmw_ack <= 1'b0;
 end
-always_comb	ch0oc.ack = ch0i.stb & rmw_ack & rmw0 && req_fifoo.port==4'd0;
-always_comb	ch1oc.ack = ch1i.stb & rmw_ack & rmw1 && req_fifoo.port==4'd1;
-always_comb	ch2oc.ack = ch2i.stb & rmw_ack & rmw2 && req_fifoo.port==4'd2;
-always_comb	ch3oc.ack = ch3i.stb & rmw_ack & rmw3 && req_fifoo.port==4'd3;
-always_comb	ch4oc.ack = ch4i.stb & rmw_ack & rmw4 && req_fifoo.port==4'd4;
-always_comb	ch5oc.ack = ch5i.stb & rmw_ack & rmw5 && req_fifoo.port==4'd5;
-always_comb	ch6oc.ack = ch6i.stb & rmw_ack & rmw6 && req_fifoo.port==4'd6;
-always_comb	ch7oc.ack = ch7i.stb & rmw_ack & rmw7 && req_fifoo.port==4'd7;
+always_comb	ch0oc.ack = ch0i.cyc & rmw_ack & rmw0 && req_fifoo.port==4'd0;
+always_comb	ch1oc.ack = ch1i.cyc & rmw_ack & rmw1 && req_fifoo.port==4'd1;
+always_comb	ch2oc.ack = ch2i.cyc & rmw_ack & rmw2 && req_fifoo.port==4'd2;
+always_comb	ch3oc.ack = ch3i.cyc & rmw_ack & rmw3 && req_fifoo.port==4'd3;
+always_comb	ch4oc.ack = ch4i.cyc & rmw_ack & rmw4 && req_fifoo.port==4'd4;
+always_comb	ch5oc.ack = ch5i.cyc & rmw_ack & rmw5 && req_fifoo.port==4'd5;
+always_comb	ch6oc.ack = ch6i.cyc & rmw_ack & rmw6 && req_fifoo.port==4'd6;
+always_comb	ch7oc.ack = ch7i.cyc & rmw_ack & rmw7 && req_fifoo.port==4'd7;
 `endif
 
 // Setting the data value. Unlike reads there is only a single strip involved.
 // Force unselected byte lanes to $FF
 reg [WIDX8-1:0] dat128x;
 generate begin
-	for (g = 0; g < 32; g = g + 1)
+	for (g = 0; g < WIDX8/8; g = g + 1)
 		always_comb
 			if (mem_wdf_mask2[g])
 				dat128x[g*8+7:g*8] = 8'hFF;
@@ -949,21 +907,24 @@ mpmc11_rd_fifo_gen urdf1
 	.rst(rst|mem_ui_rst),
 	.clk(mem_ui_clk),
 	.state(state),
-	.empty(empty),
-	.rd_rst_busy(rd_rst_busy),
+	.empty(&empty),
+	.rd_rst_busy(|rd_rst_busy),
 	.calib_complete(calib_complete),
-	.rd(rd_fifo)
+	.rd(rd_fifo_sm)
 );
 
 always_ff @(posedge mem_ui_clk)
 if (rst)
-	fifo_mask <= 'd0;
+	fifo_mask <= {$bits(fifo_mask){1'b1}};
 else begin
 	if (rd_fifo)
 		fifo_mask <= {$bits(fifo_mask){1'b1}};
 	else if (state==IDLE)
-		fifo_mask <= 'd0;
+		fifo_mask <= {$bits(fifo_mask){1'b0}};
 end
+
+reg stream_hit;
+always_comb stream_hit = ch_hit_s[req_fifoo.port] && streaming[req_fifoo.port];
 
 mpmc11_state_machine_fta usm1
 (
@@ -973,9 +934,10 @@ mpmc11_state_machine_fta usm1
 	.to(tocnt[9]),
 	.rdy(app_rdy),
 	.wdf_rdy(app_wdf_rdy),
-	.fifo_empty(empty),
-	.rd_rst_busy(rd_rst_busy),
-	.fifo_out(req_fifoo),
+	.fifo_empty(&empty),
+	.rd_rst_busy(|rd_rst_busy),
+	.stream_hit(stream_hit),
+	.fifo_out(req_fifoo.req),
 	.state(state),
 	.num_strips(num_strips),
 	.req_strip_cnt(req_strip_cnt),
@@ -1059,7 +1021,7 @@ mpmc11_resv_bit ursb1
 	.clk(mem_ui_clk),
 	.state(state),
 	.wch(fifoo.port),
-	.we(fifoo.req.stb & fifoo.req.we),
+	.we(fifoo.req.cyc & fifoo.req.we),
 	.cr(fifoo.req.csr & fifoo.req.we),
 	.adr(fifoo.req.padr),
 	.resv_ch(resv_ch),
@@ -1081,17 +1043,17 @@ mpmc11_addr_resv_man #(.NAR(NAR)) ursvm1
 	.adr6(ch6is.padr),
 	.adr7(ch7is.padr),
 	.sr0(1'b0),
-	.sr1(ch1is.csr & ch1is.stb & ~ch1is.we),
-	.sr2(ch2is.csr & ch2is.stb & ~ch2is.we),
-	.sr3(ch3is.csr & ch3is.stb & ~ch3is.we),
-	.sr4(ch4is.csr & ch4is.stb & ~ch4is.we),
+	.sr1(ch1is.csr & ch1is.cyc & ~ch1is.we),
+	.sr2(ch2is.csr & ch2is.cyc & ~ch2is.we),
+	.sr3(ch3is.csr & ch3is.cyc & ~ch3is.we),
+	.sr4(ch4is.csr & ch4is.cyc & ~ch4is.we),
 	.sr5(1'b0),
-	.sr6(ch6is.csr & ch6is.stb & ~ch6is.we),
-	.sr7(ch7is.csr & ch7is.stb & ~ch7is.we),
-	.wch(fifoo.req.stb ? fifoo.port : 4'd15),
-	.we(fifoo.req.stb & fifoo.req.we),
+	.sr6(ch6is.csr & ch6is.cyc & ~ch6is.we),
+	.sr7(ch7is.csr & ch7is.cyc & ~ch7is.we),
+	.wch(fifoo.req.cyc ? fifoo.port : 4'd15),
+	.we(fifoo.req.cyc & fifoo.req.we),
 	.wadr(fifoo.req.padr),
-	.cr(fifoo.req.csr & fifoo.req.stb & fifoo.req.we),
+	.cr(fifoo.req.csr & fifoo.req.cyc & fifoo.req.we),
 	.resv_ch(resv_ch),
 	.resv_adr(resv_adr)
 );

@@ -38,7 +38,7 @@ import fta_bus_pkg::*;
 import mpmc11_pkg::*;
 
 module mpmc11_state_machine_fta(rst, clk, calib_complete, to, rdy, wdf_rdy, fifo_empty,
-	rd_rst_busy, fifo_out, state,
+	rd_rst_busy, fifo_out, state, stream_hit,
 	num_strips, req_strip_cnt, resp_strip_cnt, rd_data_valid, rmw_hit);
 input rst;
 input clk;
@@ -48,6 +48,7 @@ input rdy;
 input wdf_rdy;
 input fifo_empty;
 input rd_rst_busy;
+input stream_hit;
 input fta_cmd_request256_t fifo_out;
 output mpmc11_state_t state;
 input [5:0] num_strips;
@@ -59,19 +60,26 @@ input rmw_hit;
 mpmc11_state_t next_state;
 
 always_ff @(posedge clk)
+if (rst)
+	state <= mpmc11_pkg::IDLE;
+else
 	state <= next_state;
 
 always_comb
 if (rst)
-	next_state <= IDLE;	
+	next_state <= mpmc11_pkg::IDLE;	
 else begin
-	next_state <= IDLE;
+	next_state <= mpmc11_pkg::IDLE;
 	case(state)
+	// If the request was a streaming channel and there was a hit on it, do
+	// not do the request.
 	IDLE:
-		if (!fifo_empty && !rd_rst_busy && calib_complete)
+		if (stream_hit)
+			next_state <= mpmc11_pkg::IDLE;
+		else if (!fifo_empty && !rd_rst_busy && calib_complete)
 			next_state <= PRESET1;
 		else
-			next_state <= IDLE;
+			next_state <= mpmc11_pkg::IDLE;
 	PRESET1:
 		next_state <= PRESET2;
 	PRESET2:
@@ -99,7 +107,7 @@ else begin
 	// Write occurs when app_wdf_wren is true and app_wdf_rdy is true
 	WRITE_DATA3:
 		if (wdf_rdy)
-			next_state <= IDLE;
+			next_state <= mpmc11_pkg::IDLE;
 		else
 			next_state <= WRITE_DATA3;
 
@@ -149,14 +157,14 @@ else begin
 		// If we're not seeing a nack and there is a channel selected, then the
 		// cache tag must not have updated correctly.
 		// For writes, assume a nack by now.
-		next_state <= IDLE;
+		next_state <= mpmc11_pkg::IDLE;
 		
-	default:	next_state <= IDLE;
+	default:	next_state <= mpmc11_pkg::IDLE;
 	endcase
 
 	// Is the state machine hung? Do not time out during calibration.
 	if (to && calib_complete)
-		next_state <= IDLE;
+		next_state <= mpmc11_pkg::IDLE;
 end
 
 endmodule

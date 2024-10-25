@@ -40,7 +40,7 @@ parameter CACHE_ASSOC = 4;
 parameter WIDX8 = 256;
 parameter RMW = 0;
 parameter NAR = 2;
-parameter AMSB = 28;
+parameter AMSB = 29;
 parameter CMD_READ = 3'b001;
 parameter CMD_WRITE = 3'b000;
 
@@ -71,7 +71,7 @@ typedef enum logic [4:0] {
 
 typedef struct packed
 {
-	logic [31:4] tag;
+	logic [31:5] tag;
 	logic modified;
 	logic [WIDX8-1:0] data;
 } mpmc11_cache_line_t;

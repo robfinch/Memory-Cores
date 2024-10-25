@@ -48,12 +48,12 @@ output reg [31:0] addr;
 
 always_ff @(posedge clk)
 if (rst)
-	addr <= 32'h1FFFFFFF;
+	addr <= 32'h3FFFFFFF;
 else begin
 	if (state==PRESET2)
 		addr <= {addr_base[31:5],5'h0};
 	else if (state==READ_DATA1 && rdy && strip_cnt != num_strips)
-		addr[31:4] <= addr[31:5] + 2'd1;
+		addr[31:5] <= addr[31:5] + 2'd1;
 	// Increment the address if we had to start a new burst.
 //	else if (state==WRITE_DATA3 && req_strip_cnt!=num_strips)
 //		app_addr <= app_addr + {req_strip_cnt,4'h0};	// works for only 1 missed burst
