@@ -50,7 +50,7 @@ output reg rb;
 
 integer n5;
 always_ff @(posedge clk)
-if (state==IDLE) begin
+if (state==mpmc11_pkg::IDLE) begin
   if (we) begin
     if (cr) begin
       rb <= 1'b0;

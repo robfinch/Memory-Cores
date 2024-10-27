@@ -46,17 +46,25 @@ input [5:0] strip_cnt;
 input [31:0] addr_base;
 output reg [31:0] addr;
 
+reg [31:0] next_addr;
+
+always_comb
+case(state)
+PRESET2:	// For both read and write.
+	next_addr = {addr_base[31:5],5'h0};
+READ_DATA1:
+	if (rdy)
+		next_addr = addr + 6'h20;
+	else
+		next_addr = addr;
+default:
+	next_addr = addr;
+endcase
+
 always_ff @(posedge clk)
 if (rst)
 	addr <= 32'h3FFFFFFF;
-else begin
-	if (state==PRESET2)
-		addr <= {addr_base[31:5],5'h0};
-	else if (state==READ_DATA1 && rdy && strip_cnt != num_strips)
-		addr[31:5] <= addr[31:5] + 2'd1;
-	// Increment the address if we had to start a new burst.
-//	else if (state==WRITE_DATA3 && req_strip_cnt!=num_strips)
-//		app_addr <= app_addr + {req_strip_cnt,4'h0};	// works for only 1 missed burst
-end
+else
+	addr <= next_addr;
 
 endmodule

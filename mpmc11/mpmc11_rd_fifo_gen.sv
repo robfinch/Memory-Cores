@@ -52,8 +52,11 @@ begin
 	next_rd = 1'b0;
 	case(state)
 	mpmc11_pkg::IDLE:
-		if (!empty && !rd_rst_busy && calib_complete)
-			next_rd = 1'b1;
+		begin
+			next_rd = rd;
+			if (!empty && !rd_rst_busy && calib_complete)
+				next_rd = 1'b1;
+		end
 	default:	;
 	endcase
 end

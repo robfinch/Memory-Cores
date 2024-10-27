@@ -4,9 +4,12 @@ The multi-port memory controller provides eight access ports with either small s
 Ports may be customized with parameter settings. Port #5 is setup to handle sprites and is read-only.
 ## New Features
 * Version 11 of the controller supports a larger system cache and the cache now supports write operations. 
-* The controller now has an input fifo to queue requests to improve performance.
+* The controller now has an input fifo on each channel to queue requests to improve performance.
 * All ports are now 256-bit.
 * Ports are serviced in a round-robin fashion.
+## Experimental Features
+The following has not been tested yet, but code is in place.
+The controller has logic to support atomic memory updates; given the appropriate command it may for instance perform an atomic add operation. Supported atomic operations include, add, and, or, eor, swap, min, max, shift left, shift right and cas.
 # Cache / Streaming Cache
 The cache is a 64kB 4-way associative cache which may be shared between ports. The cache line size is 32 bytes. The cache allows ports to read in parallel but only supports a single write port.
 The streaming caches are much smaller read caches. They are useful when the data is generally read and used only once, as for a frame buffer for instance. The streaming caches are an alternative to making the read cache multi-way associative, and effectively add ways to the cache reads.

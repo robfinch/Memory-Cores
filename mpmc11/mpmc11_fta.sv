@@ -50,7 +50,7 @@ import mpmc11_pkg::*;
 
 module mpmc11_fta (
 input rst,
-input clk100MHz,
+input clk100,
 input mem_ui_rst,
 input mem_ui_clk,
 input calib_complete,
@@ -239,15 +239,19 @@ if (app_rd_data_valid)
 always_ff @(posedge mem_ui_clk)
 	rd_data_valid_r <= app_rd_data_valid;
 
-reg [19:0] rst_ctr;
-always @(posedge clk100MHz)
-if (rst)
-	rst_ctr <= 24'd0;
-else begin
-	if (!rst_ctr[15])
-		rst_ctr <= rst_ctr + 2'd1;
-	rstn <= rst_ctr[15] || rst_ctr < 20'd16;
+reg [9:0] rst_ctr;
+reg irst;
+always @(posedge clk100)
+if (rst) begin
+	rst_ctr <= 10'd0;
+	rstn <= 1'b0;
 end
+else begin
+	if (!rst_ctr[8])
+		rst_ctr <= rst_ctr + 2'd1;
+	rstn <= rst_ctr[8];
+end
+always_comb irst = !rstn||rst||mem_ui_rst;
 
 reg [7:0] cyc;
 always_comb cyc[0] = ch0is.cyc;
@@ -261,7 +265,7 @@ always_comb cyc[7] = ch7is.cyc;
 
 reg [2:0] chcnt [0:7];
 always_ff @(posedge mem_ui_clk)
-if (rst) begin
+if (irst) begin
 	for (n2 = 0; n2 < 8; n2 = n2 + 1)
 		chcnt[n2] <= 3'd0;
 end
@@ -296,7 +300,7 @@ always_comb reqa[5] = (!ch5o.ack && ch5is.cyc && !ch5is.we && chcnt[5]==CL) || (
 always_comb reqa[6] = (!ch6o.ack && ch6is.cyc && !ch6is.we && chcnt[6]==CL) || (ch6is.we && ch6is.cyc);
 always_comb reqa[7] = (!ch7o.ack && ch7is.cyc && !ch7is.we && chcnt[7]==CL) || (ch7is.we && ch7is.cyc);
 
-wire rste = mem_ui_rst||rst||!calib_complete;
+wire rste = irst||!calib_complete;
 
 edge_det edch0 (
 	.rst(rste),
@@ -519,7 +523,7 @@ end
 
 mpmc11_cache_fta ucache1
 (
-	.rst(mem_ui_rst),
+	.rst(irst),
 	.wclk(mem_ui_clk),
 	.inv(1'b0),
 	.wchi(fifoo),
@@ -571,20 +575,22 @@ mpmc11_cache_fta ucache1
 // when the state machine detects an already successful read of the streaming
 // channel.
 
+wire [7:0] src_wr;
+
 generate begin : gStreamCache
 for (g = 0; g < 8; g = g + 1) begin
+	assign src_wr[g] = uport==g[3:0] && rd_data_valid_r;
 mpmc11_strm_read_cache ustrm
 (
-	.rst(rst),
+	.rst(irst),
 	.wclk(mem_ui_clk),
-	.wr(uport==g[3:0] && rd_data_valid_r),
+	.wr(src_wr[g]),
 	.wadr({app_waddr[31:5],5'h0}),
 	.wdat(rd_data_r),
-	.inv(1'b0),
+	.last_strip(resp_strip_cnt==num_strips),
 	.rclk(chclk[g]),
 	.req(chi[g]),
-	.resp(chob[g]),
-	.hit(ch_hit_s[g])
+	.resp(chob[g])
 );
 end
 end
@@ -594,14 +600,14 @@ wire [7:0] sel;
 wire [7:0] rd_rst_busy;
 wire [7:0] wr_rst_busy;
 wire cd_sel;
-change_det #(.WID($bits(mpmc11_fifoe_t))) ucdsel (.rst(rst), .ce(1'b1), .clk(mem_ui_clk), .i(req_fifoi), .cd(cd_sel));
+change_det #(.WID($bits(mpmc11_fifoe_t))) ucdsel (.rst(irst), .ce(1'b1), .clk(mem_ui_clk), .i(req_fifoi), .cd(cd_sel));
 
 wire [7:0] reqo;
 wire [7:0] vg;
 
 roundRobin rr1
 (
-	.rst(rst),
+	.rst(irst),
 	.clk(mem_ui_clk),
 	.ce(1'b1),//~|req || chack[req_sel]),
 	.req(reqo),
@@ -641,7 +647,7 @@ always_comb rd_fifo[g] = sel[g] & rd_fifo_sm;
 
 mpmc11_asfifo_fta ufifo
 (
-	.rst(rst),
+	.rst(irst),
 	.rd_clk(mem_ui_clk),
 	.rd_fifo(rd_fifo[g]),
 	.wr_clk(chclk[g]),
@@ -662,8 +668,8 @@ endgenerate
 
 always_comb
 	v = vg[req_sel];
-always_comb
-	req_fifoo = req_fifog[req_sel];
+always_ff @(posedge mem_ui_clk)
+	req_fifoo <= req_fifog[req_sel];
 always_comb
 	uport = fifoo.port;
 always_comb
@@ -675,7 +681,7 @@ wire [1:0] app_addr3;	// dummy to make up 32-bits
 
 mpmc11_addr_gen uag1
 (
-	.rst(mem_ui_rst),
+	.rst(irst),
 	.clk(mem_ui_clk),
 	.state(state),
 	.rdy(app_rdy),
@@ -687,7 +693,7 @@ mpmc11_addr_gen uag1
 
 mpmc11_waddr_gen uwag1
 (
-	.rst(mem_ui_rst),
+	.rst(irst),
 	.clk(mem_ui_clk),
 	.state(state),
 	.valid(rd_data_valid_r),
@@ -699,7 +705,7 @@ mpmc11_waddr_gen uwag1
 
 mpmc11_mask_select unsks1
 (
-	.rst(mem_ui_rst),
+	.rst(irst),
 	.clk(mem_ui_clk),
 	.state(state),
 	.we(fifoo.req.we), 
@@ -836,7 +842,7 @@ always_ff @(posedge mem_ui_clk)
 	rmw_dat <= t1 << {req_fifoo.req.padr[4:0],3'b0};
 
 always_ff @(posedge mem_ui_clk)
-if (mem_ui_rst) begin
+if (irst) begin
 	ch0oc.dat <= 'd0;
 	ch1oc.dat <= 'd0;
 	ch2oc.dat <= 'd0;
@@ -861,12 +867,12 @@ if (state==WRITE_TRAMP1)
 	endcase
 end
 always_ff @(posedge mem_ui_clk)
-if (mem_ui_rst)
+if (irst)
 	rmw_ack <= 1'b0;
 else begin
 	if (state==WRITE_TRAMP1)
 		rmw_ack <= 1'b1;
-	else if (state==IDLE)
+	else if (state==mpmc11_pkg::IDLE)
 		rmw_ack <= 1'b0;
 end
 always_comb	ch0oc.ack = ch0i.cyc & rmw_ack & rmw0 && req_fifoo.port==4'd0;
@@ -893,7 +899,7 @@ end
 endgenerate
 
 always_ff @(posedge mem_ui_clk)
-if (mem_ui_rst)
+if (irst)
   app_wdf_data <= 256'd0;
 else begin
 	if (state==PRESET3)
@@ -904,10 +910,10 @@ end
 
 mpmc11_rd_fifo_gen urdf1
 (
-	.rst(rst|mem_ui_rst),
+	.rst(irst),
 	.clk(mem_ui_clk),
 	.state(state),
-	.empty(&empty),
+	.empty(1'b0), //&empty),
 	.rd_rst_busy(|rd_rst_busy),
 	.calib_complete(calib_complete),
 	.rd(rd_fifo_sm)
@@ -919,16 +925,13 @@ if (rst)
 else begin
 	if (rd_fifo)
 		fifo_mask <= {$bits(fifo_mask){1'b1}};
-	else if (state==IDLE)
+	else if (state==mpmc11_pkg::IDLE)
 		fifo_mask <= {$bits(fifo_mask){1'b0}};
 end
 
-reg stream_hit;
-always_comb stream_hit = ch_hit_s[req_fifoo.port] && streaming[req_fifoo.port];
-
 mpmc11_state_machine_fta usm1
 (
-	.rst(rst|mem_ui_rst),
+	.rst(irst),
 	.clk(mem_ui_clk),
 	.calib_complete(calib_complete),
 	.to(tocnt[9]),
@@ -936,7 +939,6 @@ mpmc11_state_machine_fta usm1
 	.wdf_rdy(app_wdf_rdy),
 	.fifo_empty(&empty),
 	.rd_rst_busy(|rd_rst_busy),
-	.stream_hit(stream_hit),
 	.fifo_out(req_fifoo.req),
 	.state(state),
 	.num_strips(num_strips),
@@ -963,6 +965,7 @@ mpmc11_prev_state upst1
 
 mpmc11_app_en_gen ueng1
 (
+	.rst(irst),
 	.clk(mem_ui_clk),
 	.state(state),
 	.rdy(app_rdy),
@@ -973,6 +976,7 @@ mpmc11_app_en_gen ueng1
 
 mpmc11_app_cmd_gen ucg1
 (
+	.rst(irst),
 	.clk(mem_ui_clk),
 	.state(state),
 	.cmd(app_cmd)
@@ -1031,7 +1035,7 @@ mpmc11_resv_bit ursb1
 
 mpmc11_addr_resv_man #(.NAR(NAR)) ursvm1
 (
-	.rst(mem_ui_rst),
+	.rst(irst),
 	.clk(mem_ui_clk),
 	.state(state),
 	.adr0(32'h0),

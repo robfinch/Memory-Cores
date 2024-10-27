@@ -45,12 +45,12 @@ output reg [5:0] strip_cnt;
 
 reg on;
 always_ff @(posedge clk)
-if (state==IDLE) begin
+if (state==mpmc11_pkg::IDLE) begin
 	strip_cnt <= 6'd0;
 	on <= 1'b0;
 end
 else begin
-	if (state==READ_DATA0)
+	if (state==mpmc11_pkg::READ_DATA0)
 		on <= 1'b1;
 	if (valid && on) begin
 		if (strip_cnt != num_strips)

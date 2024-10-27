@@ -40,6 +40,7 @@ import mpmc11_pkg::*;
 module mpmc11_asfifo_fta(rst, rd_clk, rd_fifo, wr_clk, wr_fifo,
 	req_fifoi, req_fifoo, v,
 	full, empty, almost_full, rd_rst_busy, wr_rst_busy, cnt);
+parameter DEPTH=32;
 input rst;
 input rd_clk;
 input rd_fifo;
@@ -55,6 +56,17 @@ output rd_rst_busy;
 output wr_rst_busy;
 output [5:0] cnt;
 
+always_comb
+if (DEPTH < 16) begin
+	$display("MPMC11: fifo depth is too small");
+	$finish;
+end
+/* I think this is caught by the template
+else if ((16'd1 << $clog2(DEPTH)) != DEPTH) begin
+	$display("MPMC11: fifo depth must be power of two");
+	$finish;
+end
+*/
 
 // XPM_FIFO instantiation template for Asynchronous FIFO configurations
 // Refer to the targeted device family architecture libraries guide for XPM_FIFO documentation
@@ -69,19 +81,19 @@ output [5:0] cnt;
       .ECC_MODE("no_ecc"),       // String
       .FIFO_MEMORY_TYPE("distributed"), // String
       .FIFO_READ_LATENCY(0),     // DECIMAL
-      .FIFO_WRITE_DEPTH(32),   // DECIMAL
+      .FIFO_WRITE_DEPTH(DEPTH),  // DECIMAL
       .FULL_RESET_VALUE(0),      // DECIMAL
       .PROG_EMPTY_THRESH(5),    // DECIMAL
-      .PROG_FULL_THRESH(27),     // DECIMAL
-      .RD_DATA_COUNT_WIDTH(6),   // DECIMAL
+      .PROG_FULL_THRESH(DEPTH-5),	// DECIMAL
+      .RD_DATA_COUNT_WIDTH($clog2(DEPTH)+1),   // DECIMAL
       .READ_DATA_WIDTH($bits(mpmc11_fifoe_t)),      // DECIMAL
-      .READ_MODE("fwft"),         // String
+      .READ_MODE("std"),         // String
       .RELATED_CLOCKS(0),        // DECIMAL
       .SIM_ASSERT_CHK(0),        // DECIMAL; 0=disable simulation messages, 1=enable simulation messages
       .USE_ADV_FEATURES("170F"), // String
       .WAKEUP_TIME(0),           // DECIMAL
       .WRITE_DATA_WIDTH($bits(mpmc11_fifoe_t)),     // DECIMAL
-      .WR_DATA_COUNT_WIDTH(6)    // DECIMAL
+      .WR_DATA_COUNT_WIDTH($clog2(DEPTH)+1)    // DECIMAL
    )
    xpm_fifo_async_inst (
       .almost_empty(),						   // 1-bit output: Almost Empty : When asserted, this signal indicates that

@@ -42,8 +42,8 @@ input mpmc11_state_t state;
 output mpmc11_state_t prev_state;
 
 always_ff @(posedge clk)
-if (state==IDLE)	// We can stay in the idle state as long as we like
-	prev_state <= IDLE;
+if (state==mpmc11_pkg::IDLE)	// We can stay in the idle state as long as we like
+	prev_state <= mpmc11_pkg::IDLE;
 else begin
 	if (state!=prev_state)
 		prev_state <= state;

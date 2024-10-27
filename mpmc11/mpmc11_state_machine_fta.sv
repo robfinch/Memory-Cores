@@ -38,7 +38,7 @@ import fta_bus_pkg::*;
 import mpmc11_pkg::*;
 
 module mpmc11_state_machine_fta(rst, clk, calib_complete, to, rdy, wdf_rdy, fifo_empty,
-	rd_rst_busy, fifo_out, state, stream_hit,
+	rd_rst_busy, fifo_out, state,
 	num_strips, req_strip_cnt, resp_strip_cnt, rd_data_valid, rmw_hit);
 input rst;
 input clk;
@@ -48,7 +48,6 @@ input rdy;
 input wdf_rdy;
 input fifo_empty;
 input rd_rst_busy;
-input stream_hit;
 input fta_cmd_request256_t fifo_out;
 output mpmc11_state_t state;
 input [5:0] num_strips;
@@ -73,10 +72,13 @@ else begin
 	case(state)
 	// If the request was a streaming channel and there was a hit on it, do
 	// not do the request.
-	IDLE:
+	mpmc11_pkg::IDLE:
+	/*
 		if (stream_hit)
 			next_state <= mpmc11_pkg::IDLE;
-		else if (!fifo_empty && !rd_rst_busy && calib_complete)
+		else
+	*/
+		if (!fifo_empty && !rd_rst_busy && calib_complete)
 			next_state <= PRESET1;
 		else
 			next_state <= mpmc11_pkg::IDLE;
@@ -114,7 +116,8 @@ else begin
 	// There could be multiple read requests submitted before any response occurs.
 	// Stay in the SET_CMD_RD until all requested strips have been processed.
 	READ_DATA0:
-		next_state <= READ_DATA1;
+		if (rdy)
+			next_state <= READ_DATA1;
 	// Could it take so long to do the request that we start getting responses
 	// back?
 	READ_DATA1:

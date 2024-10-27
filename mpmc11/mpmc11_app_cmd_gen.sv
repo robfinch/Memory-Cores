@@ -36,7 +36,8 @@
 //
 import mpmc11_pkg::*;
 
-module mpmc11_app_cmd_gen(clk, state, cmd);
+module mpmc11_app_cmd_gen(rst, clk, state, cmd);
+input rst;
 input clk;
 input mpmc11_state_t state;
 output reg [2:0] cmd;
@@ -46,12 +47,28 @@ output reg [2:0] cmd;
 // WRITE_DATAx states.
 // Transition CMD only when EN is low.
 
-always_ff @(posedge clk)
-begin
-	if (state==IDLE)
-		cmd <= CMD_WRITE;
-	else if (state==READ_DATA0)
-		cmd <= CMD_READ;
+reg next_cmd;
+
+always_comb
+if (rst)
+	next_cmd = mpmc11_pkg::CMD_WRITE;
+else begin
+	case(state)
+	mpmc11_pkg::IDLE:
+		next_cmd = mpmc11_pkg::CMD_WRITE;
+	mpmc11_pkg::WRITE_DATA0:
+		next_cmd = mpmc11_pkg::CMD_WRITE;
+	mpmc11_pkg::READ_DATA0:
+		next_cmd = mpmc11_pkg::CMD_READ;
+	default:
+		next_cmd = cmd;
+	endcase
 end
+
+always_ff @(posedge clk)
+if (rst)
+	cmd <= mpmc11_pkg::CMD_WRITE;
+else
+	cmd <= next_cmd;
 
 endmodule

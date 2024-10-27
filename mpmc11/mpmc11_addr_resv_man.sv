@@ -125,7 +125,7 @@ else begin
 		if (enc==n7 && |srr)
 			reserve_adr({1'b0,n7[2:0]},adr[n7]);
 
-	if (state==IDLE) begin
+	if (state==mpmc11_pkg::IDLE) begin
 		if (we) begin
 	    if (cr) begin
 	    	for (n7 = 0; n7 < NAR; n7 = n7 + 1)

@@ -43,7 +43,7 @@ input mpmc11_state_t prev_state;
 output reg [15:0] to_cnt;
 
 always_ff @(posedge clk)
-if (state==IDLE) begin	// We can stay in the idle state as long as we like
+if (state==mpmc11_pkg::IDLE) begin	// We can stay in the idle state as long as we like
 	to_cnt <= 'd0;
 end
 else begin

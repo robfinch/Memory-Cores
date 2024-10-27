@@ -36,7 +36,8 @@
 //
 import mpmc11_pkg::*;
 
-module mpmc11_app_en_gen(clk, state, rdy, strip_cnt, num_strips, en);
+module mpmc11_app_en_gen(rst, clk, state, rdy, strip_cnt, num_strips, en);
+input rst;
 input clk;
 input mpmc11_state_t state;
 input rdy;
@@ -46,17 +47,29 @@ output reg en;
 
 // app_en latches the command and address when app_rdy is active. If app_rdy
 // is not true, the command must be retried.
+reg en1;
 always_ff @(posedge clk)
-begin
-	en <= 1'b0;
-	if (state==WRITE_DATA1)
-		en <= 1'b1;
-	else if (state==WRITE_DATA2 && !rdy)
-		en <= 1'b1;
-	else if (state==READ_DATA0)
-		en <= 1'b1;
-	else if (state==READ_DATA1 && !(rdy && strip_cnt==num_strips))
-		en <= 1'b1;
+if (rst)
+	en1 <= 1'b0;
+else begin
+	case(state)
+	WRITE_DATA1:
+		en1 <= 1'b1;
+	WRITE_DATA2:
+		if (rdy)
+			en1 <= 1'b0;
+	READ_DATA0:
+		en1 <= 1'b1;
+	READ_DATA1:
+		if (rdy && strip_cnt==num_strips)
+			en1 <= 1'b0;
+		else
+			en1 <= 1'b1;
+	default:
+		en1 <= 1'b0;
+	endcase
 end
+
+always_comb en = en1 & ~(state==WRITE_DATA2 & rdy) & ~(state==READ_DATA1 && rdy && strip_cnt==num_strips);
 
 endmodule
