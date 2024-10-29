@@ -50,7 +50,7 @@ import mpmc11_pkg::*;
 
 module mpmc11_fta (
 input rst,
-input clk100,
+input sys_clk_i,
 input mem_ui_rst,
 input mem_ui_clk,
 input calib_complete,
@@ -85,10 +85,12 @@ input fta_cmd_request256_t ch6i,
 output fta_cmd_response256_t ch6o,
 input fta_cmd_request256_t ch7i,
 output fta_cmd_response256_t ch7o,
-output mpmc11_state_t state
+output mpmc11_state_t state,
+output rst_busy
 );
 parameter NAR = 2;			// Number of address reservations
 parameter CL = 3'd4;		// Cache read latency
+parameter PORT_PRESENT = 8'hFF;
 parameter STREAM0 = 1'b1;
 parameter STREAM1 = 1'b0;
 parameter STREAM2 = 1'b0;
@@ -197,7 +199,7 @@ fta_cmd_request256_t ld;
 fta_cmd_request256_t fifo_mask;
 mpmc11_fifoe_t fifoo;
 
-assign fifoo.req = req_fifoo.req & fifo_mask;
+assign fifoo.req = req_fifoo.req;// & fifo_mask;
 assign fifoo.port = req_fifoo.port;
 
 genvar g;
@@ -241,17 +243,11 @@ always_ff @(posedge mem_ui_clk)
 
 reg [9:0] rst_ctr;
 reg irst;
-always @(posedge clk100)
-if (rst) begin
-	rst_ctr <= 10'd0;
-	rstn <= 1'b0;
-end
-else begin
-	if (!rst_ctr[8])
-		rst_ctr <= rst_ctr + 2'd1;
-	rstn <= rst_ctr[8];
-end
-always_comb irst = !rstn||rst||mem_ui_rst;
+
+wire rst_ext;
+// Generate negative pulse for MIG controller reset.
+pulse_extender #(9) upe1(.clk_i(sys_clk_i), .i(rst), .o(), .no(rstn));
+always_comb irst = rst||mem_ui_rst;
 
 reg [7:0] cyc;
 always_comb cyc[0] = ch0is.cyc;
@@ -619,35 +615,37 @@ roundRobin rr1
 always_comb
 begin
 	req_fifoi[0].port <= 4'd0;
-	req_fifoi[0].req <= STREAM0 ? ch0i2 : ch0i;
+	req_fifoi[0].req <= ch0i;
 	req_fifoi[1].port <= 4'd1;
-	req_fifoi[1].req <= STREAM1 ? ch1i2 : ch1i;
+	req_fifoi[1].req <= ch1i;
 	req_fifoi[2].port <= 4'd2;
-	req_fifoi[2].req <= STREAM2 ? ch2i2 : ch2i;
+	req_fifoi[2].req <= ch2i;
 	req_fifoi[3].port <= 4'd3;
-	req_fifoi[3].req <= STREAM3 ? ch3i2 : ch3i;
+	req_fifoi[3].req <= ch3i;
 	req_fifoi[4].port <= 4'd4;
-	req_fifoi[4].req <= STREAM4 ? ch4i2 : ch4i;
+	req_fifoi[4].req <= ch4i;
 	req_fifoi[5].port <= 4'd5;
-	req_fifoi[5].req <= STREAM5 ? ch5i2 : ch5i;
+	req_fifoi[5].req <= ch5i;
 	req_fifoi[6].port <= 4'd6;
-	req_fifoi[6].req <= STREAM6 ? ch6i2 : ch6i;
+	req_fifoi[6].req <= ch6i;
 	req_fifoi[7].port <= 4'd7;
-	req_fifoi[7].req <= STREAM7 ? ch7i2 : ch7i;
+	req_fifoi[7].req <= ch7i;
 end
 
 // An asynchronous fifo is used at the input to allow the clock to be different
 // than the ui_clk.
 
+wire [7:0] cd_fifo;
 generate begin : gInputFifos
 for (g = 0; g < 8; g = g + 1) begin
 assign reqo[g] = req_fifog[g].req.cyc;
 always_comb wr_fifo[g] = req_fifoi[g].req.cyc;
 always_comb rd_fifo[g] = sel[g] & rd_fifo_sm;
 
+if (PORT_PRESENT[g]) begin
 mpmc11_asfifo_fta ufifo
 (
-	.rst(irst),
+	.rst(mem_ui_rst),
 	.rd_clk(mem_ui_clk),
 	.rd_fifo(rd_fifo[g]),
 	.wr_clk(chclk[g]),
@@ -662,12 +660,23 @@ mpmc11_asfifo_fta ufifo
 	.wr_rst_busy(wr_rst_busy[g]),
 	.cnt()
 );
+change_det #($bits(mpmc11_fifoe_t)) ucdfifo1 (.rst(mem_ui_rst), .clk(mem_ui_clk), .i(req_fifog[g]), .cd(cd_fifo[g]));
+end else begin
+	assign rd_rst_busy[g] = 1'b0;
+	assign wr_rst_busy[g] = 1'b0;
+	assign vg[g] = 1'b0;
+	assign empty[g] = 1'b1;
+	assign req_fifoo[g] = {$bits(mpmc11_fifoe_t){1'b0}};
+	assign cd_fifo[g] = 1'b0;
+end
 end
 end
 endgenerate
 
-always_comb
-	v = vg[req_sel];
+assign rst_busy = (|rd_rst_busy) || (|wr_rst_busy) || irst;
+
+always_ff @(posedge mem_ui_clk)
+	v = cd_fifo[req_sel] & req_fifog[req_sel].req.cyc;
 always_ff @(posedge mem_ui_clk)
 	req_fifoo <= req_fifog[req_sel];
 always_comb
@@ -708,7 +717,7 @@ mpmc11_mask_select unsks1
 	.rst(irst),
 	.clk(mem_ui_clk),
 	.state(state),
-	.we(fifoo.req.we), 
+	.we(req_fifoo.req.we), 
 	.wmask(req_fifoo.req.sel[31:0]),
 	.mask(app_wdf_mask),
 	.mask2(mem_wdf_mask2)
@@ -886,14 +895,14 @@ always_comb	ch7oc.ack = ch7i.cyc & rmw_ack & rmw7 && req_fifoo.port==4'd7;
 `endif
 
 // Setting the data value. Unlike reads there is only a single strip involved.
-// Force unselected byte lanes to $FF
+// Force unselected byte lanes to $FF.???? Why?
 reg [WIDX8-1:0] dat128x;
 generate begin
 	for (g = 0; g < WIDX8/8; g = g + 1)
 		always_comb
-			if (mem_wdf_mask2[g])
-				dat128x[g*8+7:g*8] = 8'hFF;
-			else
+//			if (mem_wdf_mask2[g])
+//				dat128x[g*8+7:g*8] = 8'hFF;
+//			else
 				dat128x[g*8+7:g*8] = data128a[g*8+7:g*8];
 end
 endgenerate
@@ -934,11 +943,12 @@ mpmc11_state_machine_fta usm1
 	.rst(irst),
 	.clk(mem_ui_clk),
 	.calib_complete(calib_complete),
-	.to(tocnt[9]),
+	.to(tocnt[8]),
 	.rdy(app_rdy),
 	.wdf_rdy(app_wdf_rdy),
 	.fifo_empty(&empty),
-	.rd_rst_busy(|rd_rst_busy),
+	.fifo_v(v),
+	.rst_busy((|rd_rst_busy) || (|wr_rst_busy)),
 	.fifo_out(req_fifoo.req),
 	.state(state),
 	.num_strips(num_strips),
@@ -969,6 +979,7 @@ mpmc11_app_en_gen ueng1
 	.clk(mem_ui_clk),
 	.state(state),
 	.rdy(app_rdy),
+	.wdf_rdy(app_wdf_rdy),
 	.strip_cnt(req_strip_cnt),
 	.num_strips(num_strips),
 	.en(app_en)
@@ -986,7 +997,8 @@ mpmc11_app_wdf_wren_gen uwreng1
 (
 	.clk(mem_ui_clk),
 	.state(state),
-	.rdy(app_wdf_rdy),
+	.rdy(app_rdy),
+	.wdf_rdy(app_wdf_rdy),
 	.wren(app_wdf_wren)
 );
 
@@ -994,7 +1006,8 @@ mpmc11_app_wdf_end_gen uwendg1
 (
 	.clk(mem_ui_clk),
 	.state(state),
-	.rdy(app_wdf_rdy),
+	.rdy(app_rdy),
+	.wdf_rdy(app_wdf_rdy),
 	.strip_cnt(req_strip_cnt),
 	.num_strips(num_strips),
 	.wend(app_wdf_end)

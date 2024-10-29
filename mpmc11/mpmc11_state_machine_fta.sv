@@ -38,7 +38,7 @@ import fta_bus_pkg::*;
 import mpmc11_pkg::*;
 
 module mpmc11_state_machine_fta(rst, clk, calib_complete, to, rdy, wdf_rdy, fifo_empty,
-	rd_rst_busy, fifo_out, state,
+	rst_busy, fifo_out, fifo_v, state,
 	num_strips, req_strip_cnt, resp_strip_cnt, rd_data_valid, rmw_hit);
 input rst;
 input clk;
@@ -47,8 +47,9 @@ input to;							// state machine time-out
 input rdy;
 input wdf_rdy;
 input fifo_empty;
-input rd_rst_busy;
+input rst_busy;
 input fta_cmd_request256_t fifo_out;
+input fifo_v;
 output mpmc11_state_t state;
 input [5:0] num_strips;
 input [5:0] req_strip_cnt;
@@ -73,13 +74,12 @@ else begin
 	// If the request was a streaming channel and there was a hit on it, do
 	// not do the request.
 	mpmc11_pkg::IDLE:
-	/*
-		if (stream_hit)
-			next_state <= mpmc11_pkg::IDLE;
-		else
-	*/
-		if (!fifo_empty && !rd_rst_busy && calib_complete)
-			next_state <= PRESET1;
+		if (!fifo_empty && !rst_busy && calib_complete) begin
+			if (fifo_v)
+				next_state <= PRESET1;
+			else
+				next_state <= mpmc11_pkg::IDLE;
+		end
 		else
 			next_state <= mpmc11_pkg::IDLE;
 	PRESET1:
@@ -87,44 +87,53 @@ else begin
 	PRESET2:
 		next_state <= PRESET3;
 	PRESET3:
-		if (fifo_out.stb && fifo_out.cmd==fta_bus_pkg::CMD_STORE)
+		if (fifo_out.cyc && fifo_out.we)//cmd==fta_bus_pkg::CMD_STORE)
 			next_state <= WRITE_DATA0;
-		else
+		else if (fifo_out.cyc)
 			next_state <= READ_DATA0;
+		else
+			next_state <= mpmc11_pkg::IDLE;
+	// Write data fifo first, done when wdf_rdy is high
+	WRITE_DATA0:	// set app_en high
+		if (wdf_rdy & rdy)// && req_strip_cnt==num_strips)
+			next_state <= mpmc11_pkg::IDLE;
+//			next_state <= WRITE_DATA2;
+		else
+			next_state <= WRITE_DATA0;
+//	WRITE_DATA1:	
+//		next_state <= WRITE_DATA2;
 	// Write command to the command fifo
 	// Write occurs when app_rdy is true
-	WRITE_DATA0:
-		if (rdy)// && req_strip_cnt==num_strips)
-			next_state <= WRITE_DATA1;
-		else
-			next_state <= WRITE_DATA0;
-	WRITE_DATA1:
-		next_state <= WRITE_DATA2;
 	WRITE_DATA2:
 		if (rdy)
-			next_state <= WRITE_DATA3;
+			next_state <= mpmc11_pkg::IDLE;
 		else
 			next_state <= WRITE_DATA2;
+	// Data is now written first, at WRITE_DATA0
 	// Write data to the data fifo
 	// Write occurs when app_wdf_wren is true and app_wdf_rdy is true
+	/*
 	WRITE_DATA3:
 		if (wdf_rdy)
 			next_state <= mpmc11_pkg::IDLE;
 		else
 			next_state <= WRITE_DATA3;
-
+	*/
 	// There could be multiple read requests submitted before any response occurs.
 	// Stay in the SET_CMD_RD until all requested strips have been processed.
 	READ_DATA0:
 		if (rdy)
 			next_state <= READ_DATA1;
+		else
+			next_state <= READ_DATA0;
+//		next_state <= READ_DATA1;
 	// Could it take so long to do the request that we start getting responses
 	// back?
 	READ_DATA1:
-		if (rdy && req_strip_cnt==num_strips)
+		if (req_strip_cnt==num_strips)
 			next_state <= READ_DATA2;
 		else
-			next_state <= READ_DATA1;
+			next_state <= READ_DATA0;
 	// Wait for incoming responses, but only for so long to prevent a hang.
 	READ_DATA2:
 		if (rd_data_valid && resp_strip_cnt==num_strips) begin

@@ -52,8 +52,8 @@ output v;
 output full;
 output empty;
 output almost_full;
-output rd_rst_busy;
-output wr_rst_busy;
+output reg rd_rst_busy;
+output reg wr_rst_busy;
 output [5:0] cnt;
 
 always_comb
@@ -68,6 +68,30 @@ else if ((16'd1 << $clog2(DEPTH)) != DEPTH) begin
 end
 */
 
+wire rd_rst_busy1;
+wire ne_rd_rst_busy;
+edge_det urstbusy (.rst(rst), .clk(rd_clk), .ce(1'b1), .i(rd_rst_busy1), .pe(), .ne(ne_rd_rst_busy), .ee());
+
+always_ff @(posedge rd_clk)
+if (rst)
+	rd_rst_busy = 1'b1;
+else begin
+	if (ne_rd_rst_busy)
+		rd_rst_busy <= 1'b0;
+end
+
+wire wr_rst_busy1;
+wire ne_wr_rst_busy;
+edge_det uwrrstbusy (.rst(rst), .clk(wr_clk), .ce(1'b1), .i(wr_rst_busy1), .pe(), .ne(ne_wr_rst_busy), .ee());
+
+always_ff @(posedge wr_clk)
+if (rst)
+	wr_rst_busy = 1'b1;
+else begin
+	if (ne_wr_rst_busy)
+		wr_rst_busy <= 1'b0;
+end
+
 // XPM_FIFO instantiation template for Asynchronous FIFO configurations
 // Refer to the targeted device family architecture libraries guide for XPM_FIFO documentation
 // =======================================================================================================================
@@ -80,7 +104,7 @@ end
       .DOUT_RESET_VALUE("0"),    // String
       .ECC_MODE("no_ecc"),       // String
       .FIFO_MEMORY_TYPE("distributed"), // String
-      .FIFO_READ_LATENCY(0),     // DECIMAL
+      .FIFO_READ_LATENCY(1),     // DECIMAL
       .FIFO_WRITE_DEPTH(DEPTH),  // DECIMAL
       .FULL_RESET_VALUE(0),      // DECIMAL
       .PROG_EMPTY_THRESH(5),    // DECIMAL
@@ -90,7 +114,7 @@ end
       .READ_MODE("std"),         // String
       .RELATED_CLOCKS(0),        // DECIMAL
       .SIM_ASSERT_CHK(0),        // DECIMAL; 0=disable simulation messages, 1=enable simulation messages
-      .USE_ADV_FEATURES("170F"), // String
+      .USE_ADV_FEATURES("1000"), // String
       .WAKEUP_TIME(0),           // DECIMAL
       .WRITE_DATA_WIDTH($bits(mpmc11_fifoe_t)),     // DECIMAL
       .WR_DATA_COUNT_WIDTH($clog2(DEPTH)+1)    // DECIMAL
@@ -138,7 +162,7 @@ end
       .rd_data_count(),							 // RD_DATA_COUNT_WIDTH-bit output: Read Data Count: This bus indicates the
                                      // number of words read from the FIFO.
 
-      .rd_rst_busy(rd_rst_busy),     // 1-bit output: Read Reset Busy: Active-High indicator that the FIFO read
+      .rd_rst_busy(rd_rst_busy1),     // 1-bit output: Read Reset Busy: Active-High indicator that the FIFO read
                                      // domain is currently in a reset state.
 
       .sbiterr(),				             // 1-bit output: Single Bit Error: Indicates that the ECC decoder detected
@@ -154,7 +178,7 @@ end
       .wr_data_count(cnt),					 // WR_DATA_COUNT_WIDTH-bit output: Write Data Count: This bus indicates
                                      // the number of words written into the FIFO.
 
-      .wr_rst_busy(wr_rst_busy),     // 1-bit output: Write Reset Busy: Active-High indicator that the FIFO
+      .wr_rst_busy(wr_rst_busy1),     // 1-bit output: Write Reset Busy: Active-High indicator that the FIFO
                                      // write domain is currently in a reset state.
 
       .din(req_fifoi),               // WRITE_DATA_WIDTH-bit input: Write Data: The input data bus used when
@@ -169,7 +193,8 @@ end
       .rd_clk(rd_clk),               // 1-bit input: Read clock: Used for read operation. rd_clk must be a free
                                      // running clock.
 
-      .rd_en(rd_fifo & ~rd_rst_busy),	// 1-bit input: Read Enable: If the FIFO is not empty, asserting this
+      .rd_en(rd_fifo & ~rd_rst_busy1 & ~rd_rst_busy & ~rst),	
+      															// 1-bit input: Read Enable: If the FIFO is not empty, asserting this
                                      // signal causes data (on dout) to be read from the FIFO. Must be held
                                      // active-low when rd_rst_busy is active high.
 
@@ -183,7 +208,7 @@ end
       .wr_clk(wr_clk),               // 1-bit input: Write clock: Used for write operation. wr_clk must be a
                                      // free running clock.
 
-      .wr_en(wr_fifo & ~wr_rst_busy & ~rst) // 1-bit input: Write Enable: If the FIFO is not full, asserting this
+      .wr_en(wr_fifo & ~wr_rst_busy1 & ~wr_rst_busy & ~rst) // 1-bit input: Write Enable: If the FIFO is not full, asserting this
                                      // signal causes data (on din) to be written to the FIFO. Must be held
                                      // active-low when rst or wr_rst_busy is active high.
 

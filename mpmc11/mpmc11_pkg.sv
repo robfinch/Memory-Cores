@@ -82,8 +82,8 @@ typedef struct packed
 } mpmc11_quad_cache_line_t;
 
 typedef struct packed {
-	fta_bus_pkg::fta_cmd_request256_t req;
 	logic [3:0] port;
+	fta_bus_pkg::fta_cmd_request256_t req;
 } mpmc11_fifoe_t;
 
 

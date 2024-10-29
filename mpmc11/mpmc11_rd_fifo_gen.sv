@@ -53,7 +53,6 @@ begin
 	case(state)
 	mpmc11_pkg::IDLE:
 		begin
-			next_rd = rd;
 			if (!empty && !rd_rst_busy && calib_complete)
 				next_rd = 1'b1;
 		end

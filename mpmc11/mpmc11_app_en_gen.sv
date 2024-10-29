@@ -36,11 +36,12 @@
 //
 import mpmc11_pkg::*;
 
-module mpmc11_app_en_gen(rst, clk, state, rdy, strip_cnt, num_strips, en);
+module mpmc11_app_en_gen(rst, clk, state, rdy, wdf_rdy, strip_cnt, num_strips, en);
 input rst;
 input clk;
 input mpmc11_state_t state;
 input rdy;
+input wdf_rdy;
 input [5:0] strip_cnt;
 input [5:0] num_strips;
 output reg en;
@@ -53,13 +54,15 @@ if (rst)
 	en1 <= 1'b0;
 else begin
 	case(state)
-	WRITE_DATA1:
+	WRITE_DATA0:
 		en1 <= 1'b1;
 	WRITE_DATA2:
 		if (rdy)
 			en1 <= 1'b0;
+		else
+			en1 <= 1'b1;
 	READ_DATA0:
-		en1 <= 1'b1;
+		en1 <= 1'b0;
 	READ_DATA1:
 		if (rdy && strip_cnt==num_strips)
 			en1 <= 1'b0;
@@ -70,6 +73,7 @@ else begin
 	endcase
 end
 
-always_comb en = en1 & ~(state==WRITE_DATA2 & rdy) & ~(state==READ_DATA1 && rdy && strip_cnt==num_strips);
+always_comb en = (state==WRITE_DATA0 & rdy & wdf_rdy) || (state==READ_DATA0 & rdy);
+// en1 & ~(state==READ_DATA1 && rdy && strip_cnt==num_strips);
 
 endmodule

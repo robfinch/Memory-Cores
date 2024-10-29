@@ -50,9 +50,11 @@ reg [31:0] next_addr;
 
 always_comb
 case(state)
+mpmc11_pkg::IDLE:
+	next_addr = 32'd0;
 PRESET2:	// For both read and write.
 	next_addr = {addr_base[31:5],5'h0};
-READ_DATA1:
+READ_DATA0:
 	if (rdy)
 		next_addr = addr + 6'h20;
 	else
@@ -63,7 +65,7 @@ endcase
 
 always_ff @(posedge clk)
 if (rst)
-	addr <= 32'h3FFFFFFF;
+	addr <= 32'h0;
 else
 	addr <= next_addr;
 
