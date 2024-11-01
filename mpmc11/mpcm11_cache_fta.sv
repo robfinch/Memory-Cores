@@ -44,22 +44,14 @@ module mpmc11_cache_fta (input rst, wclk, inv,
 	input fta_cmd_request256_t wchi, 
 	output fta_cmd_response256_t wcho,
 	input fta_cmd_request256_t ld,
-	input ch0clk, 
-	input ch1clk, 
-	input ch2clk, 
-	input ch3clk, 
-	input ch4clk, 
-	input ch5clk, 
-	input ch6clk, 
-	input ch7clk, 
-	input fta_cmd_request256_t ch0i,
-	input fta_cmd_request256_t ch1i,
-	input fta_cmd_request256_t ch2i,
-	input fta_cmd_request256_t ch3i,
-	input fta_cmd_request256_t ch4i,
-	input fta_cmd_request256_t ch5i,
-	input fta_cmd_request256_t ch6i,
-	input fta_cmd_request256_t ch7i,
+	fta_bus_interface.slave ch0,
+	fta_bus_interface.slave ch1,
+	fta_bus_interface.slave ch2,
+	fta_bus_interface.slave ch3,
+	fta_bus_interface.slave ch4,
+	fta_bus_interface.slave ch5,
+	fta_bus_interface.slave ch6,
+	fta_bus_interface.slave ch7,
 	input ch0wack,
 	input ch1wack,
 	input ch2wack,
@@ -68,14 +60,6 @@ module mpmc11_cache_fta (input rst, wclk, inv,
 	input ch5wack,
 	input ch6wack,
 	input ch7wack,
-	output fta_cmd_response256_t ch0o,
-	output fta_cmd_response256_t ch1o,
-	output fta_cmd_response256_t ch2o,
-	output fta_cmd_response256_t ch3o,
-	output fta_cmd_response256_t ch4o,
-	output fta_cmd_response256_t ch5o,
-	output fta_cmd_response256_t ch6o,
-	output fta_cmd_response256_t ch7o,
 	output reg ch0hit,
 	output reg ch1hit,
 	output reg ch2hit,
@@ -88,6 +72,7 @@ module mpmc11_cache_fta (input rst, wclk, inv,
 parameter DEP=1024;
 parameter LOBIT=5;
 parameter HIBIT=14;
+parameter PORT_PRESENT=8'hFF;
 
 integer n,n2,n3,n4,n5;
 
@@ -138,38 +123,38 @@ reg stb6;
 reg stb7;
 reg [8:0] rstb;
 
-always_ff @(posedge ch0clk) radrr[0] <= ch0i.padr;
-always_ff @(posedge ch1clk) radrr[1] <= ch1i.padr;
-always_ff @(posedge ch2clk) radrr[2] <= ch2i.padr;
-always_ff @(posedge ch3clk) radrr[3] <= ch3i.padr;
-always_ff @(posedge ch4clk) radrr[4] <= ch4i.padr;
-always_ff @(posedge ch5clk) radrr[5] <= ch5i.padr;
-always_ff @(posedge ch6clk) radrr[6] <= ch6i.padr;
-always_ff @(posedge ch7clk) radrr[7] <= ch7i.padr;
+always_ff @(posedge ch0.clk) radrr[0] <= ch0.req.padr;
+always_ff @(posedge ch1.clk) radrr[1] <= ch1.req.padr;
+always_ff @(posedge ch2.clk) radrr[2] <= ch2.req.padr;
+always_ff @(posedge ch3.clk) radrr[3] <= ch3.req.padr;
+always_ff @(posedge ch4.clk) radrr[4] <= ch4.req.padr;
+always_ff @(posedge ch5.clk) radrr[5] <= ch5.req.padr;
+always_ff @(posedge ch6.clk) radrr[6] <= ch6.req.padr;
+always_ff @(posedge ch7.clk) radrr[7] <= ch7.req.padr;
 always_ff @(posedge wclk) radrr[8] <= ld.cyc ? ld.padr : wchi.padr;
 always_ff @(posedge wclk) wchi_adr1 <= wchi.padr;
 always_ff @(posedge wclk) wchi_adr <= wchi_adr1;
 
-always_ff @(posedge ch0clk) stb0 <= ch0i.stb;
-always_ff @(posedge ch1clk) stb1 <= ch1i.stb;
-always_ff @(posedge ch2clk) stb2 <= ch2i.stb;
-always_ff @(posedge ch3clk) stb3 <= ch3i.stb;
-always_ff @(posedge ch4clk) stb4 <= ch4i.stb;
-always_ff @(posedge ch5clk) stb5 <= ch5i.stb;
-always_ff @(posedge ch6clk) stb6 <= ch6i.stb;
-always_ff @(posedge ch7clk) stb7 <= ch7i.stb;
+always_ff @(posedge ch0.clk) stb0 <= ch0.req.cyc;
+always_ff @(posedge ch1.clk) stb1 <= ch1.req.cyc;
+always_ff @(posedge ch2.clk) stb2 <= ch2.req.cyc;
+always_ff @(posedge ch3.clk) stb3 <= ch3.req.cyc;
+always_ff @(posedge ch4.clk) stb4 <= ch4.req.cyc;
+always_ff @(posedge ch5.clk) stb5 <= ch5.req.cyc;
+always_ff @(posedge ch6.clk) stb6 <= ch6.req.cyc;
+always_ff @(posedge ch7.clk) stb7 <= ch7.req.cyc;
 
-always_comb rstb[0] <= ch0i.stb & ~ch0i.we;
-always_comb rstb[1] <= ch1i.stb & ~ch1i.we;
-always_comb rstb[2] <= ch2i.stb & ~ch2i.we;
-always_comb rstb[3] <= ch3i.stb & ~ch3i.we;
-always_comb rstb[4] <= ch4i.stb & ~ch4i.we;
-always_comb rstb[5] <= ch5i.stb & ~ch5i.we;
-always_comb rstb[6] <= ch6i.stb & ~ch6i.we;
-always_comb rstb[7] <= ch7i.stb & ~ch7i.we;
-always_comb rstb[8] <= ld.cyc ? ld.stb : wchi.stb;
+always_comb rstb[0] <= ch0.req.cyc & ~ch0.req.we;
+always_comb rstb[1] <= ch1.req.cyc & ~ch1.req.we;
+always_comb rstb[2] <= ch2.req.cyc & ~ch2.req.we;
+always_comb rstb[3] <= ch3.req.cyc & ~ch3.req.we;
+always_comb rstb[4] <= ch4.req.cyc & ~ch4.req.we;
+always_comb rstb[5] <= ch5.req.cyc & ~ch5.req.we;
+always_comb rstb[6] <= ch6.req.cyc & ~ch6.req.we;
+always_comb rstb[7] <= ch7.req.cyc & ~ch7.req.we;
+always_comb rstb[8] <= ld.cyc ? ld.cyc : wchi.cyc;
 
-always_ff @(posedge wclk) wchi_stb_r <= wchi.stb;
+always_ff @(posedge wclk) wchi_stb_r <= wchi.cyc;
 always_ff @(posedge wclk) wchi_stb <= wchi_stb_r;
 always_ff @(posedge wclk) wchi_sel <= wchi.sel;
 always_ff @(posedge wclk) wchi_dat <= wchi.data1;
@@ -177,28 +162,28 @@ always_ff @(posedge wclk) wchi_dat <= wchi.data1;
 reg [8:0] rclkp;
 always_comb
 begin
-	rclkp[0] = ch0clk;
-	rclkp[1] = ch1clk;
-	rclkp[2] = ch2clk;
-	rclkp[3] = ch3clk;
-	rclkp[4] = ch4clk;
-	rclkp[5] = ch5clk;
-	rclkp[6] = ch6clk;
-	rclkp[7] = ch7clk;
+	rclkp[0] = ch0.clk;
+	rclkp[1] = ch1.clk;
+	rclkp[2] = ch2.clk;
+	rclkp[3] = ch3.clk;
+	rclkp[4] = ch4.clk;
+	rclkp[5] = ch5.clk;
+	rclkp[6] = ch6.clk;
+	rclkp[7] = ch7.clk;
 	rclkp[8] = wclk;
 end
 
 reg [HIBIT-LOBIT:0] radr [0:8];
 always_comb
 begin
-	radr[0] = ch0i.padr[HIBIT:LOBIT];
-	radr[1] = ch1i.padr[HIBIT:LOBIT];
-	radr[2] = ch2i.padr[HIBIT:LOBIT];
-	radr[3] = ch3i.padr[HIBIT:LOBIT];
-	radr[4] = ch4i.padr[HIBIT:LOBIT];
-	radr[5] = ch5i.padr[HIBIT:LOBIT];
-	radr[6] = ch6i.padr[HIBIT:LOBIT];
-	radr[7] = ch7i.padr[HIBIT:LOBIT];
+	radr[0] = ch0.req.padr[HIBIT:LOBIT];
+	radr[1] = ch1.req.padr[HIBIT:LOBIT];
+	radr[2] = ch2.req.padr[HIBIT:LOBIT];
+	radr[3] = ch3.req.padr[HIBIT:LOBIT];
+	radr[4] = ch4.req.padr[HIBIT:LOBIT];
+	radr[5] = ch5.req.padr[HIBIT:LOBIT];
+	radr[6] = ch6.req.padr[HIBIT:LOBIT];
+	radr[7] = ch7.req.padr[HIBIT:LOBIT];
 	radr[8] = ld.cyc ? ld.padr[HIBIT:LOBIT] : wchi.padr[HIBIT:LOBIT];
 end
 
@@ -209,6 +194,7 @@ genvar gway,gport;
 
 generate begin : gCacheRAM
 	for (gport = 0; gport < 9; gport = gport + 1) begin
+if (PORT_PRESENT[gport] || gport==9) begin
 	xpm_memory_sdpram #(
 		.ADDR_WIDTH_A($clog2(DEP)),
 		.ADDR_WIDTH_B($clog2(DEP)),
@@ -283,7 +269,8 @@ generate begin : gCacheRAM
 		                                 // is 32, wea would be 4'b0010.
 
 	);
-	end
+end
+end
 end
 endgenerate				
 				
@@ -300,14 +287,14 @@ generate begin : gReaddat
 		always_comb vbito7a[g] <= vbit[g][radrr[7][HIBIT:LOBIT]];
 		always_comb vbito8a[g] <= vbit[g][radrr[8][HIBIT:LOBIT]];
 		
-		always_ff @(posedge ch0clk)	hit0a[g] = (doutb[0].lines[g].tag==radrr[0][31:LOBIT]) && (vbito0a[g]==1'b1);
-		always_ff @(posedge ch1clk)	hit1a[g] = (doutb[1].lines[g].tag==radrr[1][31:LOBIT]) && (vbito1a[g]==1'b1);
-		always_ff @(posedge ch2clk)	hit2a[g] = (doutb[2].lines[g].tag==radrr[2][31:LOBIT]) && (vbito2a[g]==1'b1);
-		always_ff @(posedge ch3clk)	hit3a[g] = (doutb[3].lines[g].tag==radrr[3][31:LOBIT]) && (vbito3a[g]==1'b1);
-		always_ff @(posedge ch4clk)	hit4a[g] = (doutb[4].lines[g].tag==radrr[4][31:LOBIT]) && (vbito4a[g]==1'b1);
-		always_ff @(posedge ch5clk)	hit5a[g] = (doutb[5].lines[g].tag==radrr[5][31:LOBIT]) && (vbito5a[g]==1'b1);
-		always_ff @(posedge ch6clk)	hit6a[g] = (doutb[6].lines[g].tag==radrr[6][31:LOBIT]) && (vbito6a[g]==1'b1);
-		always_ff @(posedge ch7clk)	hit7a[g] = (doutb[7].lines[g].tag==radrr[7][31:LOBIT]) && (vbito7a[g]==1'b1);
+		always_ff @(posedge ch0.clk)	hit0a[g] = (doutb[0].lines[g].tag==radrr[0][31:LOBIT]) && (vbito0a[g]==1'b1);
+		always_ff @(posedge ch1.clk)	hit1a[g] = (doutb[1].lines[g].tag==radrr[1][31:LOBIT]) && (vbito1a[g]==1'b1);
+		always_ff @(posedge ch2.clk)	hit2a[g] = (doutb[2].lines[g].tag==radrr[2][31:LOBIT]) && (vbito2a[g]==1'b1);
+		always_ff @(posedge ch3.clk)	hit3a[g] = (doutb[3].lines[g].tag==radrr[3][31:LOBIT]) && (vbito3a[g]==1'b1);
+		always_ff @(posedge ch4.clk)	hit4a[g] = (doutb[4].lines[g].tag==radrr[4][31:LOBIT]) && (vbito4a[g]==1'b1);
+		always_ff @(posedge ch5.clk)	hit5a[g] = (doutb[5].lines[g].tag==radrr[5][31:LOBIT]) && (vbito5a[g]==1'b1);
+		always_ff @(posedge ch6.clk)	hit6a[g] = (doutb[6].lines[g].tag==radrr[6][31:LOBIT]) && (vbito6a[g]==1'b1);
+		always_ff @(posedge ch7.clk)	hit7a[g] = (doutb[7].lines[g].tag==radrr[7][31:LOBIT]) && (vbito7a[g]==1'b1);
 		always_ff @(posedge wclk)	hit8a[g] = (doutb[8].lines[g].tag==radrr[8][31:LOBIT]) && (vbito8a[g]==1'b1);
 	end
 	always_comb ch0hit = |hit0a & stb0;
@@ -318,48 +305,48 @@ generate begin : gReaddat
 	always_comb ch5hit = |hit5a & stb5;
 	always_comb ch6hit = |hit6a & stb6;
 	always_comb ch7hit = |hit7a & stb7;
-	always_comb ch0o.ack = (|hit0a && stb0 && (ch0i.cmd==fta_bus_pkg::CMD_LOAD||ch0i.cmd==fta_bus_pkg::CMD_LOADZ)) | (ch0wack & stb0);
-	always_comb ch1o.ack = (|hit1a && stb1 && (ch1i.cmd==fta_bus_pkg::CMD_LOAD||ch1i.cmd==fta_bus_pkg::CMD_LOADZ)) | (ch1wack & stb1);
-	always_comb ch2o.ack = (|hit2a && stb2 && (ch2i.cmd==fta_bus_pkg::CMD_LOAD||ch2i.cmd==fta_bus_pkg::CMD_LOADZ)) | (ch2wack & stb2);
-	always_comb ch3o.ack = (|hit3a && stb3 && (ch3i.cmd==fta_bus_pkg::CMD_LOAD||ch3i.cmd==fta_bus_pkg::CMD_LOADZ)) | (ch3wack & stb3);
-	always_comb ch4o.ack = (|hit4a && stb4 && (ch4i.cmd==fta_bus_pkg::CMD_LOAD||ch4i.cmd==fta_bus_pkg::CMD_LOADZ)) | (ch4wack & stb4);
-	always_comb ch5o.ack = (|hit5a && stb5 && (ch5i.cmd==fta_bus_pkg::CMD_LOAD||ch5i.cmd==fta_bus_pkg::CMD_LOADZ)) | (ch5wack & stb5);
-	always_comb ch6o.ack = (|hit6a && stb6 && (ch6i.cmd==fta_bus_pkg::CMD_LOAD||ch6i.cmd==fta_bus_pkg::CMD_LOADZ)) | (ch6wack & stb6);
-	always_comb ch7o.ack = (|hit7a && stb7 && (ch7i.cmd==fta_bus_pkg::CMD_LOAD||ch7i.cmd==fta_bus_pkg::CMD_LOADZ)) | (ch7wack & stb7);
-	always_comb ch0o.err = fta_bus_pkg::OKAY;
-	always_comb ch1o.err = fta_bus_pkg::OKAY;
-	always_comb ch2o.err = fta_bus_pkg::OKAY;
-	always_comb ch3o.err = fta_bus_pkg::OKAY;
-	always_comb ch4o.err = fta_bus_pkg::OKAY;
-	always_comb ch5o.err = fta_bus_pkg::OKAY;
-	always_comb ch6o.err = fta_bus_pkg::OKAY;
-	always_comb ch7o.err = fta_bus_pkg::OKAY;
-	always_comb ch0o.rty = 1'b0;
-	always_comb ch1o.rty = 1'b0;
-	always_comb ch2o.rty = 1'b0;
-	always_comb ch3o.rty = 1'b0;
-	always_comb ch4o.rty = 1'b0;
-	always_comb ch5o.rty = 1'b0;
-	always_comb ch6o.rty = 1'b0;
-	always_comb ch7o.rty = 1'b0;
+	always_comb ch0.resp.ack = (|hit0a && stb0 && (ch0.req.cmd==fta_bus_pkg::CMD_LOAD||ch0.req.cmd==fta_bus_pkg::CMD_LOADZ)) | (ch0wack & stb0);
+	always_comb ch1.resp.ack = (|hit1a && stb1 && (ch1.req.cmd==fta_bus_pkg::CMD_LOAD||ch1.req.cmd==fta_bus_pkg::CMD_LOADZ)) | (ch1wack & stb1);
+	always_comb ch2.resp.ack = (|hit2a && stb2 && (ch2.req.cmd==fta_bus_pkg::CMD_LOAD||ch2.req.cmd==fta_bus_pkg::CMD_LOADZ)) | (ch2wack & stb2);
+	always_comb ch3.resp.ack = (|hit3a && stb3 && (ch3.req.cmd==fta_bus_pkg::CMD_LOAD||ch3.req.cmd==fta_bus_pkg::CMD_LOADZ)) | (ch3wack & stb3);
+	always_comb ch4.resp.ack = (|hit4a && stb4 && (ch4.req.cmd==fta_bus_pkg::CMD_LOAD||ch4.req.cmd==fta_bus_pkg::CMD_LOADZ)) | (ch4wack & stb4);
+	always_comb ch5.resp.ack = (|hit5a && stb5 && (ch5.req.cmd==fta_bus_pkg::CMD_LOAD||ch5.req.cmd==fta_bus_pkg::CMD_LOADZ)) | (ch5wack & stb5);
+	always_comb ch6.resp.ack = (|hit6a && stb6 && (ch6.req.cmd==fta_bus_pkg::CMD_LOAD||ch6.req.cmd==fta_bus_pkg::CMD_LOADZ)) | (ch6wack & stb6);
+	always_comb ch7.resp.ack = (|hit7a && stb7 && (ch7.req.cmd==fta_bus_pkg::CMD_LOAD||ch7.req.cmd==fta_bus_pkg::CMD_LOADZ)) | (ch7wack & stb7);
+	always_comb ch0.resp.err = fta_bus_pkg::OKAY;
+	always_comb ch1.resp.err = fta_bus_pkg::OKAY;
+	always_comb ch2.resp.err = fta_bus_pkg::OKAY;
+	always_comb ch3.resp.err = fta_bus_pkg::OKAY;
+	always_comb ch4.resp.err = fta_bus_pkg::OKAY;
+	always_comb ch5.resp.err = fta_bus_pkg::OKAY;
+	always_comb ch6.resp.err = fta_bus_pkg::OKAY;
+	always_comb ch7.resp.err = fta_bus_pkg::OKAY;
+	always_comb ch0.resp.rty = 1'b0;
+	always_comb ch1.resp.rty = 1'b0;
+	always_comb ch2.resp.rty = 1'b0;
+	always_comb ch3.resp.rty = 1'b0;
+	always_comb ch4.resp.rty = 1'b0;
+	always_comb ch5.resp.rty = 1'b0;
+	always_comb ch6.resp.rty = 1'b0;
+	always_comb ch7.resp.rty = 1'b0;
 /*
-	always_comb ch0o.cid = ch0i.cid;
-	always_comb ch1o.cid = ch1i.cid;
-	always_comb ch2o.cid = ch2i.cid;
-	always_comb ch3o.cid = ch3i.cid;
-	always_comb ch4o.cid = ch4i.cid;
-	always_comb ch5o.cid = ch5i.cid;
-	always_comb ch6o.cid = ch6i.cid;
-	always_comb ch7o.cid = ch7i.cid;
+	always_comb ch0.resp.cid = ch0i.cid;
+	always_comb ch1.resp.cid = ch1i.cid;
+	always_comb ch2.resp.cid = ch2i.cid;
+	always_comb ch3.resp.cid = ch3i.cid;
+	always_comb ch4.resp.cid = ch4i.cid;
+	always_comb ch5.resp.cid = ch5i.cid;
+	always_comb ch6.resp.cid = ch6i.cid;
+	always_comb ch7.resp.cid = ch7i.cid;
 */
-	always_comb ch0o.tid = ch0i.tid;
-	always_comb ch1o.tid = ch1i.tid;
-	always_comb ch2o.tid = ch2i.tid;
-	always_comb ch3o.tid = ch3i.tid;
-	always_comb ch4o.tid = ch4i.tid;
-	always_comb ch5o.tid = ch5i.tid;
-	always_comb ch6o.tid = ch6i.tid;
-	always_comb ch7o.tid = ch7i.tid;
+	always_comb ch0.resp.tid = ch0.req.tid;
+	always_comb ch1.resp.tid = ch1.req.tid;
+	always_comb ch2.resp.tid = ch2.req.tid;
+	always_comb ch3.resp.tid = ch3.req.tid;
+	always_comb ch4.resp.tid = ch4.req.tid;
+	always_comb ch5.resp.tid = ch5.req.tid;
+	always_comb ch6.resp.tid = ch6.req.tid;
+	always_comb ch7.resp.tid = ch7.req.tid;
 end
 endgenerate
 
@@ -367,24 +354,24 @@ always_comb wway = hit8a[0] ? 2'd0 : hit8a[1] ? 2'd1 : hit8a[2] ? 2'd2 : hit8a[3
 
 always_comb
 begin
-	ch0o.dat <= 'd0;
-	ch1o.dat <= 'd0;
-	ch2o.dat <= 'd0;
-	ch3o.dat <= 'd0;
-	ch4o.dat <= 'd0;
-	ch5o.dat <= 'd0;
-	ch6o.dat <= 'd0;
-	ch7o.dat <= 'd0;
-	wrdata <= 'd0;
+	ch0.resp.dat <= 256'd0;
+	ch1.resp.dat <= 256'd0;
+	ch2.resp.dat <= 256'd0;
+	ch3.resp.dat <= 256'd0;
+	ch4.resp.dat <= 256'd0;
+	ch5.resp.dat <= 256'd0;
+	ch6.resp.dat <= 256'd0;
+	ch7.resp.dat <= 256'd0;
+	wrdata <= 256'd0;
 	for (n2 = 0; n2 < CACHE_ASSOC; n2 = n2 + 1) begin
-		if (hit0a[n2]) ch0o.dat <= doutb[0].lines[n2];
-		if (hit1a[n2]) ch1o.dat <= doutb[1].lines[n2];
-		if (hit2a[n2]) ch2o.dat <= doutb[2].lines[n2];
-		if (hit3a[n2]) ch3o.dat <= doutb[3].lines[n2];
-		if (hit4a[n2]) ch4o.dat <= doutb[4].lines[n2];
-		if (hit5a[n2]) ch5o.dat <= doutb[5].lines[n2];
-		if (hit6a[n2]) ch6o.dat <= doutb[6].lines[n2];
-		if (hit7a[n2]) ch7o.dat <= doutb[7].lines[n2];
+		if (hit0a[n2]) ch0.resp.dat <= doutb[0].lines[n2];
+		if (hit1a[n2]) ch1.resp.dat <= doutb[1].lines[n2];
+		if (hit2a[n2]) ch2.resp.dat <= doutb[2].lines[n2];
+		if (hit3a[n2]) ch3.resp.dat <= doutb[3].lines[n2];
+		if (hit4a[n2]) ch4.resp.dat <= doutb[4].lines[n2];
+		if (hit5a[n2]) ch5.resp.dat <= doutb[5].lines[n2];
+		if (hit6a[n2]) ch6.resp.dat <= doutb[6].lines[n2];
+		if (hit7a[n2]) ch7.resp.dat <= doutb[7].lines[n2];
 	end
 //	if (|hit8a)
 		wrdata <= doutb[8];

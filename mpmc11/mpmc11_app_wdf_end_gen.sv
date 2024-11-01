@@ -36,13 +36,13 @@
 //
 import mpmc11_pkg::*;
 
-module mpmc11_app_wdf_end_gen(clk, state, rdy, wdf_rdy, strip_cnt, num_strips, wend);
+module mpmc11_app_wdf_end_gen(clk, state, rdy, wdf_rdy, burst_cnt, burst_len, wend);
 input clk;
 input mpmc11_state_t state;
 input rdy;
 input wdf_rdy;
-input [5:0] strip_cnt;
-input [5:0] num_strips;
+input [5:0] burst_cnt;
+input [5:0] burst_len;
 output reg wend;
 
 // app_wdf_wren is used to strobe data into the data fifo when app_wdf_rdy is 
@@ -52,9 +52,9 @@ always_ff @(posedge clk)
 begin
 	wend <= 1'b0;
 	if (state==WRITE_DATA0 && rdy)
-		wend <= strip_cnt==num_strips;
+		wend <= burst_cnt==burst_len;
 end
 */
-assign wend = (state==WRITE_DATA0) && rdy && wdf_rdy && (strip_cnt==num_strips);
+assign wend = (state==WRITE_DATA1) && rdy && wdf_rdy && (burst_cnt==burst_len);
 
 endmodule

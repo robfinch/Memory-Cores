@@ -36,10 +36,11 @@
 //
 import mpmc11_pkg::*;
 
-module mpmc11_app_cmd_gen(rst, clk, state, cmd);
+module mpmc11_app_cmd_gen(rst, clk, state, wr, cmd);
 input rst;
 input clk;
 input mpmc11_state_t state;
+input wr;
 output reg [2:0] cmd;
 
 // Strangely, for the DDR3 the default is to have a write command value,
@@ -56,10 +57,14 @@ else begin
 	case(state)
 	mpmc11_pkg::IDLE:
 		next_cmd = mpmc11_pkg::CMD_WRITE;
-	mpmc11_pkg::WRITE_DATA0:
+	mpmc11_pkg::PRESET3:
+		if (wr)
+			next_cmd = mpmc11_pkg::CMD_WRITE;
+		else
+			next_cmd = mpmc11_pkg::CMD_READ;
+	mpmc11_pkg::WAIT_NACK,
+	mpmc11_pkg::ALU:
 		next_cmd = mpmc11_pkg::CMD_WRITE;
-	mpmc11_pkg::READ_DATA0:
-		next_cmd = mpmc11_pkg::CMD_READ;
 	default:
 		next_cmd = cmd;
 	endcase

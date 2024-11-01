@@ -40,21 +40,23 @@ module mpmc11_rd_fifo_gen(rst, clk, state, empty, rd_rst_busy, calib_complete, r
 input rst;
 input clk;
 input mpmc11_state_t state;
-input empty;
-input rd_rst_busy;
+input [7:0] empty;
+input [7:0] rd_rst_busy;
 input calib_complete;
-output reg rd;
+output reg [7:0] rd;
 
-reg next_rd;
+integer jj;
+reg [7:0] next_rd;
 
 always_comb
 begin
-	next_rd = 1'b0;
+	next_rd = 8'h00;
 	case(state)
 	mpmc11_pkg::IDLE:
 		begin
-			if (!empty && !rd_rst_busy && calib_complete)
-				next_rd = 1'b1;
+			for (jj = 0; jj < 8; jj = jj + 1)
+				if (!empty[jj] && !rd_rst_busy[jj] && calib_complete)
+					next_rd[jj] = 1'b1;
 		end
 	default:	;
 	endcase
@@ -62,7 +64,7 @@ end
 
 always_ff @(posedge clk)
 if (rst)
-	rd <= 1'b0;
+	rd <= 8'h00;
 else
 	rd <= next_rd;
 

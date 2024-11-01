@@ -37,12 +37,17 @@
 import fta_bus_pkg::*;
 import mpmc11_pkg::*;
 
-module mpmc11_state_machine_fta(rst, clk, calib_complete, to, rdy, wdf_rdy, fifo_empty,
+module mpmc11_state_machine_fta(rst, clk, calib_complete,
+	ref_req, ref_ack, app_ref_ack,
+	to, rdy, wdf_rdy, fifo_empty,
 	rst_busy, fifo_out, fifo_v, state,
-	num_strips, req_strip_cnt, resp_strip_cnt, rd_data_valid, rmw_hit);
+	burst_len, req_burst_cnt, resp_burst_cnt, rd_data_valid, rmw_hit);
 input rst;
 input clk;
 input calib_complete;
+input ref_req;
+output reg ref_ack;
+input app_ref_ack;
 input to;							// state machine time-out
 input rdy;
 input wdf_rdy;
@@ -51,19 +56,26 @@ input rst_busy;
 input fta_cmd_request256_t fifo_out;
 input fifo_v;
 output mpmc11_state_t state;
-input [5:0] num_strips;
-input [5:0] req_strip_cnt;
-input [5:0] resp_strip_cnt;
+input [5:0] burst_len;
+input [5:0] req_burst_cnt;
+input [5:0] resp_burst_cnt;
 input rd_data_valid;
 input rmw_hit;
 
 mpmc11_state_t next_state;
 
 always_ff @(posedge clk)
-if (rst)
+if (rst) begin
+	ref_ack <= 1'b0;
 	state <= mpmc11_pkg::IDLE;
-else
+end
+else begin
 	state <= next_state;
+	if (state == mpmc11_pkg::IDLE && calib_complete && ref_req)
+		ref_ack <= 1'b1;
+	else if (state == mpmc11_pkg::REFRESH)
+		ref_ack <= 1'b0;
+end
 
 always_comb
 if (rst)
@@ -74,14 +86,23 @@ else begin
 	// If the request was a streaming channel and there was a hit on it, do
 	// not do the request.
 	mpmc11_pkg::IDLE:
-		if (!fifo_empty && !rst_busy && calib_complete) begin
-			if (fifo_v)
-				next_state <= PRESET1;
-			else
-				next_state <= mpmc11_pkg::IDLE;
+		if (calib_complete) begin
+			if (ref_req)
+				next_state <= mpmc11_pkg::REFRESH;
+			else if (!rst_busy) begin
+				if (fifo_v)
+					next_state <= PRESET1;
+				else
+					next_state <= mpmc11_pkg::IDLE;
+			end
 		end
 		else
 			next_state <= mpmc11_pkg::IDLE;
+	REFRESH:
+		if (app_ref_ack)
+			next_state <= mpmc11_pkg::IDLE;
+		else
+			next_state <= mpmc11_pkg::REFRESH;
 	PRESET1:
 		next_state <= PRESET2;
 	PRESET2:
@@ -93,13 +114,15 @@ else begin
 			next_state <= READ_DATA0;
 		else
 			next_state <= mpmc11_pkg::IDLE;
+	WRITE_DATA0:
+		next_state <= WRITE_DATA1;
 	// Write data fifo first, done when wdf_rdy is high
-	WRITE_DATA0:	// set app_en high
-		if (wdf_rdy & rdy)// && req_strip_cnt==num_strips)
+	WRITE_DATA1:	// set app_en high
+		if (wdf_rdy & rdy)// && req_burst_cnt==burst_len)
 			next_state <= mpmc11_pkg::IDLE;
 //			next_state <= WRITE_DATA2;
 		else
-			next_state <= WRITE_DATA0;
+			next_state <= WRITE_DATA1;
 //	WRITE_DATA1:	
 //		next_state <= WRITE_DATA2;
 	// Write command to the command fifo
@@ -120,23 +143,23 @@ else begin
 			next_state <= WRITE_DATA3;
 	*/
 	// There could be multiple read requests submitted before any response occurs.
-	// Stay in the SET_CMD_RD until all requested strips have been processed.
 	READ_DATA0:
 		if (rdy)
-			next_state <= READ_DATA1;
+			next_state <= READ_DATA2;
 		else
 			next_state <= READ_DATA0;
 //		next_state <= READ_DATA1;
 	// Could it take so long to do the request that we start getting responses
 	// back?
 	READ_DATA1:
-		if (req_strip_cnt==num_strips)
+		if (req_burst_cnt==burst_len)
 			next_state <= READ_DATA2;
 		else
 			next_state <= READ_DATA0;
 	// Wait for incoming responses, but only for so long to prevent a hang.
+	// Submit more requests for a burst.
 	READ_DATA2:
-		if (rd_data_valid && resp_strip_cnt==num_strips) begin
+		if (rd_data_valid && resp_burst_cnt==burst_len) begin
 			case(fifo_out.cmd)
 			fta_bus_pkg::CMD_LOAD,fta_bus_pkg::CMD_LOADZ:
 				next_state <= WAIT_NACK;

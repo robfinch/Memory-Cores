@@ -36,41 +36,28 @@
 //
 import mpmc11_pkg::*;
 
-module mpmc11_app_en_gen(rst, clk, state, rdy, wdf_rdy, burst_cnt, burst_len, en);
-input rst;
+module mpmc11_resp_burst_cnt(clk, state, valid, burst_len, burst_cnt);
 input clk;
 input mpmc11_state_t state;
-input rdy;
-input wdf_rdy;
-input [5:0] burst_cnt;
+input valid;
 input [5:0] burst_len;
-output reg en;
+output reg [5:0] burst_cnt;
 
-// app_en latches the command and address when app_rdy is active. If app_rdy
-// is not true, the command must be retried.
-reg en1;
+reg on;
 always_ff @(posedge clk)
-if (rst)
-	en1 <= 1'b0;
-else begin
-	case(state)
-	WRITE_DATA1:
-		en1 <= 1'b1;
-	WRITE_DATA2:
-		if (rdy)
-			en1 <= 1'b0;
-		else
-			en1 <= 1'b1;
-	READ_DATA0:
-		en1 <= 1'b0;
-	READ_DATA1:
-		en1 <= 1'b1;
-	default:
-		en1 <= 1'b0;
-	endcase
+if (state==mpmc11_pkg::IDLE) begin
+	burst_cnt <= 6'd0;
+	on <= 1'b0;
 end
-
-always_comb en = (state==WRITE_DATA1 & rdy & wdf_rdy) || (state==READ_DATA0 & rdy || (state==READ_DATA2 && rdy && burst_cnt <= burst_len));
-// en1 & ~(state==READ_DATA1 && rdy && burst_cnt==burst_len);
+else begin
+	if (state==mpmc11_pkg::READ_DATA0)
+		on <= 1'b1;
+	if (valid && on) begin
+		if (burst_cnt != burst_len)
+  		burst_cnt <= burst_cnt + 3'd1;
+  	else
+  		on <= 1'b0;
+  end
+end
 
 endmodule

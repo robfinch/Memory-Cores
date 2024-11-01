@@ -52,6 +52,6 @@ begin
 	if (state==WRITE_DATA0 && rdy)// WRITE_DATA0 && rdy)
 		wren1 <= 1'b1;
 end
-always_comb wren = (state==WRITE_DATA0) & rdy & wdf_rdy;
+always_comb wren = (state==WRITE_DATA1) & rdy & wdf_rdy;
  
 endmodule

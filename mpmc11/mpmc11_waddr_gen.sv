@@ -39,13 +39,13 @@
 //
 import mpmc11_pkg::*;
 
-module mpmc11_waddr_gen(rst, clk, state, valid, num_strips, strip_cnt, addr_base, addr);
+module mpmc11_waddr_gen(rst, clk, state, valid, burst_len, burst_cnt, addr_base, addr);
 input rst;
 input clk;
 input mpmc11_state_t state;
 input valid;
-input [5:0] num_strips;
-input [5:0] strip_cnt;
+input [5:0] burst_len;
+input [5:0] burst_cnt;
 input [31:0] addr_base;
 output reg [31:0] addr;
 
@@ -59,15 +59,15 @@ end
 else begin
 	if (state==READ_DATA0)
 		on <= 1'b1;
-	if (strip_cnt == num_strips && valid)
+	if (burst_cnt == burst_len && valid)
 		on <= 1'b0;
 	if (state==PRESET2)
 		addr <= {addr_base[31:5],5'h0};
-	else if (valid && strip_cnt != num_strips && on)
+	else if (valid && burst_cnt != burst_len && on)
 		addr[31:5] <= addr[31:5] + 2'd1;
 	// Increment the address if we had to start a new burst.
-//	else if (state==WRITE_DATA3 && req_strip_cnt!=num_strips)
-//		app_addr <= app_addr + {req_strip_cnt,4'h0};	// works for only 1 missed burst
+//	else if (state==WRITE_DATA3 && req_burst_cnt!=burst_len)
+//		app_addr <= app_addr + {req_burst_cnt,4'h0};	// works for only 1 missed burst
 end
 
 endmodule

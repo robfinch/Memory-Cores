@@ -47,7 +47,7 @@ output reg [WID-1:0] dato2;
 
 // Setting the write data
 always_ff @(posedge clk)
-if (state==PRESET2) begin
+if (state==PRESET3) begin
 	dato1 <= dati1;
 	dato2 <= dati2;
 end

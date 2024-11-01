@@ -66,7 +66,8 @@ typedef enum logic [4:0] {
 	ALU2 = 5'd17,
 	ALU3 = 5'd18,
 	ALU4 = 5'd19,
-	CAS = 5'd20
+	CAS = 5'd20,
+	REFRESH = 5'd21
 } mpmc11_state_t;
 
 typedef struct packed

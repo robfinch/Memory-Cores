@@ -36,41 +36,49 @@
 //
 import mpmc11_pkg::*;
 
-module mpmc11_app_en_gen(rst, clk, state, rdy, wdf_rdy, burst_cnt, burst_len, en);
-input rst;
+// Manage memory strip counters.
+
+module mpmc11_req_burst_cnt(clk, state, wdf_rdy, rdy, burst_len, burst_cnt);
 input clk;
 input mpmc11_state_t state;
-input rdy;
 input wdf_rdy;
-input [5:0] burst_cnt;
+input rdy;
 input [5:0] burst_len;
-output reg en;
+output reg [5:0] burst_cnt;
 
-// app_en latches the command and address when app_rdy is active. If app_rdy
-// is not true, the command must be retried.
-reg en1;
+reg on;
 always_ff @(posedge clk)
-if (rst)
-	en1 <= 1'b0;
+if (state==mpmc11_pkg::IDLE) begin
+	burst_cnt <= 8'd0;
+	on <= 1'b0;
+end
 else begin
 	case(state)
-	WRITE_DATA1:
-		en1 <= 1'b1;
-	WRITE_DATA2:
-		if (rdy)
-			en1 <= 1'b0;
-		else
-			en1 <= 1'b1;
-	READ_DATA0:
-		en1 <= 1'b0;
-	READ_DATA1:
-		en1 <= 1'b1;
-	default:
-		en1 <= 1'b0;
+	mpmc11_pkg::PRESET3:
+		on <= 1'b1;
+	mpmc11_pkg::WRITE_DATA0:
+		if (wdf_rdy && rdy && on) begin
+	  	if (burst_cnt <= burst_len)
+	    	burst_cnt <= burst_cnt + 3'd1;
+	    else
+	    	on <= 1'b0;
+	  end
+  mpmc11_pkg::READ_DATA0:
+  	if (rdy && on) begin
+	  	if (burst_cnt <= burst_len)
+		  	burst_cnt <= burst_cnt + 3'd1;
+		  else
+		  	on <= 1'b0;
+		end
+  mpmc11_pkg::READ_DATA2:
+  	if (rdy && on) begin
+	  	if (burst_cnt <= burst_len)
+		  	burst_cnt <= burst_cnt + 3'd1;
+		  else
+		  	on <= 1'b0;
+		end
+	default:   ;
 	endcase
 end
-
-always_comb en = (state==WRITE_DATA1 & rdy & wdf_rdy) || (state==READ_DATA0 & rdy || (state==READ_DATA2 && rdy && burst_cnt <= burst_len));
-// en1 & ~(state==READ_DATA1 && rdy && burst_cnt==burst_len);
 
 endmodule

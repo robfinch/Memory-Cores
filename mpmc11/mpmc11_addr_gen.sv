@@ -36,13 +36,14 @@
 //
 import mpmc11_pkg::*;
 
-module mpmc11_addr_gen(rst, clk, state, rdy, num_strips, strip_cnt, addr_base, addr);
+module mpmc11_addr_gen(rst, clk, state, rdy, burst_len, burst_cnt, addr_base, addr);
+parameter INC_AMT = 6'd32;
 input rst;
 input clk;
 input mpmc11_state_t state;
 input rdy;
-input [5:0] num_strips;
-input [5:0] strip_cnt;
+input [5:0] burst_len;
+input [5:0] burst_cnt;
 input [31:0] addr_base;
 output reg [31:0] addr;
 
@@ -52,11 +53,16 @@ always_comb
 case(state)
 mpmc11_pkg::IDLE:
 	next_addr = 32'd0;
-PRESET2:	// For both read and write.
+PRESET3:	// For both read and write.
 	next_addr = {addr_base[31:5],5'h0};
 READ_DATA0:
 	if (rdy)
-		next_addr = addr + 6'h20;
+		next_addr = addr + INC_AMT;
+	else
+		next_addr = addr;
+READ_DATA2:
+	if (rdy)
+		next_addr = addr + INC_AMT;
 	else
 		next_addr = addr;
 default:

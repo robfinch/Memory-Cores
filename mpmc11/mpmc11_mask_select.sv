@@ -48,20 +48,13 @@ output reg [31:0] mask2;
 // Setting the data mask. Values are enabled when the data mask is zero.
 always_ff @(posedge clk)
 if (rst)
-  mask2 <= 32'h0000;
-else begin
-	if (state==PRESET2)
-		mask2 <= we ? ~wmask : 32'h0000;
-	// For RMW cycle all bytes are writtten.
-	else if (state==WRITE_TRAMP1)
-		mask2 <= 32'h0000;
-end
-always_ff @(posedge clk)
-if (rst)
   mask <= 32'h0000;
 else begin
 	if (state==PRESET3)
-		mask <= mask2;
+		mask <= we ? ~wmask : 32'h0000;
+	// For RMW cycle all bytes are writtten.
+	else if (state==WRITE_TRAMP1)
+		mask <= 32'h0000;
 end
 
 endmodule
