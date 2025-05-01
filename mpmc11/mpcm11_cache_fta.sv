@@ -1,7 +1,7 @@
 `timescale 1ns / 1ps
 // ============================================================================
 //        __
-//   \\__/ o\    (C) 2015-2024  Robert Finch, Waterloo
+//   \\__/ o\    (C) 2015-2025  Robert Finch, Waterloo
 //    \  __ /    All rights reserved.
 //     \/_//     robfinch<remove>@finitron.ca
 //       ||
@@ -123,16 +123,16 @@ reg stb6;
 reg stb7;
 reg [8:0] rstb;
 
-always_ff @(posedge ch0.clk) radrr[0] <= ch0.req.padr;
-always_ff @(posedge ch1.clk) radrr[1] <= ch1.req.padr;
-always_ff @(posedge ch2.clk) radrr[2] <= ch2.req.padr;
-always_ff @(posedge ch3.clk) radrr[3] <= ch3.req.padr;
-always_ff @(posedge ch4.clk) radrr[4] <= ch4.req.padr;
-always_ff @(posedge ch5.clk) radrr[5] <= ch5.req.padr;
-always_ff @(posedge ch6.clk) radrr[6] <= ch6.req.padr;
-always_ff @(posedge ch7.clk) radrr[7] <= ch7.req.padr;
-always_ff @(posedge wclk) radrr[8] <= ld.cyc ? ld.padr : wchi.padr;
-always_ff @(posedge wclk) wchi_adr1 <= wchi.padr;
+always_ff @(posedge ch0.clk) radrr[0] <= ch0.req.adr;
+always_ff @(posedge ch1.clk) radrr[1] <= ch1.req.adr;
+always_ff @(posedge ch2.clk) radrr[2] <= ch2.req.adr;
+always_ff @(posedge ch3.clk) radrr[3] <= ch3.req.adr;
+always_ff @(posedge ch4.clk) radrr[4] <= ch4.req.adr;
+always_ff @(posedge ch5.clk) radrr[5] <= ch5.req.adr;
+always_ff @(posedge ch6.clk) radrr[6] <= ch6.req.adr;
+always_ff @(posedge ch7.clk) radrr[7] <= ch7.req.adr;
+always_ff @(posedge wclk) radrr[8] <= ld.cyc ? ld.adr : wchi.adr;
+always_ff @(posedge wclk) wchi_adr1 <= wchi.adr;
 always_ff @(posedge wclk) wchi_adr <= wchi_adr1;
 
 always_ff @(posedge ch0.clk) stb0 <= ch0.req.cyc;
@@ -176,15 +176,15 @@ end
 reg [HIBIT-LOBIT:0] radr [0:8];
 always_comb
 begin
-	radr[0] = ch0.req.padr[HIBIT:LOBIT];
-	radr[1] = ch1.req.padr[HIBIT:LOBIT];
-	radr[2] = ch2.req.padr[HIBIT:LOBIT];
-	radr[3] = ch3.req.padr[HIBIT:LOBIT];
-	radr[4] = ch4.req.padr[HIBIT:LOBIT];
-	radr[5] = ch5.req.padr[HIBIT:LOBIT];
-	radr[6] = ch6.req.padr[HIBIT:LOBIT];
-	radr[7] = ch7.req.padr[HIBIT:LOBIT];
-	radr[8] = ld.cyc ? ld.padr[HIBIT:LOBIT] : wchi.padr[HIBIT:LOBIT];
+	radr[0] = ch0.req.adr[HIBIT:LOBIT];
+	radr[1] = ch1.req.adr[HIBIT:LOBIT];
+	radr[2] = ch2.req.adr[HIBIT:LOBIT];
+	radr[3] = ch3.req.adr[HIBIT:LOBIT];
+	radr[4] = ch4.req.adr[HIBIT:LOBIT];
+	radr[5] = ch5.req.adr[HIBIT:LOBIT];
+	radr[6] = ch6.req.adr[HIBIT:LOBIT];
+	radr[7] = ch7.req.adr[HIBIT:LOBIT];
+	radr[8] = ld.cyc ? ld.adr[HIBIT:LOBIT] : wchi.adr[HIBIT:LOBIT];
 end
 
    // xpm_memory_sdpram: Simple Dual Port RAM
@@ -415,9 +415,9 @@ end
 always_ff @(posedge wclk)
 begin
 	if (ld.cyc)
-		wadr <= ld.padr;
-	else if (wchi.stb)
-		wadr <= wchi.padr;
+		wadr <= ld.adr;
+	else if (wchi.cyc)
+		wadr <= wchi.adr;
 end
 // wadr2 is used to reset the cache tags during reset. Reset must be held for
 // 1024 cycles to reset all the tags.
@@ -526,9 +526,9 @@ if (rst)
 	wack <= 1'b0;
 else begin
 	wack <= 1'b0;
-	if (wchi_stb & ~ld.stb & wchi.we)
+	if (wchi_stb & ~ld.cyc & wchi.we)
 		wack <= 1'b1;
 end
-assign wcho.ack = wack & wchi.stb;
+assign wcho.ack = wack & wchi.cyc;
 
 endmodule

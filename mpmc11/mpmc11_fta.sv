@@ -1,7 +1,7 @@
 `timescale 1ns / 1ps
 // ============================================================================
 //        __
-//   \\__/ o\    (C) 2015-2024  Robert Finch, Waterloo
+//   \\__/ o\    (C) 2015-2025  Robert Finch, Waterloo
 //    \  __ /    All rights reserved.
 //     \/_//     robfinch<remove>@finitron.ca
 //       ||
@@ -39,7 +39,7 @@
 // ============================================================================
 //
 //`define RED_SCREEN	1'b1
-`define SUPPORT_AMO	1'b1
+//`define SUPPORT_AMO	1'b1
 //`define SUPPORT_AMO_TETRA	1'b1
 //`define SUPPORT_AMO_OCTA 1'b1
 //`define SUPPORT_AMO_SHIFT	1'b1
@@ -265,42 +265,42 @@ wire [3:0] req_sel;
 always_comb
 begin
 	ch0i2 <= ch0.req;
-	ch0i2.padr <= {ch0.req.padr[31:5],5'b0};
+	ch0i2.adr <= {ch0.req.adr[31:5],5'b0};
 end
 always_comb
 begin
 	ch1i2 <= ch1.req;
-	ch1i2.padr <= {ch1.req.padr[31:5],5'b0};
+	ch1i2.adr <= {ch1.req.adr[31:5],5'b0};
 end
 always_comb
 begin
 	ch2i2 <= ch2.req;
-	ch2i2.padr <= {ch2.req.padr[31:5],5'b0};
+	ch2i2.adr <= {ch2.req.adr[31:5],5'b0};
 end
 always_comb
 begin
 	ch3i2 <= ch3.req;
-	ch3i2.padr <= {ch3.req.padr[31:5],5'b0};
+	ch3i2.adr <= {ch3.req.adr[31:5],5'b0};
 end
 always_comb
 begin
 	ch4i2 <= ch4.req;
-	ch4i2.padr <= {ch4.req.padr[31:5],5'b0};
+	ch4i2.adr <= {ch4.req.adr[31:5],5'b0};
 end
 always_comb
 begin
 	ch5i2 <= ch5.req;
-	ch5i2.padr <= {ch5.req.padr[31:5],5'b0};
+	ch5i2.adr <= {ch5.req.adr[31:5],5'b0};
 end
 always_comb
 begin
 	ch6i2 <= ch6.req;
-	ch6i2.padr <= {ch6.req.padr[31:5],5'b0};
+	ch6i2.adr <= {ch6.req.adr[31:5],5'b0};
 end
 always_comb
 begin
 	ch7i2 <= ch7.req;
-	ch7i2.padr <= {ch7.req.padr[31:5],5'b0};
+	ch7i2.adr <= {ch7.req.adr[31:5],5'b0};
 end
 
 always_comb
@@ -309,9 +309,8 @@ begin
 	ld.cti <= fta_bus_pkg::CLASSIC;
 	ld.blen <= 6'd0;
 	ld.cyc <= fifoo.req.cyc && !fifoo.req.we && rd_data_valid_r && (uport!=4'd0 && uport!=4'd5 && uport!=4'd15);
-	ld.stb <= fifoo.req.cyc && !fifoo.req.we && rd_data_valid_r && (uport!=4'd0 && uport!=4'd5 && uport!=4'd15);
 	ld.we <= 1'b0;
-	ld.padr <= {app_waddr[31:5],5'h0};
+	ld.adr <= {app_waddr[31:5],5'h0};
 	ld.data1 <= rd_data_r;
 	ld.sel <= {32{1'b1}};		// update all bytes
 end
@@ -560,16 +559,16 @@ endgenerate
 
 assign rst_busy = (|rd_rst_busy) || (|wr_rst_busy) || irst;
 
-always_comb
+always_ff @(posedge mem_ui_clk)
 	v <= lcd_fifo[req_sel]; /*&& empty1[req_sel][4:0]!=5'h00; */
-always_comb
+always_ff @(posedge mem_ui_clk)
 	req_fifoo <= req_fifoh[req_sel];
 always_comb
 	uport = fifoo.port;
 always_comb
 	burst_len = fifoo.req.blen;
 always_comb
-	adr = fifoo.req.padr;
+	adr = fifoo.req.adr;
 
 wire [1:0] app_addr3;	// dummy to make up 32-bits
 
@@ -962,7 +961,7 @@ mpmc11_resv_bit ursb1
 	.wch(fifoo.port),
 	.we(fifoo.req.cyc & fifoo.req.we),
 	.cr(fifoo.req.csr & fifoo.req.we),
-	.adr(fifoo.req.padr),
+	.adr(fifoo.req.adr),
 	.resv_ch(resv_ch),
 	.resv_adr(resv_adr),
 	.rb(rb1)
@@ -974,13 +973,13 @@ mpmc11_addr_resv_man #(.NAR(NAR)) ursvm1
 	.clk(mem_ui_clk),
 	.state(state),
 	.adr0(32'h0),
-	.adr1(ch1.req.padr),
-	.adr2(ch2.req.padr),
-	.adr3(ch3.req.padr),
-	.adr4(ch4.req.padr),
+	.adr1(ch1.req.adr),
+	.adr2(ch2.req.adr),
+	.adr3(ch3.req.adr),
+	.adr4(ch4.req.adr),
 	.adr5(32'h0),
-	.adr6(ch6.req.padr),
-	.adr7(ch7.req.padr),
+	.adr6(ch6.req.adr),
+	.adr7(ch7.req.adr),
 	.sr0(1'b0),
 	.sr1(ch1.req.csr & ch1.req.cyc & ~ch1.req.we),
 	.sr2(ch2.req.csr & ch2.req.cyc & ~ch2.req.we),
@@ -991,7 +990,7 @@ mpmc11_addr_resv_man #(.NAR(NAR)) ursvm1
 	.sr7(ch7.req.csr & ch7.req.cyc & ~ch7.req.we),
 	.wch(fifoo.req.cyc ? fifoo.port : 4'd15),
 	.we(fifoo.req.cyc & fifoo.req.we),
-	.wadr(fifoo.req.padr),
+	.wadr(fifoo.req.adr),
 	.cr(fifoo.req.csr & fifoo.req.cyc & fifoo.req.we),
 	.resv_ch(resv_ch),
 	.resv_adr(resv_adr)

@@ -1,6 +1,6 @@
 // ============================================================================
 //        __
-//   \\__/ o\    (C) 2012-2024  Robert Finch, Waterloo
+//   \\__/ o\    (C) 2012-2025  Robert Finch, Waterloo
 //    \  __ /    All rights reserved.
 //     \/_//     robfinch<remove>@finitron.ca
 //       ||
@@ -34,6 +34,8 @@
 //                                                                          
 // ============================================================================
 //
+//`define SUPPORT_CAPABILITES	1'b1
+
 import fta_bus_pkg::*;
 
 module scratchmem128pci_fta(rst_i, clk_i, cs_config_i, cs_ram_i, 
@@ -104,9 +106,9 @@ always_ff @(posedge clk_i)
 
 always_ff @(posedge clk_i)
 	cs_config <= cs_config_i & req.cyc & req.stb &&
-		req.padr[27:20]==CFG_BUS &&
-		req.padr[19:15]==CFG_DEVICE &&
-		req.padr[14:12]==CFG_FUNC;
+		req.adr[27:20]==CFG_BUS &&
+		req.adr[19:15]==CFG_DEVICE &&
+		req.adr[14:12]==CFG_FUNC;
 
 always_ff @(posedge clk_i)
 	reqd <= req;
@@ -146,7 +148,7 @@ ucfg1
 	.cs_config_i(cs_config), 
 	.we_i(reqd.we),
 	.sel_i(reqd.sel),
-	.adr_i(reqd.padr),
+	.adr_i(reqd.adr),
 	.dat_i(reqd.data1),
 	.dat_o(cfg_out),
 	.cs_bar0_o(cs_bar0),
@@ -157,7 +159,7 @@ ucfg1
 
 always_ff @(posedge clk_i)
 	if (csd & reqd.we) begin
-		$display ("%d %h: wrote to scratchmem: %h=%h:%h", $time, ip, reqd.padr, reqd.data1, reqd.sel);
+		$display ("%d %h: wrote to scratchmem: %h=%h:%h", $time, ip, reqd.adr, reqd.data1, reqd.sel);
 	end
 
 reg [11:0] spr;
@@ -177,74 +179,86 @@ always_ff @(posedge clk_i)
 //	end
 //end
 
+`ifdef SUPPORT_CAPABILITIES
+// Always write the capabilities tag bit.
+wire [16:0] wea = {reqd.we,{16{reqd.we}}&reqd.sel};
+// Must clear the capabilities tag bit if anything other than a capabilites
+// store occurs.
+wire [128:0] dina = {7'd0,reqd.ctag&&reqd.cmd==fta_bus_pkg::CMD_STORECAP,reqd.data1};
+`else
+wire [15:0] wea = {{16{reqd.we}}&reqd.sel};
+// Must clear the capabilities tag bit if anything other than a capabilites
+// store occurs.
+wire [127:0] dina = reqd.data1;
+`endif
 
-   // xpm_memory_spram: Single Port RAM
-   // Xilinx Parameterized Macro, version 2022.2
+// xpm_memory_spram: Single Port RAM
+// Xilinx Parameterized Macro, version 2022.2
 
-   xpm_memory_spram #(
-      .ADDR_WIDTH_A(15),              // DECIMAL
-      .AUTO_SLEEP_TIME(0),           // DECIMAL
-      .BYTE_WRITE_WIDTH_A(8),       	// DECIMAL
-      .CASCADE_HEIGHT(0),            // DECIMAL
-      .ECC_MODE("no_ecc"),           // String
-      .MEMORY_INIT_FILE("rom.mem"),     // String
-      .MEMORY_INIT_PARAM(""),       // String
-      .MEMORY_OPTIMIZATION("true"),  // String
-      .MEMORY_PRIMITIVE("block"),     // String
-      .MEMORY_SIZE(32768*128),       // DECIMAL
-      .MESSAGE_CONTROL(0),           // DECIMAL
-      .READ_DATA_WIDTH_A(128),        // DECIMAL
-      .READ_LATENCY_A(2),            // DECIMAL
-      .READ_RESET_VALUE_A("0"),      // String
-      .RST_MODE_A("SYNC"),           // String
-      .SIM_ASSERT_CHK(0),            // DECIMAL; 0=disable simulation messages, 1=enable simulation messages
-      .USE_MEM_INIT(1),              // DECIMAL
-      .USE_MEM_INIT_MMI(0),          // DECIMAL
-      .WAKEUP_TIME("disable_sleep"), // String
-      .WRITE_DATA_WIDTH_A(128),       // DECIMAL
-      .WRITE_MODE_A("read_first"),   // String
-      .WRITE_PROTECT(1)              // DECIMAL
-   )
-   xpm_memory_spram_inst (
-      .dbiterra(),             // 1-bit output: Status signal to indicate double bit error occurrence
-                                       // on the data output of port A.
+xpm_memory_spram #(
+  .ADDR_WIDTH_A(15),              // DECIMAL
+  .AUTO_SLEEP_TIME(0),           // DECIMAL
+  .BYTE_WRITE_WIDTH_A(8),       	// DECIMAL
+  .CASCADE_HEIGHT(0),            // DECIMAL
+  .ECC_MODE("no_ecc"),           // String
+  .MEMORY_INIT_FILE("rom.mem"),     // String
+  .MEMORY_INIT_PARAM(""),       // String
+  .MEMORY_OPTIMIZATION("true"),  // String
+  .MEMORY_PRIMITIVE("block"),     // String
+  .MEMORY_SIZE(32768*128),       // DECIMAL
+  .MESSAGE_CONTROL(0),           // DECIMAL
+  .READ_DATA_WIDTH_A(128),        // DECIMAL
+  .READ_LATENCY_A(2),            // DECIMAL
+  .READ_RESET_VALUE_A("0"),      // String
+  .RST_MODE_A("SYNC"),           // String
+  .SIM_ASSERT_CHK(0),            // DECIMAL; 0=disable simulation messages, 1=enable simulation messages
+  .USE_MEM_INIT(1),              // DECIMAL
+  .USE_MEM_INIT_MMI(0),          // DECIMAL
+  .WAKEUP_TIME("disable_sleep"), // String
+  .WRITE_DATA_WIDTH_A(128),       // DECIMAL
+  .WRITE_MODE_A("read_first"),   // String
+  .WRITE_PROTECT(1)              // DECIMAL
+)
+xpm_memory_spram_inst (
+  .dbiterra(),             // 1-bit output: Status signal to indicate double bit error occurrence
+                                   // on the data output of port A.
 
-      .douta(ram_dat_o),       // READ_DATA_WIDTH_A-bit output: Data output for port A read operations.
-      .sbiterra(),             // 1-bit output: Status signal to indicate single bit error occurrence
-                                       // on the data output of port A.
+  .douta(ram_dat_o),       // READ_DATA_WIDTH_A-bit output: Data output for port A read operations.
+  .sbiterra(),             // 1-bit output: Status signal to indicate single bit error occurrence
+                                   // on the data output of port A.
 
-      .addra(reqd.padr[18:4]),       // ADDR_WIDTH_A-bit input: Address for port A write and read operations.
-      .clka(clk_i),                  // 1-bit input: Clock signal for port A.
-      .dina(reqd.data1),             // WRITE_DATA_WIDTH_A-bit input: Data input for port A write operations.
-      .ena(1'b1),                    // 1-bit input: Memory enable signal for port A. Must be high on clock
-                                       // cycles when read or write operations are initiated. Pipelined
-                                       // internally.
+  .addra(reqd.adr[18:4]),       // ADDR_WIDTH_A-bit input: Address for port A write and read operations.
+  .clka(clk_i),                  // 1-bit input: Clock signal for port A.
+  .dina(dina),             // WRITE_DATA_WIDTH_A-bit input: Data input for port A write operations.
+  .ena(1'b1),                    // 1-bit input: Memory enable signal for port A. Must be high on clock
+                                   // cycles when read or write operations are initiated. Pipelined
+                                   // internally.
 
-      .injectdbiterra(1'b0), // 1-bit input: Controls double bit error injection on input data when
-                                       // ECC enabled (Error injection capability is not available in
-                                       // "decode_only" mode).
+  .injectdbiterra(1'b0), // 1-bit input: Controls double bit error injection on input data when
+                                   // ECC enabled (Error injection capability is not available in
+                                   // "decode_only" mode).
 
-      .injectsbiterra(1'b0), // 1-bit input: Controls single bit error injection on input data when
-                                       // ECC enabled (Error injection capability is not available in
-                                       // "decode_only" mode).
+  .injectsbiterra(1'b0), // 1-bit input: Controls single bit error injection on input data when
+                                   // ECC enabled (Error injection capability is not available in
+                                   // "decode_only" mode).
 
-      .regcea(1'b1),                 // 1-bit input: Clock Enable for the last register stage on the output
+  .regcea(1'b1),                 // 1-bit input: Clock Enable for the last register stage on the output
 //      .regcea(cs|rd_ack),                 // 1-bit input: Clock Enable for the last register stage on the output
-                                       // data path.
+                                   // data path.
 
-      .rsta(1'b0),                // 1-bit input: Reset signal for the final port A output register stage.
-                                       // Synchronously resets output port douta to the value specified by
-                                       // parameter READ_RESET_VALUE_A.
+  .rsta(1'b0),                // 1-bit input: Reset signal for the final port A output register stage.
+                                   // Synchronously resets output port douta to the value specified by
+                                   // parameter READ_RESET_VALUE_A.
 
-      .sleep(1'b0),                   // 1-bit input: sleep signal to enable the dynamic power saving feature.
-      .wea({16{reqd.we}}&reqd.sel)     // WRITE_DATA_WIDTH_A/BYTE_WRITE_WIDTH_A-bit input: Write enable vector
-                                       // for port A input data port dina. 1 bit wide when word-wide writes are
-                                       // used. In byte-wide write configurations, each bit controls the
-                                       // writing one byte of dina to address addra. For example, to
-                                       // synchronously write only bits [15-8] of dina when WRITE_DATA_WIDTH_A
-                                       // is 32, wea would be 4'b0010.
+  .sleep(1'b0),                   // 1-bit input: sleep signal to enable the dynamic power saving feature.
+  .wea(wea)     // WRITE_DATA_WIDTH_A/BYTE_WRITE_WIDTH_A-bit input: Write enable vector
+                                   // for port A input data port dina. 1 bit wide when word-wide writes are
+                                   // used. In byte-wide write configurations, each bit controls the
+                                   // writing one byte of dina to address addra. For example, to
+                                   // synchronously write only bits [15-8] of dina when WRITE_DATA_WIDTH_A
+                                   // is 32, wea would be 4'b0010.
 
-   );
+);
 
 /*
 generate begin : gRam
@@ -265,21 +279,32 @@ always_ff @(posedge clk_i)
 always_ff @(posedge clk_i)
 	ram_dat_o <= ram_dat;
 */
-				
+
+`ifdef SUPPORT_CAPABILITIES
 always_ff @(posedge clk_i)
+	if (cfg_rd_ack)
+		{resp.ctag,resp.dat} <= {1'b0,cfg_out};
+	else
+		{resp.ctag,resp.dat} <= ram_dat_o[128:0];
+`else
+always_ff @(posedge clk_i)
+begin
+	resp.ctag <= 1'b0;
 	if (cfg_rd_ack)
 		resp.dat <= cfg_out;
 	else
-		resp.dat <= ram_dat_o;
+		resp.dat <= ram_dat_o[127:0];
+end
+`endif
 
+fta_asid_t asid3;
 fta_tranid_t tid3;
-wire [3:0] cid3;
 wire [31:0] adr3;
-vtdl #(.WID( 4), .DEP(16)) udlycid (.clk(clk_i), .ce(1'b1), .a(2), .d(req.cid), .q(cid3));
+vtdl #(.WID($bits(fta_asid_t)), .DEP(16)) udlyasid (.clk(clk_i), .ce(1'b1), .a(2), .d(req.asid), .q(asid3));
 vtdl #(.WID($bits(fta_tranid_t)), .DEP(16)) udlytid (.clk(clk_i), .ce(1'b1), .a(2), .d(req.tid), .q(tid3));
-vtdl #(.WID(32), .DEP(16)) udlyadr (.clk(clk_i), .ce(1'b1), .a(2), .d(req.padr), .q(adr3));
+vtdl #(.WID(32), .DEP(16)) udlyadr (.clk(clk_i), .ce(1'b1), .a(2), .d(req.adr), .q(adr3));
 always_ff @(posedge clk_i)
-	resp.cid <= cid3;
+	resp.asid <= asid3;
 always_ff @(posedge clk_i)
 	resp.tid <= tid3;
 always_ff @(posedge clk_i)
