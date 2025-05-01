@@ -1,7 +1,7 @@
 `timescale 1ns / 1ps
 // ============================================================================
 //        __
-//   \\__/ o\    (C) 2015-2022  Robert Finch, Waterloo
+//   \\__/ o\    (C) 2015-2023  Robert Finch, Waterloo
 //    \  __ /    All rights reserved.
 //     \/_//     robfinch<remove>@finitron.ca
 //       ||
@@ -38,7 +38,7 @@ import mpmc10_pkg::*;
 
 module mpmc10_state_machine_wb(rst, clk, calib_complete, to, rdy, wdf_rdy, fifo_empty,
 	rd_rst_busy, fifo_out, state,
-	num_strips, req_strip_cnt, resp_strip_cnt, rd_data_valid);
+	num_strips, req_strip_cnt, resp_strip_cnt, rd_data_valid, rmw_hit);
 input rst;
 input clk;
 input calib_complete;
@@ -47,12 +47,13 @@ input rdy;
 input wdf_rdy;
 input fifo_empty;
 input rd_rst_busy;
-input wb_write_request128_t fifo_out;
+input wb_cmd_request128_t fifo_out;
 output mpmc10_state_t state;
 input [5:0] num_strips;
 input [5:0] req_strip_cnt;
 input [5:0] resp_strip_cnt;
 input rd_data_valid;
+input rmw_hit;
 
 mpmc10_state_t next_state;
 
@@ -74,18 +75,14 @@ else begin
 	PRESET2:
 		next_state <= PRESET3;
 	PRESET3:
-		if (fifo_out.stb & fifo_out.we)
+		if (fifo_out.stb && fifo_out.cmd==wishbone_pkg::CMD_STORE)
 			next_state <= WRITE_DATA0;
 		else
 			next_state <= READ_DATA0;
-	// Write data to the data fifo
-	// Write occurs when app_wdf_wren is true and app_wdf_rdy is true
+	// Write command to the command fifo
+	// Write occurs when app_rdy is true
 	WRITE_DATA0:
-		// Issue a write command if the fifo is full.
-	//	if (!app_wdf_rdy)
-	//		next_state <= WRITE_DATA1;
-	//	else 
-		if (wdf_rdy)// && req_strip_cnt==num_strips)
+		if (rdy)// && req_strip_cnt==num_strips)
 			next_state <= WRITE_DATA1;
 		else
 			next_state <= WRITE_DATA0;
@@ -96,8 +93,13 @@ else begin
 			next_state <= WRITE_DATA3;
 		else
 			next_state <= WRITE_DATA2;
+	// Write data to the data fifo
+	// Write occurs when app_wdf_wren is true and app_wdf_rdy is true
 	WRITE_DATA3:
-		next_state <= IDLE;
+		if (wdf_rdy)
+			next_state <= IDLE;
+		else
+			next_state <= WRITE_DATA3;
 
 	// There could be multiple read requests submitted before any response occurs.
 	// Stay in the SET_CMD_RD until all requested strips have been processed.
@@ -112,10 +114,34 @@ else begin
 			next_state <= READ_DATA1;
 	// Wait for incoming responses, but only for so long to prevent a hang.
 	READ_DATA2:
-		if (rd_data_valid && resp_strip_cnt==num_strips)
-			next_state <= WAIT_NACK;
+		if (rd_data_valid && resp_strip_cnt==num_strips) begin
+			case(fifo_out.cmd)
+			wishbone_pkg::CMD_LOAD,wishbone_pkg::CMD_LOADZ:
+				next_state <= WAIT_NACK;
+			wishbone_pkg::CMD_ADD,wishbone_pkg::CMD_OR,wishbone_pkg::CMD_AND,wishbone_pkg::CMD_EOR,wishbone_pkg::CMD_ASL,wishbone_pkg::CMD_LSR,
+			wishbone_pkg::CMD_MIN,wishbone_pkg::CMD_MAX,wishbone_pkg::CMD_MINU,wishbone_pkg::CMD_MAXU,wishbone_pkg::CMD_CAS:
+				next_state <= ALU;
+			default:
+				next_state <= WAIT_NACK;
+			endcase
+		end
 		else
 			next_state <= READ_DATA2;
+	
+	ALU:
+		if (rmw_hit)
+			next_state <= ALU1;
+	ALU1:
+		next_state <= ALU2;
+	ALU2:
+		next_state <= ALU3;
+	ALU3:
+		next_state <= ALU4;
+	ALU4:
+		next_state <= WRITE_TRAMP1;
+		
+	WRITE_TRAMP1:
+		next_state <= WRITE_DATA0;
 
 	WAIT_NACK:
 		// If we're not seeing a nack and there is a channel selected, then the

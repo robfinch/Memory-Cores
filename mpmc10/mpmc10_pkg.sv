@@ -1,6 +1,6 @@
 // ============================================================================
 //        __
-//   \\__/ o\    (C) 2022  Robert Finch, Waterloo
+//   \\__/ o\    (C) 2022-2024  Robert Finch, Waterloo
 //    \  __ /    All rights reserved.
 //     \/_//     robfinch<remove>@finitron.ca
 //       ||
@@ -40,33 +40,37 @@ parameter CACHE_ASSOC = 4;
 parameter RMW = 0;
 parameter NAR = 2;
 parameter AMSB = 28;
-parameter TRUE = 1'b1;
-parameter FALSE = 1'b0;
 parameter CMD_READ = 3'b001;
 parameter CMD_WRITE = 3'b000;
 
 // State machine states
-typedef enum logic [3:0] {
-	IDLE = 4'd0,
-	PRESET1 = 4'd1,
-	PRESET2 = 4'd2,
-	WRITE_DATA0 = 4'd3,
-	WRITE_DATA1 = 4'd4,
-	WRITE_DATA2 = 4'd5,
-	WRITE_DATA3 = 4'd6,
-	READ_DATA = 4'd7,
-	READ_DATA0 = 4'd8,
-	READ_DATA1 = 4'd9,
-	READ_DATA2 = 4'd10,
-	WAIT_NACK = 4'd11,
-	WRITE_TRAMP = 4'd12,	// write trampoline
-	WRITE_TRAMP1 = 4'd13,
-	PRESET3 = 4'd14
+typedef enum logic [4:0] {
+	IDLE = 5'd0,
+	PRESET1 = 5'd1,
+	PRESET2 = 5'd2,
+	WRITE_DATA0 = 5'd3,
+	WRITE_DATA1 = 5'd4,
+	WRITE_DATA2 = 5'd5,
+	WRITE_DATA3 = 5'd6,
+	READ_DATA = 5'd7,
+	READ_DATA0 = 5'd8,
+	READ_DATA1 = 5'd9,
+	READ_DATA2 = 5'd10,
+	WAIT_NACK = 5'd11,
+	WRITE_TRAMP = 5'd12,	// write trampoline
+	WRITE_TRAMP1 = 5'd13,
+	PRESET3 = 5'd14,
+	ALU = 5'd15,
+	ALU1 = 5'd16,
+	ALU2 = 5'd17,
+	ALU3 = 5'd18,
+	ALU4 = 5'd19,
+	CAS = 5'd20
 } mpmc10_state_t;
 
 typedef struct packed
 {
-	logic [18:0] tag;
+	logic [31:4] tag;
 	logic modified;
 	logic [127:0] data;
 } mpmc10_cache_line_t;
@@ -75,5 +79,11 @@ typedef struct packed
 {
 	mpmc10_cache_line_t [CACHE_ASSOC-1:0] lines;
 } mpmc10_quad_cache_line_t;
+
+typedef struct packed {
+	fta_bus_pkg::fta_cmd_request128_t req;
+	logic [3:0] port;
+} mpmc10_fifoe_t;
+
 
 endpackage

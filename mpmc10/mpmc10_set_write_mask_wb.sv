@@ -46,21 +46,12 @@ input [31:0] adr;
 output reg [WID-1:0] mask;
 
 always_ff @(posedge clk)
-	tMask(256,we,sel,adr[4:0],mask);
-
-task tMask;
-input [7:0] widi;
-input wei;
-input [WID-1:0] seli;
-input [4:0] adri;
-output [15:0] masko;
 begin
-if (state==IDLE)
-	if (wei)
-		masko <= ~seli;
+if (state==PRESET1)
+	if (we)
+		mask <= ~sel;
 	else
-		masko <= 16'h0000;	// read all bytes
+		mask <= 16'h0000;	// read all bytes
 end
-endtask
 
 endmodule

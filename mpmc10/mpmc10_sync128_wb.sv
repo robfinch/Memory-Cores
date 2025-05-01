@@ -39,8 +39,8 @@ import mpmc10_pkg::*;
 
 module mpmc10_sync128_wb(clk, i, o);
 input clk;
-input wb_write_request128_t i;
-output wb_write_request128_t o;
+input wb_cmd_request128_t i;
+output wb_cmd_request128_t o;
 
 always_ff @(posedge clk)
 begin

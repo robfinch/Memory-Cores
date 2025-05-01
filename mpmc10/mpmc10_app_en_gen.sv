@@ -48,15 +48,15 @@ output reg en;
 // is not true, the command must be retried.
 always_ff @(posedge clk)
 begin
-	en <= mpmc10_pkg::FALSE;
+	en <= 1'b0;
 	if (state==WRITE_DATA1)
-		en <= mpmc10_pkg::TRUE;
+		en <= 1'b1;
 	else if (state==WRITE_DATA2 && !rdy)
-		en <= mpmc10_pkg::TRUE;
+		en <= 1'b1;
 	else if (state==READ_DATA0)
-		en <= mpmc10_pkg::TRUE;
+		en <= 1'b1;
 	else if (state==READ_DATA1 && !(rdy && strip_cnt==num_strips))
-		en <= mpmc10_pkg::TRUE;
+		en <= 1'b1;
 end
 
 endmodule

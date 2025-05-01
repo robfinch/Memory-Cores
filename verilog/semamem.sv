@@ -1,6 +1,6 @@
 // ============================================================================
 //        __
-//   \\__/ o\    (C) 2018-2021  Robert Finch, Waterloo
+//   \\__/ o\    (C) 2018-2022  Robert Finch, Waterloo
 //    \  __ /    All rights reserved.
 //     \/_//     robfinch<remove>@finitron.ca
 //       ||
@@ -66,7 +66,6 @@ always_comb
 	memopi <= memo + adr_i[3:0];
 always_comb
 	memomi <= memo - adr_i[3:0];
-assign o = memo;
 
 wire pe_cs;
 edge_det ued1 (.rst(rst_i), .clk(clk_i), .ce(1'b1), .i(cs), .pe(pe_cs), .ne(), .ee());
@@ -77,11 +76,11 @@ if (pe_cs)
 
 always_comb
 begin
-	casez({adr_i,we_i})
-	14'b0????????????0:	memi <= memomi[8] ? 8'h00 : memomi[7:0];
-	14'b0????????????1:	memi <= memopi[8] ? 8'hFF : memopi[7:0];
-	14'b1????????????0:	memi <= memo;
-	14'b1????????????1:	memi <= dat_i;
+	case({adr_i[12],we_i})
+	2'b00:	memi <= memomi[8] ? 8'h00 : memomi[7:0];
+	2'b01:	memi <= memopi[8] ? 8'hFF : memopi[7:0];
+	2'b10:	memi <= memo;
+	2'b11:	memi <= dat_i;
 	endcase
 end
 

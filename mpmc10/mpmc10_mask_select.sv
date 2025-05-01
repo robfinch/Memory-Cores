@@ -36,10 +36,11 @@
 //
 import mpmc10_pkg::*;
 
-module mpmc10_mask_select(rst, clk, state, wmask, mask, mask2);
+module mpmc10_mask_select(rst, clk, state, we, wmask, mask, mask2);
 input rst;
 input clk;
 input mpmc10_state_t state;
+input we;
 input [15:0] wmask;
 output reg [15:0] mask;
 output reg [15:0] mask2;
@@ -49,8 +50,8 @@ always_ff @(posedge clk)
 if (rst)
   mask2 <= 16'h0000;
 else begin
-	if (state==PRESET1)
-		mask2 <= wmask;
+	if (state==PRESET2)
+		mask2 <= we ? ~wmask : 16'h0000;
 	// For RMW cycle all bytes are writtten.
 	else if (state==WRITE_TRAMP1)
 		mask2 <= 16'h0000;
@@ -59,7 +60,7 @@ always_ff @(posedge clk)
 if (rst)
   mask <= 16'h0000;
 else begin
-	if (state==PRESET2)
+	if (state==PRESET3)
 		mask <= mask2;
 end
 

@@ -36,12 +36,13 @@
 //
 import mpmc10_pkg::*;
 
-module mpmc10_rd_fifo_gen(rst, clk, state, empty, rd_rst_busy, rd);
+module mpmc10_rd_fifo_gen(rst, clk, state, empty, rd_rst_busy, calib_complete, rd);
 input rst;
 input clk;
 input mpmc10_state_t state;
 input empty;
 input rd_rst_busy;
+input calib_complete;
 output reg rd;
 
 reg next_rd;
@@ -56,7 +57,7 @@ else begin
 	next_rd <= 1'b0;
 	case(state)
 	IDLE:
-		if (!empty && !rd_rst_busy)
+		if (!empty && !rd_rst_busy && calib_complete)
 			next_rd <= 1'b1;
 	default:	;
 	endcase

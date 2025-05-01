@@ -54,7 +54,7 @@ input [31:0] seli;
 input [4:0] adri;
 output [15:0] masko;
 begin
-if (state==IDLE)
+if (state==PRESET2)
 	if (wei)
 		masko <= ~seli >> {adri[4],4'h0};
 	else

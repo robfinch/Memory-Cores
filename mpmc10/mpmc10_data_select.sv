@@ -1,7 +1,7 @@
 `timescale 1ns / 1ps
 // ============================================================================
 //        __
-//   \\__/ o\    (C) 2015-2022  Robert Finch, Waterloo
+//   \\__/ o\    (C) 2015-2023  Robert Finch, Waterloo
 //    \  __ /    All rights reserved.
 //     \/_//     robfinch<remove>@finitron.ca
 //       ||
@@ -36,17 +36,20 @@
 //
 import mpmc10_pkg::*;
 
-module mpmc10_data_select(clk, state, dati, dato);
+module mpmc10_data_select(clk, state, dati1, dati2, dato1, dato2);
 parameter WID=256;
 input clk;
 input mpmc10_state_t state;
-input [WID-1:0] dati;
-output reg [WID-1:0] dato;
+input [WID-1:0] dati1;
+input [WID-1:0] dati2;
+output reg [WID-1:0] dato1;
+output reg [WID-1:0] dato2;
 
 // Setting the write data
 always_ff @(posedge clk)
-if (state==IDLE) begin
-	dato <= dati;
+if (state==PRESET2) begin
+	dato1 <= dati1;
+	dato2 <= dati2;
 end
 
 endmodule

@@ -71,7 +71,7 @@ output reg [31:0] resv_adr [0:NAR-1];
 output reg [7:0] rack;	// reservation acknowledged
 
 reg [19:0] resv_to_cnt;
-wire [2:0] enc;
+wire [3:0] enc;
 wire [7:0] srr = {sr7,sr6,sr5,sr4,sr3,sr2,sr1,sr0};
 wire [31:0] adr [0:7];
 
@@ -142,10 +142,10 @@ input [3:0] ch;
 input [31:0] adr;
 integer n8;
 begin
-	resv_held = mpmc10_pkg::FALSE;
+	resv_held = 1'b0;
  	for (n8 = 0; n8 < NAR; n8 = n8 + 1)
  		if (resv_ch[n8]==ch && resv_adr[n8][31:5]==adr[31:5])
- 			resv_held = mpmc10_pkg::TRUE;
+ 			resv_held = 1'b1;
 end
 endfunction
 
