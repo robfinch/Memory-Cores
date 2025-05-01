@@ -1,7 +1,7 @@
 `timescale 1ns / 1ps
 // ============================================================================
 //        __
-//   \\__/ o\    (C) 2015-2023  Robert Finch, Waterloo
+//   \\__/ o\    (C) 2015-2022  Robert Finch, Waterloo
 //    \  __ /    All rights reserved.
 //     \/_//     robfinch<remove>@finitron.ca
 //       ||
@@ -32,8 +32,6 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
-// Requires:
-//		rst be held at least 1024 clock cycles.
 // ============================================================================
 //
 import const_pkg::*;
@@ -41,9 +39,9 @@ import wishbone_pkg::*;
 import mpmc10_pkg::*;
 
 module mpmc10_cache_wb (input rst, wclk, inv, 
-	input wb_cmd_request128_t wchi, 
+	input wb_write_request128_t wchi, 
 	output wb_write_response_t wcho,
-	input wb_cmd_request128_t ld,
+	input wb_write_request128_t ld,
 	input ch0clk, 
 	input ch1clk, 
 	input ch2clk, 
@@ -52,14 +50,14 @@ module mpmc10_cache_wb (input rst, wclk, inv,
 	input ch5clk, 
 	input ch6clk, 
 	input ch7clk, 
-	input wb_cmd_request128_t ch0i,
-	input wb_cmd_request128_t ch1i,
-	input wb_cmd_request128_t ch2i,
-	input wb_cmd_request128_t ch3i,
-	input wb_cmd_request128_t ch4i,
-	input wb_cmd_request128_t ch5i,
-	input wb_cmd_request128_t ch6i,
-	input wb_cmd_request128_t ch7i,
+	input wb_write_request128_t ch0i,
+	input wb_write_request128_t ch1i,
+	input wb_write_request128_t ch2i,
+	input wb_write_request128_t ch3i,
+	input wb_write_request128_t ch4i,
+	input wb_write_request128_t ch5i,
+	input wb_write_request128_t ch6i,
+	input wb_write_request128_t ch7i,
 	input ch0wack,
 	input ch1wack,
 	input ch2wack,
@@ -68,31 +66,27 @@ module mpmc10_cache_wb (input rst, wclk, inv,
 	input ch5wack,
 	input ch6wack,
 	input ch7wack,
-	output wb_cmd_response128_t ch0o,
-	output wb_cmd_response128_t ch1o,
-	output wb_cmd_response128_t ch2o,
-	output wb_cmd_response128_t ch3o,
-	output wb_cmd_response128_t ch4o,
-	output wb_cmd_response128_t ch5o,
-	output wb_cmd_response128_t ch6o,
-	output wb_cmd_response128_t ch7o,
-	output reg ch0hit,
-	output reg ch1hit,
-	output reg ch2hit,
-	output reg ch3hit,
-	output reg ch4hit,
-	output reg ch5hit,
-	output reg ch6hit,
-	output reg ch7hit
+	output wb_read_response128_t ch0o,
+	output wb_read_response128_t ch1o,
+	output wb_read_response128_t ch2o,
+	output wb_read_response128_t ch3o,
+	output wb_read_response128_t ch4o,
+	output wb_read_response128_t ch5o,
+	output wb_read_response128_t ch6o,
+	output wb_read_response128_t ch7o
 );
 parameter DEP=1024;
 parameter LOBIT=4;
 parameter HIBIT=13;
 
-integer n,n2,n3,n4,n5;
+integer n,n2,n3,n4,n5,n6,n7,n8,n9,n10,n11,n12,n13;
 
 (* ram_style="distributed" *)
 reg [1023:0] vbit [0:CACHE_ASSOC-1];
+initial begin
+	for (n5 = 0; n5 < CACHE_ASSOC; n5 = n5 + 1)
+		vbit[n5] <= 'd0;
+end
 
 reg [31:0] radrr [0:8];
 reg wchi_stb, wchi_stb_r;
@@ -139,16 +133,16 @@ reg stb6;
 reg stb7;
 reg [8:0] rstb;
 
-always_ff @(posedge ch0clk) radrr[0] <= ch0i.padr;
-always_ff @(posedge ch1clk) radrr[1] <= ch1i.padr;
-always_ff @(posedge ch2clk) radrr[2] <= ch2i.padr;
-always_ff @(posedge ch3clk) radrr[3] <= ch3i.padr;
-always_ff @(posedge ch4clk) radrr[4] <= ch4i.padr;
-always_ff @(posedge ch5clk) radrr[5] <= ch5i.padr;
-always_ff @(posedge ch6clk) radrr[6] <= ch6i.padr;
-always_ff @(posedge ch7clk) radrr[7] <= ch7i.padr;
-always_ff @(posedge wclk) radrr[8] <= ld.cyc ? ld.padr : wchi.padr;
-always_ff @(posedge wclk) wchi_adr1 <= wchi.padr;
+always_ff @(posedge ch0clk) radrr[0] <= ch0i.adr;
+always_ff @(posedge ch1clk) radrr[1] <= ch1i.adr;
+always_ff @(posedge ch2clk) radrr[2] <= ch2i.adr;
+always_ff @(posedge ch3clk) radrr[3] <= ch3i.adr;
+always_ff @(posedge ch4clk) radrr[4] <= ch4i.adr;
+always_ff @(posedge ch5clk) radrr[5] <= ch5i.adr;
+always_ff @(posedge ch6clk) radrr[6] <= ch6i.adr;
+always_ff @(posedge ch7clk) radrr[7] <= ch7i.adr;
+always_ff @(posedge wclk) radrr[8] <= ld.cyc ? ld.adr : wchi.adr;
+always_ff @(posedge wclk) wchi_adr1 <= wchi.adr;
 always_ff @(posedge wclk) wchi_adr <= wchi_adr1;
 
 always_ff @(posedge ch0clk) stb0 <= ch0i.stb;
@@ -173,7 +167,7 @@ always_comb rstb[8] <= ld.cyc ? ld.stb : wchi.stb;
 always_ff @(posedge wclk) wchi_stb_r <= wchi.stb;
 always_ff @(posedge wclk) wchi_stb <= wchi_stb_r;
 always_ff @(posedge wclk) wchi_sel <= wchi.sel;
-always_ff @(posedge wclk) wchi_dat <= wchi.data1;
+always_ff @(posedge wclk) wchi_dat <= wchi.dat;
 
 reg [8:0] rclkp;
 always_comb
@@ -192,15 +186,15 @@ end
 reg [HIBIT-LOBIT:0] radr [0:8];
 always_comb
 begin
-	radr[0] = ch0i.padr[HIBIT:LOBIT];
-	radr[1] = ch1i.padr[HIBIT:LOBIT];
-	radr[2] = ch2i.padr[HIBIT:LOBIT];
-	radr[3] = ch3i.padr[HIBIT:LOBIT];
-	radr[4] = ch4i.padr[HIBIT:LOBIT];
-	radr[5] = ch5i.padr[HIBIT:LOBIT];
-	radr[6] = ch6i.padr[HIBIT:LOBIT];
-	radr[7] = ch7i.padr[HIBIT:LOBIT];
-	radr[8] = ld.cyc ? ld.padr[HIBIT:LOBIT] : wchi.padr[HIBIT:LOBIT];
+	radr[0] = ch0i.adr[HIBIT:LOBIT];
+	radr[1] = ch1i.adr[HIBIT:LOBIT];
+	radr[2] = ch2i.adr[HIBIT:LOBIT];
+	radr[3] = ch3i.adr[HIBIT:LOBIT];
+	radr[4] = ch4i.adr[HIBIT:LOBIT];
+	radr[5] = ch5i.adr[HIBIT:LOBIT];
+	radr[6] = ch6i.adr[HIBIT:LOBIT];
+	radr[7] = ch7i.adr[HIBIT:LOBIT];
+	radr[8] = ld.cyc ? ld.adr[HIBIT:LOBIT] : wchi.adr[HIBIT:LOBIT];
 end
 
    // xpm_memory_sdpram: Simple Dual Port RAM
@@ -301,32 +295,24 @@ generate begin : gReaddat
 		always_comb vbito7a[g] <= vbit[g][radrr[7][HIBIT:LOBIT]];
 		always_comb vbito8a[g] <= vbit[g][radrr[8][HIBIT:LOBIT]];
 		
-		always_ff @(posedge ch0clk)	hit0a[g] = (doutb[0].lines[g].tag==radrr[0][31:LOBIT]) && (vbito0a[g]==1'b1);
-		always_ff @(posedge ch1clk)	hit1a[g] = (doutb[1].lines[g].tag==radrr[1][31:LOBIT]) && (vbito1a[g]==1'b1);
-		always_ff @(posedge ch2clk)	hit2a[g] = (doutb[2].lines[g].tag==radrr[2][31:LOBIT]) && (vbito2a[g]==1'b1);
-		always_ff @(posedge ch3clk)	hit3a[g] = (doutb[3].lines[g].tag==radrr[3][31:LOBIT]) && (vbito3a[g]==1'b1);
-		always_ff @(posedge ch4clk)	hit4a[g] = (doutb[4].lines[g].tag==radrr[4][31:LOBIT]) && (vbito4a[g]==1'b1);
-		always_ff @(posedge ch5clk)	hit5a[g] = (doutb[5].lines[g].tag==radrr[5][31:LOBIT]) && (vbito5a[g]==1'b1);
-		always_ff @(posedge ch6clk)	hit6a[g] = (doutb[6].lines[g].tag==radrr[6][31:LOBIT]) && (vbito6a[g]==1'b1);
-		always_ff @(posedge ch7clk)	hit7a[g] = (doutb[7].lines[g].tag==radrr[7][31:LOBIT]) && (vbito7a[g]==1'b1);
-		always_ff @(posedge wclk)	hit8a[g] = (doutb[8].lines[g].tag==radrr[8][31:LOBIT]) && (vbito8a[g]==1'b1);
+		always_ff @(posedge ch0clk)	hit0a[g] <= (doutb[0].lines[g].tag==radrr[0][31:LOBIT]) && (vbito0a[g]==1'b1);
+		always_ff @(posedge ch1clk)	hit1a[g] <= (doutb[1].lines[g].tag==radrr[1][31:LOBIT]) && (vbito1a[g]==1'b1);
+		always_ff @(posedge ch2clk)	hit2a[g] <= (doutb[2].lines[g].tag==radrr[2][31:LOBIT]) && (vbito2a[g]==1'b1);
+		always_ff @(posedge ch3clk)	hit3a[g] <= (doutb[3].lines[g].tag==radrr[3][31:LOBIT]) && (vbito3a[g]==1'b1);
+		always_ff @(posedge ch4clk)	hit4a[g] <= (doutb[4].lines[g].tag==radrr[4][31:LOBIT]) && (vbito4a[g]==1'b1);
+		always_ff @(posedge ch5clk)	hit5a[g] <= (doutb[5].lines[g].tag==radrr[5][31:LOBIT]) && (vbito5a[g]==1'b1);
+		always_ff @(posedge ch6clk)	hit6a[g] <= (doutb[6].lines[g].tag==radrr[6][31:LOBIT]) && (vbito6a[g]==1'b1);
+		always_ff @(posedge ch7clk)	hit7a[g] <= (doutb[7].lines[g].tag==radrr[7][31:LOBIT]) && (vbito7a[g]==1'b1);
+		always_ff @(posedge wclk)	hit8a[g] <= (doutb[8].lines[g].tag==radrr[8][31:LOBIT]) && (vbito8a[g]==1'b1);
 	end
-	always_comb ch0hit = |hit0a & stb0;
-	always_comb ch1hit = |hit1a & stb1;
-	always_comb ch2hit = |hit2a & stb2;
-	always_comb ch3hit = |hit3a & stb3;
-	always_comb ch4hit = |hit4a & stb4;
-	always_comb ch5hit = |hit5a & stb5;
-	always_comb ch6hit = |hit6a & stb6;
-	always_comb ch7hit = |hit7a & stb7;
-	always_comb ch0o.ack = (|hit0a && stb0 && (ch0i.cmd==wishbone_pkg::CMD_LOAD||ch0i.cmd==wishbone_pkg::CMD_LOADZ)) | (ch0wack & stb0);
-	always_comb ch1o.ack = (|hit1a && stb1 && (ch1i.cmd==wishbone_pkg::CMD_LOAD||ch1i.cmd==wishbone_pkg::CMD_LOADZ)) | (ch1wack & stb1);
-	always_comb ch2o.ack = (|hit2a && stb2 && (ch2i.cmd==wishbone_pkg::CMD_LOAD||ch2i.cmd==wishbone_pkg::CMD_LOADZ)) | (ch2wack & stb2);
-	always_comb ch3o.ack = (|hit3a && stb3 && (ch3i.cmd==wishbone_pkg::CMD_LOAD||ch3i.cmd==wishbone_pkg::CMD_LOADZ)) | (ch3wack & stb3);
-	always_comb ch4o.ack = (|hit4a && stb4 && (ch4i.cmd==wishbone_pkg::CMD_LOAD||ch4i.cmd==wishbone_pkg::CMD_LOADZ)) | (ch4wack & stb4);
-	always_comb ch5o.ack = (|hit5a && stb5 && (ch5i.cmd==wishbone_pkg::CMD_LOAD||ch5i.cmd==wishbone_pkg::CMD_LOADZ)) | (ch5wack & stb5);
-	always_comb ch6o.ack = (|hit6a && stb6 && (ch6i.cmd==wishbone_pkg::CMD_LOAD||ch6i.cmd==wishbone_pkg::CMD_LOADZ)) | (ch6wack & stb6);
-	always_comb ch7o.ack = (|hit7a && stb7 && (ch7i.cmd==wishbone_pkg::CMD_LOAD||ch7i.cmd==wishbone_pkg::CMD_LOADZ)) | (ch7wack & stb7);
+	always_ff @(posedge ch0clk) ch0o.ack <= (|hit0a & stb0) | (ch0wack & stb0);
+	always_ff @(posedge ch1clk) ch1o.ack <= (|hit1a & stb1) | (ch1wack & stb1);
+	always_ff @(posedge ch2clk) ch2o.ack <= (|hit2a & stb2) | (ch2wack & stb2);
+	always_ff @(posedge ch3clk) ch3o.ack <= (|hit3a & stb3) | (ch3wack & stb3);
+	always_ff @(posedge ch4clk) ch4o.ack <= (|hit4a & stb4) | (ch4wack & stb4);
+	always_ff @(posedge ch5clk) ch5o.ack <= (|hit5a & stb5) | (ch5wack & stb5);
+	always_ff @(posedge ch6clk) ch6o.ack <= (|hit6a & stb6) | (ch6wack & stb6);
+	always_ff @(posedge ch7clk) ch7o.ack <= (|hit7a & stb7) | (ch7wack & stb7);
 	always_comb ch0o.err = 1'b0;
 	always_comb ch1o.err = 1'b0;
 	always_comb ch2o.err = 1'b0;
@@ -351,43 +337,62 @@ generate begin : gReaddat
 	always_comb ch5o.cid = ch5i.cid;
 	always_comb ch6o.cid = ch6i.cid;
 	always_comb ch7o.cid = ch7i.cid;
-	always_comb ch0o.tid = ch0i.tid;
-	always_comb ch1o.tid = ch1i.tid;
-	always_comb ch2o.tid = ch2i.tid;
-	always_comb ch3o.tid = ch3i.tid;
-	always_comb ch4o.tid = ch4i.tid;
-	always_comb ch5o.tid = ch5i.tid;
-	always_comb ch6o.tid = ch6i.tid;
-	always_comb ch7o.tid = ch7i.tid;
 end
 endgenerate
 
 always_comb wway = hit8a[0] ? 2'd0 : hit8a[1] ? 2'd1 : hit8a[2] ? 2'd2 : hit8a[3] ? 2'd3 : 2'd0;
 
-always_comb
+always_ff @(posedge ch0clk)
 begin
 	ch0o.dat <= 'd0;
-	ch1o.dat <= 'd0;
-	ch2o.dat <= 'd0;
-	ch3o.dat <= 'd0;
-	ch4o.dat <= 'd0;
-	ch5o.dat <= 'd0;
-	ch6o.dat <= 'd0;
-	ch7o.dat <= 'd0;
-	wrdata <= 'd0;
-	for (n2 = 0; n2 < CACHE_ASSOC; n2 = n2 + 1) begin
+	for (n2 = 0; n2 < CACHE_ASSOC; n2 = n2 + 1)
 		if (hit0a[n2]) ch0o.dat <= doutb[0].lines[n2];
-		if (hit1a[n2]) ch1o.dat <= doutb[1].lines[n2];
-		if (hit2a[n2]) ch2o.dat <= doutb[2].lines[n2];
-		if (hit3a[n2]) ch3o.dat <= doutb[3].lines[n2];
-		if (hit4a[n2]) ch4o.dat <= doutb[4].lines[n2];
-		if (hit5a[n2]) ch5o.dat <= doutb[5].lines[n2];
-		if (hit6a[n2]) ch6o.dat <= doutb[6].lines[n2];
-		if (hit7a[n2]) ch7o.dat <= doutb[7].lines[n2];
-	end
-//	if (|hit8a)
-		wrdata <= doutb[8];
 end
+always_ff @(posedge ch1clk)
+begin
+	ch1o.dat <= 'd0;
+	for (n6 = 0; n6 < CACHE_ASSOC; n6 = n6 + 1)
+		if (hit1a[n6]) ch1o.dat <= doutb[1].lines[n6];
+end
+always_ff @(posedge ch2clk)
+begin
+	ch2o.dat <= 'd0;
+	for (n7 = 0; n7 < CACHE_ASSOC; n7 = n7 + 1)
+		if (hit2a[n7]) ch2o.dat <= doutb[2].lines[n7];
+end
+always_ff @(posedge ch3clk)
+begin
+	ch3o.dat <= 'd0;
+	for (n8 = 0; n8 < CACHE_ASSOC; n8 = n8 + 1)
+		if (hit3a[n8]) ch3o.dat <= doutb[3].lines[n8];
+end
+always_ff @(posedge ch4clk)
+begin
+	ch4o.dat <= 'd0;
+	for (n9 = 0; n9 < CACHE_ASSOC; n9 = n9 + 1)
+		if (hit4a[n9]) ch4o.dat <= doutb[4].lines[n9];
+end
+always_ff @(posedge ch5clk)
+begin
+	ch5o.dat <= 'd0;
+	for (n10 = 0; n10 < CACHE_ASSOC; n10 = n10 + 1)
+		if (hit5a[n10]) ch5o.dat <= doutb[5].lines[n10];
+end
+always_ff @(posedge ch6clk)
+begin
+	ch6o.dat <= 'd0;
+	for (n11 = 0; n11 < CACHE_ASSOC; n11 = n11 + 1)
+		if (hit6a[n11]) ch6o.dat <= doutb[6].lines[n11];
+end
+always_ff @(posedge ch6clk)
+begin
+	ch7o.dat <= 'd0;
+	for (n12 = 0; n12 < CACHE_ASSOC; n12 = n12 + 1)
+		if (hit7a[n12]) ch7o.dat <= doutb[7].lines[n12];
+end
+
+always_comb
+	wrdata <= doutb[8];
 
 reg b0,b1,b2;
 reg ldcycd1,ldcycd2;
@@ -398,10 +403,8 @@ always_ff @(posedge wclk)
 
 always_ff @(posedge wclk)
 if (rst) begin
-	vbit[0][wadr2[HIBIT:LOBIT]] <= 'b0;	
-	vbit[1][wadr2[HIBIT:LOBIT]] <= 'b0;
-	vbit[2][wadr2[HIBIT:LOBIT]] <= 'b0;	
-	vbit[3][wadr2[HIBIT:LOBIT]] <= 'b0;	
+	for (n = 0; n < 4; n = n + 1)
+		vbit[n] <= 'b0;	
 end
 else begin
 	if (ldcycd2) begin
@@ -427,19 +430,14 @@ end
 always_ff @(posedge wclk)
 begin
 	if (ld.cyc)
-		wadr <= ld.padr;
+		wadr <= ld.adr;
 	else if (wchi.stb)
-		wadr <= wchi.padr;
+		wadr <= wchi.adr;
 end
-// wadr2 is used to reset the cache tags during reset. Reset must be held for
-// 1024 cycles to reset all the tags.
 always_ff @(posedge wclk)
-if (rst)
-	wadr2 <= wadr2 + (32'd1 << LOBIT);
-else
 	wadr2 <= wadr;
 always_ff @(posedge wclk)
-	lddat1 <= ld.data1;
+	lddat1 <= ld.dat;
 always_ff @(posedge wclk)
 	lddat2 <= lddat1;
 always_ff @(posedge wclk)
