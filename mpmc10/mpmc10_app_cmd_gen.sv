@@ -1,7 +1,7 @@
 `timescale 1ns / 1ps
 // ============================================================================
 //        __
-//   \\__/ o\    (C) 2015-2022  Robert Finch, Waterloo
+//   \\__/ o\    (C) 2015-2025  Robert Finch, Waterloo
 //    \  __ /    All rights reserved.
 //     \/_//     robfinch<remove>@finitron.ca
 //       ||
@@ -48,10 +48,10 @@ output reg [2:0] cmd;
 
 always_ff @(posedge clk)
 begin
-	if (state==IDLE)
-		cmd <= CMD_WRITE;
-	else if (state==READ_DATA0)
-		cmd <= CMD_READ;
+	if (state==mpmc10_pkg::IDLE)
+		cmd <= mpmc10_pkg::CMD_WRITE;
+	else if (state==mpmc10_pkg::READ_DATA0)
+		cmd <= mpmc10_pkg::CMD_READ;
 end
 
 endmodule

@@ -1,7 +1,7 @@
 `timescale 1ns / 1ps
 // ============================================================================
 //        __
-//   \\__/ o\    (C) 2015-2022  Robert Finch, Waterloo
+//   \\__/ o\    (C) 2015-2025  Robert Finch, Waterloo
 //    \  __ /    All rights reserved.
 //     \/_//     robfinch<remove>@finitron.ca
 //       ||
@@ -125,7 +125,7 @@ else begin
 		if (enc==n7 && |srr)
 			reserve_adr({1'b0,n7[2:0]},adr[n7]);
 
-	if (state==IDLE) begin
+	if (state==mpmc10_pkg::IDLE) begin
 		if (we) begin
 	    if (cr) begin
 	    	for (n7 = 0; n7 < NAR; n7 = n7 + 1)

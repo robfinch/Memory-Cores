@@ -1,7 +1,7 @@
 `timescale 1ns / 1ps
 // ============================================================================
 //        __
-//   \\__/ o\    (C) 2015-2022  Robert Finch, Waterloo
+//   \\__/ o\    (C) 2015-2025  Robert Finch, Waterloo
 //    \  __ /    All rights reserved.
 //     \/_//     robfinch<remove>@finitron.ca
 //       ||
@@ -49,7 +49,7 @@ output reg wend;
 always_ff @(posedge clk)
 begin
 	wend <= 1'b0;
-	if (state==WRITE_DATA3)
+	if (state==mpmc10_pkg::WRITE_DATA3)
 		wend <= strip_cnt==num_strips;
 end
 

@@ -33,6 +33,10 @@
 //
 // ============================================================================
 //
+`define WID256	1'b1;
+`define MPMC10_BUSWID	256;
+//`define WID128	1'b1;
+
 package mpmc10_pkg;
 
 parameter CACHE_ASSOC = 4;
@@ -68,12 +72,22 @@ typedef enum logic [4:0] {
 	CAS = 5'd20
 } mpmc10_state_t;
 
+`ifdef WID256
+typedef struct packed
+{
+	logic [31:4] tag;
+	logic modified;
+	logic [255:0] data;
+} mpmc10_cache_line_t;
+`endif
+`ifdef WID128
 typedef struct packed
 {
 	logic [31:4] tag;
 	logic modified;
 	logic [127:0] data;
 } mpmc10_cache_line_t;
+`endif
 
 typedef struct packed
 {

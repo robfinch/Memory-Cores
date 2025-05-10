@@ -1,7 +1,7 @@
 `timescale 1ns / 1ps
 // ============================================================================
 //        __
-//   \\__/ o\    (C) 2015-2023  Robert Finch, Waterloo
+//   \\__/ o\    (C) 2015-2025  Robert Finch, Waterloo
 //    \  __ /    All rights reserved.
 //     \/_//     robfinch<remove>@finitron.ca
 //       ||
@@ -62,99 +62,99 @@ always_ff @(posedge clk)
 
 always_comb
 if (rst)
-	next_state <= IDLE;	
+	next_state <= mpmc10_pkg::IDLE;	
 else begin
 	case(state)
-	IDLE:
+	mpmc10_pkg::IDLE:
 		if (!fifo_empty && !rd_rst_busy && calib_complete)
-			next_state <= PRESET1;
+			next_state <= mpmc10_pkg::PRESET1;
 		else
-			next_state <= IDLE;
-	PRESET1:
-		next_state <= PRESET2;
-	PRESET2:
-		next_state <= PRESET3;
-	PRESET3:
+			next_state <= mpmc10_pkg::IDLE;
+	mpmc10_pkg::PRESET1:
+		next_state <= mpmc10_pkg::PRESET2;
+	mpmc10_pkg::PRESET2:
+		next_state <= mpmc10_pkg::PRESET3;
+	mpmc10_pkg::PRESET3:
 		if (fifo_out.stb && fifo_out.cmd==wishbone_pkg::CMD_STORE)
-			next_state <= WRITE_DATA0;
+			next_state <= mpmc10_pkg::WRITE_DATA0;
 		else
-			next_state <= READ_DATA0;
+			next_state <= mpmc10_pkg::READ_DATA0;
 	// Write command to the command fifo
 	// Write occurs when app_rdy is true
-	WRITE_DATA0:
+	mpmc10_pkg::WRITE_DATA0:
 		if (rdy)// && req_strip_cnt==num_strips)
-			next_state <= WRITE_DATA1;
+			next_state <= mpmc10_pkg::WRITE_DATA1;
 		else
-			next_state <= WRITE_DATA0;
-	WRITE_DATA1:
-		next_state <= WRITE_DATA2;
-	WRITE_DATA2:
+			next_state <= mpmc10_pkg::WRITE_DATA0;
+	mpmc10_pkg::WRITE_DATA1:
+		next_state <= mpmc10_pkg::WRITE_DATA2;
+	mpmc10_pkg::WRITE_DATA2:
 		if (rdy)
-			next_state <= WRITE_DATA3;
+			next_state <= mpmc10_pkg::WRITE_DATA3;
 		else
-			next_state <= WRITE_DATA2;
+			next_state <= mpmc10_pkg::WRITE_DATA2;
 	// Write data to the data fifo
 	// Write occurs when app_wdf_wren is true and app_wdf_rdy is true
-	WRITE_DATA3:
+	mpmc10_pkg::WRITE_DATA3:
 		if (wdf_rdy)
-			next_state <= IDLE;
+			next_state <= mpmc10_pkg::IDLE;
 		else
-			next_state <= WRITE_DATA3;
+			next_state <= mpmc10_pkg::WRITE_DATA3;
 
 	// There could be multiple read requests submitted before any response occurs.
 	// Stay in the SET_CMD_RD until all requested strips have been processed.
-	READ_DATA0:
-		next_state <= READ_DATA1;
+	mpmc10_pkg::READ_DATA0:
+		next_state <= mpmc10_pkg::READ_DATA1;
 	// Could it take so long to do the request that we start getting responses
 	// back?
-	READ_DATA1:
+	mpmc10_pkg::READ_DATA1:
 		if (rdy && req_strip_cnt==num_strips)
-			next_state <= READ_DATA2;
+			next_state <= mpmc10_pkg::READ_DATA2;
 		else
-			next_state <= READ_DATA1;
+			next_state <= mpmc10_pkg::READ_DATA1;
 	// Wait for incoming responses, but only for so long to prevent a hang.
-	READ_DATA2:
+	mpmc10_pkg::READ_DATA2:
 		if (rd_data_valid && resp_strip_cnt==num_strips) begin
 			case(fifo_out.cmd)
 			wishbone_pkg::CMD_LOAD,wishbone_pkg::CMD_LOADZ:
-				next_state <= WAIT_NACK;
+				next_state <= mpmc10_pkg::WAIT_NACK;
 			wishbone_pkg::CMD_ADD,wishbone_pkg::CMD_OR,wishbone_pkg::CMD_AND,wishbone_pkg::CMD_EOR,wishbone_pkg::CMD_ASL,wishbone_pkg::CMD_LSR,
 			wishbone_pkg::CMD_MIN,wishbone_pkg::CMD_MAX,wishbone_pkg::CMD_MINU,wishbone_pkg::CMD_MAXU,wishbone_pkg::CMD_CAS:
-				next_state <= ALU;
+				next_state <= mpmc10_pkg::ALU;
 			default:
-				next_state <= WAIT_NACK;
+				next_state <= mpmc10_pkg::WAIT_NACK;
 			endcase
 		end
 		else
-			next_state <= READ_DATA2;
+			next_state <= mpmc10_pkg::READ_DATA2;
 	
-	ALU:
+	mpmc10_pkg::ALU:
 		if (rmw_hit)
-			next_state <= ALU1;
-	ALU1:
-		next_state <= ALU2;
-	ALU2:
-		next_state <= ALU3;
-	ALU3:
-		next_state <= ALU4;
-	ALU4:
-		next_state <= WRITE_TRAMP1;
+			next_state <= mpmc10_pkg::ALU1;
+	mpmc10_pkg::ALU1:
+		next_state <= mpmc10_pkg::ALU2;
+	mpmc10_pkg::ALU2:
+		next_state <= mpmc10_pkg::ALU3;
+	mpmc10_pkg::ALU3:
+		next_state <= mpmc10_pkg::ALU4;
+	mpmc10_pkg::ALU4:
+		next_state <= mpmc10_pkg::WRITE_TRAMP1;
 		
-	WRITE_TRAMP1:
-		next_state <= WRITE_DATA0;
+	mpmc10_pkg::WRITE_TRAMP1:
+		next_state <= mpmc10_pkg::WRITE_DATA0;
 
-	WAIT_NACK:
+	mpmc10_pkg::WAIT_NACK:
 		// If we're not seeing a nack and there is a channel selected, then the
 		// cache tag must not have updated correctly.
 		// For writes, assume a nack by now.
-		next_state <= IDLE;
+		next_state <= mpmc10_pkg::IDLE;
 		
-	default:	next_state <= IDLE;
+	default:	next_state <= mpmc10_pkg::IDLE;
 	endcase
 
 	// Is the state machine hung? Do not time out during calibration.
 	if (to && calib_complete)
-		next_state <= IDLE;
+		next_state <= mpmc10_pkg::IDLE;
 end
 
 endmodule

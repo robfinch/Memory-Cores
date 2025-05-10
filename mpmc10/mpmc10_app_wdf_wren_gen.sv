@@ -1,7 +1,7 @@
 `timescale 1ns / 1ps
 // ============================================================================
 //        __
-//   \\__/ o\    (C) 2015-2022  Robert Finch, Waterloo
+//   \\__/ o\    (C) 2015-2025  Robert Finch, Waterloo
 //    \  __ /    All rights reserved.
 //     \/_//     robfinch<remove>@finitron.ca
 //       ||
@@ -47,7 +47,7 @@ output reg wren;
 always_ff @(posedge clk)
 begin
 	wren <= 1'b0;
-	if (state==WRITE_DATA3)// WRITE_DATA0 && rdy)
+	if (state==mpmc10_pkg::WRITE_DATA3)// WRITE_DATA0 && rdy)
 		wren <= 1'b1;
 end
 
