@@ -1,7 +1,7 @@
 `timescale 1ns / 1ps
 // ============================================================================
 //        __
-//   \\__/ o\    (C) 2015-2022  Robert Finch, Waterloo
+//   \\__/ o\    (C) 2015-2025  Robert Finch, Waterloo
 //    \  __ /    All rights reserved.
 //     \/_//     robfinch<remove>@finitron.ca
 //       ||
@@ -49,13 +49,13 @@ output reg en;
 always_ff @(posedge clk)
 begin
 	en <= 1'b0;
-	if (state==WRITE_DATA1)
+	if (state==mpmc10_pkg::WRITE_DATA1)
 		en <= 1'b1;
-	else if (state==WRITE_DATA2 && !rdy)
+	else if (state==mpmc10_pkg::WRITE_DATA2 && !rdy)
 		en <= 1'b1;
-	else if (state==READ_DATA0)
+	else if (state==mpmc10_pkg::READ_DATA0)
 		en <= 1'b1;
-	else if (state==READ_DATA1 && !(rdy && strip_cnt==num_strips))
+	else if (state==mpmc10_pkg::READ_DATA1 && !(rdy && strip_cnt==num_strips))
 		en <= 1'b1;
 end
 

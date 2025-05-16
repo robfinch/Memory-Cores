@@ -1,7 +1,7 @@
 `timescale 1ns / 1ps
 // ============================================================================
 //        __
-//   \\__/ o\    (C) 2015-2023  Robert Finch, Waterloo
+//   \\__/ o\    (C) 2015-2025  Robert Finch, Waterloo
 //    \  __ /    All rights reserved.
 //     \/_//     robfinch<remove>@finitron.ca
 //       ||
@@ -44,49 +44,79 @@
 //`define SUPPORT_AMO_OCTA 1'b1
 //`define SUPPORT_AMO_SHIFT	1'b1
 //`define SUPPORT_AMO_MULTI_SHIFT	1'b1
+`define WID256	1'b1;
+//`define WID128	1'b1;
 
 import wishbone_pkg::*;
 import mpmc10_pkg::*;
 
-module mpmc10_wb(
-input rst,
-input clk100MHz,
-input mem_ui_rst,
-input mem_ui_clk,
-input calib_complete,
-output reg rstn,
-output [31:0] app_waddr,
-input app_rdy,
-output app_en,
-output [2:0] app_cmd,
-output [28:0] app_addr,
-input app_rd_data_valid,
-output [15:0] app_wdf_mask,
-output reg [127:0] app_wdf_data,
-input app_wdf_rdy,
-output app_wdf_wren,
-output app_wdf_end,
-input [127:0] app_rd_data,
-input app_rd_data_end,
-input ch0clk, ch1clk, ch2clk, ch3clk, ch4clk, ch5clk, ch6clk, ch7clk,
-input wb_cmd_request128_t ch0i,
-output wb_cmd_response128_t ch0o,
-input wb_cmd_request128_t ch1i,
-output wb_cmd_response128_t ch1o,
-input wb_cmd_request128_t ch2i,
-output wb_cmd_response128_t ch2o,
-input wb_cmd_request128_t ch3i,
-output wb_cmd_response128_t ch3o,
-input wb_cmd_request128_t ch4i,
-output wb_cmd_response128_t ch4o,
-input wb_cmd_request128_t ch5i,
-output wb_cmd_response128_t ch5o,
-input wb_cmd_request128_t ch6i,
-output wb_cmd_response128_t ch6o,
-input wb_cmd_request128_t ch7i,
-output wb_cmd_response128_t ch7o,
-output mpmc10_state_t state
-);
+module mpmc10_wb(rst, clk100MHz, mem_ui_rst, mem_ui_clk, calib_complete, rstn,
+	app_waddr, app_rdy, app_en, app_cmd, app_addr, app_rd_data_valid, app_wdf_mask,
+	app_wdf_data, app_wdf_rdy, app_wdf_wren, app_wdf_end, app_rd_data, app_rd_data_end,
+	ch0clk, ch1clk, ch2clk, ch3clk, ch4clk, ch5clk, ch6clk, ch7clk, 
+	ch0i, ch0o,	ch1i, ch1o,	ch2i, ch2o,	ch3i, ch3o,
+	ch4i, ch4o,	ch5i, ch5o,	ch6i, ch6o,	ch7i, ch7o,
+	state
+);	
+parameter WID = 256;
+input rst;
+input clk100MHz;
+input mem_ui_rst;
+input mem_ui_clk;
+input calib_complete;
+output reg rstn;
+output [31:0] app_waddr;
+input app_rdy;
+output app_en;
+output [2:0] app_cmd;
+output [29:0] app_addr;
+input app_rd_data_valid;
+output [WID/8-1:0] app_wdf_mask;
+output reg [WID-1:0] app_wdf_data;
+input app_wdf_rdy;
+output app_wdf_wren;
+output app_wdf_end;
+input [WID-1:0] app_rd_data;
+input app_rd_data_end;
+input ch0clk, ch1clk, ch2clk, ch3clk, ch4clk, ch5clk, ch6clk, ch7clk;
+`ifdef WID256
+input wb_cmd_request256_t ch0i;
+output wb_cmd_response256_t ch0o;
+input wb_cmd_request256_t ch1i;
+output wb_cmd_response256_t ch1o;
+input wb_cmd_request256_t ch2i;
+output wb_cmd_response256_t ch2o;
+input wb_cmd_request256_t ch3i;
+output wb_cmd_response256_t ch3o;
+input wb_cmd_request256_t ch4i;
+output wb_cmd_response256_t ch4o;
+input wb_cmd_request256_t ch5i;
+output wb_cmd_response256_t ch5o;
+input wb_cmd_request256_t ch6i;
+output wb_cmd_response256_t ch6o;
+input wb_cmd_request256_t ch7i;
+output wb_cmd_response256_t ch7o;
+`endif
+`ifdef WID128
+input wb_cmd_request128_t ch0i;
+output wb_cmd_response128_t ch0o;
+input wb_cmd_request128_t ch1i;
+output wb_cmd_response128_t ch1o;
+input wb_cmd_request128_t ch2i;
+output wb_cmd_response128_t ch2o;
+input wb_cmd_request128_t ch3i;
+output wb_cmd_response128_t ch3o;
+input wb_cmd_request128_t ch4i;
+output wb_cmd_response128_t ch4o;
+input wb_cmd_request128_t ch5i;
+output wb_cmd_response128_t ch5o;
+input wb_cmd_request128_t ch6i;
+output wb_cmd_response128_t ch6o;
+input wb_cmd_request128_t ch7i;
+output wb_cmd_response128_t ch7o;
+`endif
+output mpmc10_state_t state;
+
 parameter NAR = 2;			// Number of address reservations
 parameter CL = 3'd4;		// Cache read latency
 parameter STREAM0 = 1'b1;
@@ -106,6 +136,34 @@ parameter RMW5 = 1'b0;
 parameter RMW6 = 1'b0;
 parameter RMW7 = 1'b1;
 
+`ifdef WID256
+wb_cmd_request256_t ch0is;
+wb_cmd_request256_t ch0is2;
+wb_cmd_request256_t ch1is;
+wb_cmd_request256_t ch1is2;
+wb_cmd_request256_t ch2is;
+wb_cmd_request256_t ch2is2;
+wb_cmd_request256_t ch3is;
+wb_cmd_request256_t ch3is2;
+wb_cmd_request256_t ch4is;
+wb_cmd_request256_t ch4is2;
+wb_cmd_request256_t ch5is;
+wb_cmd_request256_t ch5is2;
+wb_cmd_request256_t ch6is;
+wb_cmd_request256_t ch6is2;
+wb_cmd_request256_t ch7is;
+wb_cmd_request256_t ch7is2;
+
+wb_cmd_response256_t ch0oa, ch0ob, ch0oc;
+wb_cmd_response256_t ch1oa, ch1ob, ch1oc;
+wb_cmd_response256_t ch2oa, ch2ob, ch2oc;
+wb_cmd_response256_t ch3oa, ch3ob, ch3oc;
+wb_cmd_response256_t ch4oa, ch4ob, ch4oc;
+wb_cmd_response256_t ch5oa, ch5ob, ch5oc;
+wb_cmd_response256_t ch6oa, ch6ob, ch6oc;
+wb_cmd_response256_t ch7oa, ch7ob, ch7oc;
+`endif
+`ifdef WID128
 wb_cmd_request128_t ch0is;
 wb_cmd_request128_t ch0is2;
 wb_cmd_request128_t ch1is;
@@ -131,6 +189,7 @@ wb_cmd_response128_t ch4oa, ch4ob, ch4oc;
 wb_cmd_response128_t ch5oa, ch5ob, ch5oc;
 wb_cmd_response128_t ch6oa, ch6ob, ch6oc;
 wb_cmd_response128_t ch7oa, ch7ob, ch7oc;
+`endif
 
 wire rmw0 = ch0is.cmd[4];
 wire rmw1 = ch1is.cmd[4];
@@ -150,11 +209,20 @@ assign ch5o = STREAM5 ? ch5ob : rmw5 ? ch5oc : ch5oa;
 assign ch6o = STREAM6 ? ch6ob : rmw6 ? ch6oc : ch6oa;
 assign ch7o = STREAM7 ? ch7ob : rmw7 ? ch7oc : ch7oa;
 
+`ifdef WID256
+wb_cmd_request256_t req_fifoi;
+wb_cmd_request256_t req_fifoo;
+wb_cmd_request256_t ld;
+wb_cmd_request256_t fifo_mask;
+wb_cmd_request256_t fifoo = req_fifoo & fifo_mask;
+`endif
+`ifdef WID128
 wb_cmd_request128_t req_fifoi;
 wb_cmd_request128_t req_fifoo;
 wb_cmd_request128_t ld;
 wb_cmd_request128_t fifo_mask;
 wb_cmd_request128_t fifoo = req_fifoo & fifo_mask;
+`endif
 
 genvar g;
 integer n1,n2,n3;
@@ -174,13 +242,13 @@ reg [31:0] adr;
 reg [3:0] uch;		// update channel
 wire [15:0] wmask;
 wire [15:0] mem_wdf_mask2;
-reg [127:0] dat128;
-wire [127:0] dat256;
+reg [WID-1:0] dat128;
+wire [WID-1:0] dat256;
 wire [3:0] resv_ch [0:NAR-1];
 wire [31:0] resv_adr [0:NAR-1];
 wire rb1;
 reg [7:0] req;
-reg [127:0] rd_data_r;
+reg [WID-1:0] rd_data_r;
 reg rd_data_valid_r;
 reg cas_ok;
 
@@ -329,6 +397,57 @@ always_ff @(posedge mem_ui_clk)
 			req[n3] <= 1'b0;
 
 // Register signals onto mem_ui_clk domain
+`ifdef WID256
+mpmc10_sync256_wb usyn0
+(
+	.clk(mem_ui_clk),
+	.i(ch0i),
+	.o(ch0is)
+);
+mpmc10_sync256_wb usyn1
+(
+	.clk(mem_ui_clk),
+	.i(ch1i),
+	.o(ch1is)
+);
+mpmc10_sync256_wb usyn2
+(
+	.clk(mem_ui_clk),
+	.i(ch2i),
+	.o(ch2is)
+);
+mpmc10_sync256_wb usyn3
+(
+	.clk(mem_ui_clk),
+	.i(ch3i),
+	.o(ch3is)
+);
+mpmc10_sync256_wb usyn4
+(
+	.clk(mem_ui_clk),
+	.i(ch4i),
+	.o(ch4is)
+);
+mpmc10_sync256_wb usyn5
+(
+	.clk(mem_ui_clk),
+	.i(ch5i),
+	.o(ch5is)
+);
+mpmc10_sync256_wb usyn6
+(
+	.clk(mem_ui_clk),
+	.i(ch6i),
+	.o(ch6is)
+);
+mpmc10_sync256_wb usyn7
+(
+	.clk(mem_ui_clk),
+	.i(ch7i),
+	.o(ch7is)
+);
+`endif
+`ifdef WID128
 mpmc10_sync128_wb usyn0
 (
 	.clk(mem_ui_clk),
@@ -377,6 +496,7 @@ mpmc10_sync128_wb usyn7
 	.i(ch7i),
 	.o(ch7is)
 );
+`endif
 
 // Streaming channels have a burst length of 64. Round the address to the burst
 // length.
@@ -429,9 +549,14 @@ begin
 	ld.cyc <= fifoo.cyc && !fifoo.we && rd_data_valid_r && (uch!=4'd0 && uch!=4'd5 && uch!=4'd15);
 	ld.stb <= fifoo.stb && !fifoo.we && rd_data_valid_r && (uch!=4'd0 && uch!=4'd5 && uch!=4'd15);
 	ld.we <= 1'b0;
+`ifdef WID256
+	ld.padr <= {app_waddr[31:5],5'h0};
+`endif
+`ifdef WID128
 	ld.padr <= {app_waddr[31:4],4'h0};
-	ld.data1 <= rd_data_r;
-	ld.sel <= {16{1'b1}};		// update all bytes
+`endif
+	ld.dat <= rd_data_r;
+	ld.sel <= {WID/8{1'b1}};		// update all bytes
 end
 
 reg ch0wack;
@@ -453,7 +578,7 @@ begin
 	if (!ch5i.stb)	ch5wack <= 1'b0;
 	if (!ch6i.stb)	ch6wack <= 1'b0;
 	if (!ch7i.stb)	ch7wack <= 1'b0;
-	if (state==WRITE_DATA3)
+	if (state==mpmc10_pkg::WRITE_DATA3)
 		case(uch)
 		4'd0:	ch0wack <= 1'b1;
 		4'd1: ch1wack <= 1'b1;
@@ -517,7 +642,7 @@ mpmc10_cache_wb ucache1
 	.ch7hit(hit7)
 );
 
-mpmc10_strm_read_cache ustrm0
+mpmc10_strm_read_cache #(.WID(WID)) ustrm0
 (
 	.rst(rst),
 	.wclk(mem_ui_clk),
@@ -532,7 +657,7 @@ mpmc10_strm_read_cache ustrm0
 	.hit(ch0_hit_s)
 );
 
-mpmc10_strm_read_cache ustrm1
+mpmc10_strm_read_cache #(.WID(WID)) ustrm1
 (
 	.rst(rst),
 	.wclk(mem_ui_clk),
@@ -547,7 +672,7 @@ mpmc10_strm_read_cache ustrm1
 	.hit(ch1_hit_s)
 );
 
-mpmc10_strm_read_cache ustrm2
+mpmc10_strm_read_cache #(.WID(WID)) ustrm2
 (
 	.rst(rst),
 	.wclk(mem_ui_clk),
@@ -562,7 +687,7 @@ mpmc10_strm_read_cache ustrm2
 	.hit(ch2_hit_s)
 );
 
-mpmc10_strm_read_cache ustrm3
+mpmc10_strm_read_cache #(.WID(WID)) ustrm3
 (
 	.rst(rst),
 	.wclk(mem_ui_clk),
@@ -577,7 +702,7 @@ mpmc10_strm_read_cache ustrm3
 	.hit(ch3_hit_s)
 );
 
-mpmc10_strm_read_cache ustrm4
+mpmc10_strm_read_cache #(.WID(WID)) ustrm4
 (
 	.rst(rst),
 	.wclk(mem_ui_clk),
@@ -592,7 +717,7 @@ mpmc10_strm_read_cache ustrm4
 	.hit(ch4_hit_s)
 );
 
-mpmc10_strm_read_cache ustrm5
+mpmc10_strm_read_cache #(.WID(WID)) ustrm5
 (
 	.rst(rst),
 	.wclk(mem_ui_clk),
@@ -607,7 +732,7 @@ mpmc10_strm_read_cache ustrm5
 	.hit(ch5_hit_s)
 );
 
-mpmc10_strm_read_cache ustrm6
+mpmc10_strm_read_cache #(.WID(WID)) ustrm6
 (
 	.rst(rst),
 	.wclk(mem_ui_clk),
@@ -622,7 +747,7 @@ mpmc10_strm_read_cache ustrm6
 	.hit(ch6_hit_s)
 );
 
-mpmc10_strm_read_cache ustrm7
+mpmc10_strm_read_cache #(.WID(WID)) ustrm7
 (
 	.rst(rst),
 	.wclk(mem_ui_clk),
@@ -653,7 +778,7 @@ wire cd_sel;
 change_det #(.WID(8)) ucdsel (.rst(rst), .ce(1'b1), .clk(mem_ui_clk), .i(sel), .cd(cd_sel));
 
 always_comb	//ff @(posedge mem_ui_clk)
-	wr_fifo = |sel & ~almost_full & ~wr_rst_busy & cd_sel;
+	wr_fifo = |sel & ~almost_full & ~wr_rst_busy & ~rd_rst_busy & ~rst & cd_sel;
 
 roundRobin rr1
 (
@@ -707,9 +832,9 @@ always_comb
 always_comb
 	adr <= fifoo.padr;
 
-wire [2:0] app_addr3;	// dummy to make up 32-bits
+wire [1:0] app_addr3;	// dummy to make up 32-bits
 
-mpmc10_addr_gen uag1
+mpmc10_addr_gen #(.WID(WID)) uag1
 (
 	.rst(mem_ui_rst),
 	.clk(mem_ui_clk),
@@ -721,7 +846,7 @@ mpmc10_addr_gen uag1
 	.addr({app_addr3,app_addr})
 );
 
-mpmc10_waddr_gen uwag1
+mpmc10_waddr_gen #(.WID(WID)) uwag1
 (
 	.rst(mem_ui_rst),
 	.clk(mem_ui_clk),
@@ -733,34 +858,34 @@ mpmc10_waddr_gen uwag1
 	.addr(app_waddr)
 );
 
-mpmc10_mask_select unsks1
+mpmc10_mask_select #(.WID(WID)) unsks1
 (
 	.rst(mem_ui_rst),
 	.clk(mem_ui_clk),
 	.state(state),
 	.we(fifoo.we), 
-	.wmask(req_fifoo.sel[15:0]),
+	.wmask(req_fifoo.sel[WID/8-1:0]),
 	.mask(app_wdf_mask),
 	.mask2(mem_wdf_mask2)
 );
 
-wire [127:0] data128a;
-wire [127:0] data128b;
+wire [WID-1:0] data128a;
+wire [WID-1:0] data128b;
 
-mpmc10_data_select #(.WID(128)) uds1
+mpmc10_data_select #(.WID(WID)) uds1
 (
 	.clk(mem_ui_clk),
 	.state(state),
-	.dati1(req_fifoo.data1),
-	.dati2(req_fifoo.data2),
+	.dati1(req_fifoo.dat),
+	.dati2(req_fifoo.dat),
 	.dato1(data128a),
 	.dato2(data128b)
 );
 
 reg rmw_hit;
 reg rmw_ack;
-reg [127:0] opa, opa1, opb, opc, t1;
-reg [127:0] rmw_dat;
+reg [WID-1:0] opa, opa1, opb, opc, t1;
+reg [WID-1:0] rmw_dat;
 `ifdef SUPPORT_AMO
 always_comb
 	case(req_fifoo.cid)
@@ -774,10 +899,18 @@ always_comb
 	4'd7:	rmw_hit = hit7;
 	default:	rmw_hit = 1'b1;
 	endcase
+`ifdef WID256
+always_ff @(posedge mem_ui_clk)
+	opb <= data128a >> {req_fifoo.padr[5:0],3'b0};
+always_ff @(posedge mem_ui_clk)
+	opc <= data128b >> {req_fifoo.padr[5:0],3'b0};
+`endif
+`ifdef WID128
 always_ff @(posedge mem_ui_clk)
 	opb <= data128a >> {req_fifoo.padr[4:0],3'b0};
 always_ff @(posedge mem_ui_clk)
 	opc <= data128b >> {req_fifoo.padr[4:0],3'b0};
+`endif
 always_ff @(posedge mem_ui_clk)
 	case(req_fifoo.cid)
 	4'd0:	opa1 <= ch0oa.dat;
@@ -790,8 +923,14 @@ always_ff @(posedge mem_ui_clk)
 	4'd7:	opa1 <= ch7oa.dat;
 	default:	opa1 <= 'd0;
 	endcase
+`ifdef WID256
+always_ff @(posedge mem_ui_clk)
+	opa <= opa1 >> {req_fifoo.padr[5:0],3'b0};
+`endif
+`ifdef WID128
 always_ff @(posedge mem_ui_clk)
 	opa <= opa1 >> {req_fifoo.padr[4:0],3'b0};
+`endif
 always_ff @(posedge mem_ui_clk)
 case(req_fifoo.sz)
 `ifdef SUPPORT_AMO_TETRA
@@ -851,21 +990,27 @@ default:
 	wishbone_pkg::CMD_OR:		t1 <= opa[127:0] | opb[127:0];
 	wishbone_pkg::CMD_EOR:	t1 <= opa[127:0] ^ opb[127:0];
 `ifdef SUPPORT_AMO_SHIFT
-	CMD_ASL:	t1 <= {opa[126:0],1'b0};
-	CMD_LSR:	t1 <= {1'b0,opa[127:1]};
-	CMD_ROL:	t1 <= {opa[126:0],opa[127]};
-	CMD_ROR:	t1 <= {opa[0],opa[127:1]};
+	CMD_ASL:	t1 <= {opa[WID-2:0],1'b0};
+	CMD_LSR:	t1 <= {1'b0,opa[WID-1:1]};
+	CMD_ROL:	t1 <= {opa[126:0],opa[WID-1]};
+	CMD_ROR:	t1 <= {opa[0],opa[WID-1:1]};
 `endif
 `ifdef SUPPORT_AMO_MULTI_SHIFT	
-	CMD_ASL:	t1 <= opa[127:0] << opb[6:0];
-	CMD_LSR:	t1 <= opa[127:0] >> opb[6:0];
+`ifdef WID256
+	CMD_ASL:	t1 <= opa[WID-1:0] << opb[7:0];
+	CMD_LSR:	t1 <= opa[WID-1:0] >> opb[7:0];
 `endif	
-	wishbone_pkg::CMD_MINU:	t1 <= opa[127:0] < opb[127:0] ? opa[127:0] : opb[127:0];
-	wishbone_pkg::CMD_MAXU:	t1 <= opa[127:0] > opb[127:0] ? opa[127:0] : opb[127:0];
-	wishbone_pkg::CMD_MIN:	t1 <= $signed(opa[127:0]) < $signed(opb[127:0]) ? opa[127:0] : opb[127:0];
-	wishbone_pkg::CMD_MAX:	t1 <= $signed(opa[127:0]) > $signed(opb[127:0]) ? opa[127:0] : opb[127:0];
-	wishbone_pkg::CMD_CAS:	t1 <= opa[127:0]==opb[127:0] ? opc[127:0] : opb[127:0];
-	default:	t1 <= opa[127:0];
+`ifdef WID128
+	CMD_ASL:	t1 <= opa[WID-1:0] << opb[6:0];
+	CMD_LSR:	t1 <= opa[WID-1:0] >> opb[6:0];
+`endif	
+`endif
+	wishbone_pkg::CMD_MINU:	t1 <= opa[WID-1:0] < opb[WID-1:0] ? opa[WID-1:0] : opb[WID-1:0];
+	wishbone_pkg::CMD_MAXU:	t1 <= opa[WID-1:0] > opb[WID-1:0] ? opa[WID-1:0] : opb[WID-1:0];
+	wishbone_pkg::CMD_MIN:	t1 <= $signed(opa[WID-1:0]) < $signed(opb[WID-1:0]) ? opa[WID-1:0] : opb[WID-1:0];
+	wishbone_pkg::CMD_MAX:	t1 <= $signed(opa[WID-1:0]) > $signed(opb[WID-1:0]) ? opa[WID-1:0] : opb[WID-1:0];
+	wishbone_pkg::CMD_CAS:	t1 <= opa[WID-1:0]==opb[WID-1:0] ? opc[WID-1:0] : opb[WID-1:0];
+	default:	t1 <= opa[WID-1:0];
 	endcase
 endcase
 always_ff @(posedge mem_ui_clk)
@@ -883,7 +1028,7 @@ if (mem_ui_rst) begin
 	ch7oc.dat <= 'd0;
 end
 else begin
-if (state==WRITE_TRAMP1)
+if (state==mpmc10_pkg::WRITE_TRAMP1)
 	case(req_fifoo.cid)
 	4'd0:	ch0oc.dat <= opa;
 	4'd1:	ch1oc.dat <= opa;
@@ -900,9 +1045,9 @@ always_ff @(posedge mem_ui_clk)
 if (mem_ui_rst)
 	rmw_ack <= 1'b0;
 else begin
-	if (state==WRITE_TRAMP1)
+	if (state==mpmc10_pkg::WRITE_TRAMP1)
 		rmw_ack <= 1'b1;
-	else if (state==IDLE)
+	else if (state==mpmc10_pkg::IDLE)
 		rmw_ack <= 1'b0;
 end
 always_comb	ch0oc.ack = ch0i.stb & rmw_ack & rmw0 && req_fifoo.cid==4'd0;
@@ -917,9 +1062,9 @@ always_comb	ch7oc.ack = ch7i.stb & rmw_ack & rmw7 && req_fifoo.cid==4'd7;
 
 // Setting the data value. Unlike reads there is only a single strip involved.
 // Force unselected byte lanes to $FF
-reg [127:0] dat128x;
+reg [WID-1:0] dat128x;
 generate begin
-	for (g = 0; g < 16; g = g + 1)
+	for (g = 0; g < WID/8; g = g + 1)
 		always_comb
 			if (mem_wdf_mask2[g])
 				dat128x[g*8+7:g*8] = 8'hFF;
@@ -930,11 +1075,11 @@ endgenerate
 
 always_ff @(posedge mem_ui_clk)
 if (mem_ui_rst)
-  app_wdf_data <= 128'd0;
+  app_wdf_data <= {WID{1'd0}};
 else begin
-	if (state==PRESET3)
+	if (state==mpmc10_pkg::PRESET3)
 		app_wdf_data <= dat128x;
-	else if (state==WRITE_TRAMP1)
+	else if (state==mpmc10_pkg::WRITE_TRAMP1)
 		app_wdf_data <= rmw_dat;
 end
 
@@ -955,7 +1100,7 @@ if (rst)
 else begin
 	if (rd_fifo)
 		fifo_mask <= {$bits(fifo_mask){1'b1}};
-	else if (state==IDLE)
+	else if (state==mpmc10_pkg::IDLE)
 		fifo_mask <= 'd0;
 end
 

@@ -1,7 +1,7 @@
 `timescale 1ns / 1ps
 // ============================================================================
 //        __
-//   \\__/ o\    (C) 2015-2022  Robert Finch, Waterloo
+//   \\__/ o\    (C) 2015-2025  Robert Finch, Waterloo
 //    \  __ /    All rights reserved.
 //     \/_//     robfinch<remove>@finitron.ca
 //       ||
@@ -43,7 +43,7 @@ input mpmc10_state_t prev_state;
 output reg [15:0] to_cnt;
 
 always_ff @(posedge clk)
-if (state==IDLE) begin	// We can stay in the idle state as long as we like
+if (state==mpmc10_pkg::IDLE) begin	// We can stay in the idle state as long as we like
 	to_cnt <= 'd0;
 end
 else begin

@@ -1,7 +1,7 @@
 `timescale 1ns / 1ps
 // ============================================================================
 //        __
-//   \\__/ o\    (C) 2015-2022  Robert Finch, Waterloo
+//   \\__/ o\    (C) 2015-2025  Robert Finch, Waterloo
 //    \  __ /    All rights reserved.
 //     \/_//     robfinch<remove>@finitron.ca
 //       ||
@@ -37,6 +37,7 @@
 import mpmc10_pkg::*;
 
 module mpmc10_addr_gen(rst, clk, state, rdy, num_strips, strip_cnt, addr_base, addr);
+parameter WID=256;
 input rst;
 input clk;
 input mpmc10_state_t state;
@@ -48,12 +49,16 @@ output reg [31:0] addr;
 
 always_ff @(posedge clk)
 if (rst)
-	addr <= 32'h1FFFFFFF;
+	addr <= 32'h3FFFFFFF;
 else begin
-	if (state==PRESET2)
-		addr <= {addr_base[31:4],4'h0};
-	else if (state==READ_DATA1 && rdy && strip_cnt != num_strips)
-		addr[31:4] <= addr[31:4] + 2'd1;
+	if (state==mpmc10_pkg::PRESET2)
+		addr <= WID==256 ? {addr_base[31:5],5'h0} : {addr_base[31:4],4'h0};
+	else if (state==mpmc10_pkg::READ_DATA1 && rdy && strip_cnt != num_strips) begin
+		if (WID==256)
+			addr[31:5] <= addr[31:5] + 2'd1;
+		else
+			addr[31:4] <= addr[31:4] + 2'd1;
+	end
 	// Increment the address if we had to start a new burst.
 //	else if (state==WRITE_DATA3 && req_strip_cnt!=num_strips)
 //		app_addr <= app_addr + {req_strip_cnt,4'h0};	// works for only 1 missed burst

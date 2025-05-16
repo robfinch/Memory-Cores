@@ -342,6 +342,7 @@ generate begin : gReaddat
 	always_comb ch5o.rty = 1'b0;
 	always_comb ch6o.rty = 1'b0;
 	always_comb ch7o.rty = 1'b0;
+/*
 	always_comb ch0o.cid = ch0i.cid;
 	always_comb ch1o.cid = ch1i.cid;
 	always_comb ch2o.cid = ch2i.cid;
@@ -350,6 +351,7 @@ generate begin : gReaddat
 	always_comb ch5o.cid = ch5i.cid;
 	always_comb ch6o.cid = ch6i.cid;
 	always_comb ch7o.cid = ch7i.cid;
+*/
 	always_comb ch0o.tid = ch0i.tid;
 	always_comb ch1o.tid = ch1i.tid;
 	always_comb ch2o.tid = ch2i.tid;

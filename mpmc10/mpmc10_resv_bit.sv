@@ -1,7 +1,7 @@
 `timescale 1ns / 1ps
 // ============================================================================
 //        __
-//   \\__/ o\    (C) 2015-2022  Robert Finch, Waterloo
+//   \\__/ o\    (C) 2015-2025  Robert Finch, Waterloo
 //    \  __ /    All rights reserved.
 //     \/_//     robfinch<remove>@finitron.ca
 //       ||
@@ -50,7 +50,7 @@ output reg rb;
 
 integer n5;
 always_ff @(posedge clk)
-if (state==IDLE) begin
+if (state==mpmc10_pkg::IDLE) begin
   if (we) begin
     if (cr) begin
       rb <= 1'b0;

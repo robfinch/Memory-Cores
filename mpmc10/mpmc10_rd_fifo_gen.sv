@@ -1,7 +1,7 @@
 `timescale 1ns / 1ps
 // ============================================================================
 //        __
-//   \\__/ o\    (C) 2015-2022  Robert Finch, Waterloo
+//   \\__/ o\    (C) 2015-2025 Robert Finch, Waterloo
 //    \  __ /    All rights reserved.
 //     \/_//     robfinch<remove>@finitron.ca
 //       ||
@@ -56,7 +56,7 @@ if (rst)
 else begin
 	next_rd <= 1'b0;
 	case(state)
-	IDLE:
+	mpmc10_pkg::IDLE:
 		if (!empty && !rd_rst_busy && calib_complete)
 			next_rd <= 1'b1;
 	default:	;

@@ -1,7 +1,7 @@
 `timescale 1ns / 1ps
 // ============================================================================
 //        __
-//   \\__/ o\    (C) 2015-2023  Robert Finch, Waterloo
+//   \\__/ o\    (C) 2015-2025 Robert Finch, Waterloo
 //    \  __ /    All rights reserved.
 //     \/_//     robfinch<remove>@finitron.ca
 //       ||
@@ -39,16 +39,17 @@ import mpmc10_pkg::*;
 module mpmc10_strm_read_cache(rst, wclk, wr, wadr, wdat, inv,
 	rclk, rd, radr, rdat, hit
 );
+parameter WID=256;
 input rst;
 input wclk;
 input wr;
 input [31:0] wadr;
-input [127:0] wdat;
+input [WID-1:0] wdat;
 input inv;
 input rclk;
 input rd;
 input [31:0] radr;
-output [127:0] rdat;
+output [WID-1:0] rdat;
 output reg hit;
 
 (* ram_style="distributed" *)
@@ -63,7 +64,7 @@ xpm_memory_sdpram #(
   .ADDR_WIDTH_A(9),               // DECIMAL
   .ADDR_WIDTH_B(9),               // DECIMAL
   .AUTO_SLEEP_TIME(0),            // DECIMAL
-  .BYTE_WRITE_WIDTH_A(128),        // DECIMAL
+  .BYTE_WRITE_WIDTH_A(WID),        // DECIMAL
   .CASCADE_HEIGHT(0),             // DECIMAL
   .CLOCKING_MODE("independent_clock"), // String
   .ECC_MODE("no_ecc"),            // String
@@ -71,9 +72,9 @@ xpm_memory_sdpram #(
   .MEMORY_INIT_PARAM("0"),        // String
   .MEMORY_OPTIMIZATION("true"),   // String
   .MEMORY_PRIMITIVE("block"),      // String
-  .MEMORY_SIZE(512*128),             // DECIMAL
+  .MEMORY_SIZE(512*WID),             // DECIMAL
   .MESSAGE_CONTROL(0),            // DECIMAL
-  .READ_DATA_WIDTH_B(128),         // DECIMAL
+  .READ_DATA_WIDTH_B(WID),         // DECIMAL
   .READ_LATENCY_B(1),             // DECIMAL
   .READ_RESET_VALUE_B("0"),       // String
   .RST_MODE_A("SYNC"),            // String
@@ -82,7 +83,7 @@ xpm_memory_sdpram #(
   .USE_EMBEDDED_CONSTRAINT(0),    // DECIMAL
   .USE_MEM_INIT(1),               // DECIMAL
   .WAKEUP_TIME("disable_sleep"),  // String
-  .WRITE_DATA_WIDTH_A(128),        // DECIMAL
+  .WRITE_DATA_WIDTH_A(WID),        // DECIMAL
   .WRITE_MODE_B("no_change")      // String
 )
 xpm_memory_sdpram_inst (

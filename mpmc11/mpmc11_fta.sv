@@ -249,6 +249,7 @@ always_comb irst = rst||mem_ui_rst;
 
 wire [7:0] pe_req;
 reg [7:0] chack;
+reg [15:0] hitt;
 always_comb chack[0] = ch0.resp.ack;
 always_comb chack[1] = ch1.resp.ack;
 always_comb chack[2] = ch2.resp.ack;
@@ -257,6 +258,22 @@ always_comb chack[4] = ch4.resp.ack;
 always_comb chack[5] = ch5.resp.ack;
 always_comb chack[6] = ch6.resp.ack;
 always_comb chack[7] = ch7.resp.ack;
+always_comb hitt[0] = hit0;
+always_comb hitt[1] = hit1;
+always_comb hitt[2] = hit2;
+always_comb hitt[3] = hit3;
+always_comb hitt[4] = hit4;
+always_comb hitt[5] = hit5;
+always_comb hitt[6] = hit6;
+always_comb hitt[7] = hit7;
+always_comb hitt[8] = 1'b0;
+always_comb hitt[9] = 1'b0;
+always_comb hitt[10] = 1'b0;
+always_comb hitt[11] = 1'b0;
+always_comb hitt[12] = 1'b0;
+always_comb hitt[13] = 1'b0;
+always_comb hitt[14] = 1'b0;
+always_comb hitt[15] = 1'b0;
 
 wire [3:0] req_sel;
 
@@ -308,7 +325,12 @@ begin
 	ld.bte <= fta_bus_pkg::LINEAR;
 	ld.cti <= fta_bus_pkg::CLASSIC;
 	ld.blen <= 6'd0;
-	ld.cyc <= fifoo.req.cyc && !fifoo.req.we && rd_data_valid_r && (uport!=4'd0 && uport!=4'd5 && uport!=4'd15);
+	ld.cyc <= !hitt[uport] &&
+						 fifoo.req.cyc &&
+						 !fifoo.req.we &&
+						 rd_data_valid_r &&
+						 (uport!=4'd0 && uport!=4'd5 && uport!=4'd15)
+						 ;
 	ld.we <= 1'b0;
 	ld.adr <= {app_waddr[31:5],5'h0};
 	ld.data1 <= rd_data_r;
@@ -360,7 +382,7 @@ begin
 	chw[6] <= 1'b0;
 	chw[7] <= 1'b0;
 	if (state==WRITE_DATA3)
-		chw[uport] <= 1'b1;
+		chw[uport] <= req_fifoo.req.cti==ERC;
 end
 
 fta_bus_interface #(.DATA_WIDTH(256)) ch0_if();
@@ -440,7 +462,7 @@ wire [7:0] src_wr;
 
 generate begin : gStreamCache
 for (g = 0; g < 8; g = g + 1) begin
-if (PORT_PRESENT[g]) begin
+if (PORT_PRESENT[g] & STREAM[g]) begin
 	assign src_wr[g] = uport==g[3:0] && rd_data_valid_r;
 mpmc11_strm_read_fifo ustrm
 (

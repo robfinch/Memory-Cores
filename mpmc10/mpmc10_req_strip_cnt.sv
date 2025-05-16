@@ -1,7 +1,7 @@
 `timescale 1ns / 1ps
 // ============================================================================
 //        __
-//   \\__/ o\    (C) 2015-2022  Robert Finch, Waterloo
+//   \\__/ o\    (C) 2015-2025  Robert Finch, Waterloo
 //    \  __ /    All rights reserved.
 //     \/_//     robfinch<remove>@finitron.ca
 //       ||
@@ -48,20 +48,20 @@ output reg [5:0] strip_cnt;
 
 reg on;
 always_ff @(posedge clk)
-if (state==IDLE) begin
+if (state==mpmc10_pkg::IDLE) begin
 	strip_cnt <= 6'd0;
 	on <= 1'b0;
 end
 else begin
-	if (state==PRESET3)
+	if (state==mpmc10_pkg::PRESET3)
 		on <= 1'b1;
-	if (state==WRITE_DATA0 && wdf_rdy && on) begin
+	if (state==mpmc10_pkg::WRITE_DATA0 && wdf_rdy && on) begin
   	if (strip_cnt != num_strips)
     	strip_cnt <= strip_cnt + 3'd1;
     else
     	on <= 1'b0;
   end
-  else if (state==READ_DATA1 && rdy && on) begin
+  else if (state==mpmc10_pkg::READ_DATA1 && rdy && on) begin
   	if (strip_cnt != num_strips)
 	  	strip_cnt <= strip_cnt + 3'd1;
 	  else

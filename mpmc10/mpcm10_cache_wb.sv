@@ -1,7 +1,7 @@
 `timescale 1ns / 1ps
 // ============================================================================
 //        __
-//   \\__/ o\    (C) 2015-2023  Robert Finch, Waterloo
+//   \\__/ o\    (C) 2015-2025  Robert Finch, Waterloo
 //    \  __ /    All rights reserved.
 //     \/_//     robfinch<remove>@finitron.ca
 //       ||
@@ -40,10 +40,20 @@ import const_pkg::*;
 import wishbone_pkg::*;
 import mpmc10_pkg::*;
 
+`define WID256 1'b1;
+//`define WID128 1'b1;
+
 module mpmc10_cache_wb (input rst, wclk, inv, 
+`ifdef WID256
+	input wb_cmd_request256_t wchi, 
+	output wb_write_response_t wcho,
+	input wb_cmd_request256_t ld,
+`endif
+`ifdef WID128
 	input wb_cmd_request128_t wchi, 
 	output wb_write_response_t wcho,
 	input wb_cmd_request128_t ld,
+`endif
 	input ch0clk, 
 	input ch1clk, 
 	input ch2clk, 
@@ -52,6 +62,17 @@ module mpmc10_cache_wb (input rst, wclk, inv,
 	input ch5clk, 
 	input ch6clk, 
 	input ch7clk, 
+`ifdef WID256	
+	input wb_cmd_request256_t ch0i,
+	input wb_cmd_request256_t ch1i,
+	input wb_cmd_request256_t ch2i,
+	input wb_cmd_request256_t ch3i,
+	input wb_cmd_request256_t ch4i,
+	input wb_cmd_request256_t ch5i,
+	input wb_cmd_request256_t ch6i,
+	input wb_cmd_request256_t ch7i,
+`endif
+`ifdef WID128	
 	input wb_cmd_request128_t ch0i,
 	input wb_cmd_request128_t ch1i,
 	input wb_cmd_request128_t ch2i,
@@ -60,6 +81,7 @@ module mpmc10_cache_wb (input rst, wclk, inv,
 	input wb_cmd_request128_t ch5i,
 	input wb_cmd_request128_t ch6i,
 	input wb_cmd_request128_t ch7i,
+`endif
 	input ch0wack,
 	input ch1wack,
 	input ch2wack,
@@ -68,6 +90,17 @@ module mpmc10_cache_wb (input rst, wclk, inv,
 	input ch5wack,
 	input ch6wack,
 	input ch7wack,
+`ifdef WID256
+	output wb_cmd_response256_t ch0o,
+	output wb_cmd_response256_t ch1o,
+	output wb_cmd_response256_t ch2o,
+	output wb_cmd_response256_t ch3o,
+	output wb_cmd_response256_t ch4o,
+	output wb_cmd_response256_t ch5o,
+	output wb_cmd_response256_t ch6o,
+	output wb_cmd_response256_t ch7o,
+`endif	
+`ifdef WID128
 	output wb_cmd_response128_t ch0o,
 	output wb_cmd_response128_t ch1o,
 	output wb_cmd_response128_t ch2o,
@@ -76,6 +109,7 @@ module mpmc10_cache_wb (input rst, wclk, inv,
 	output wb_cmd_response128_t ch5o,
 	output wb_cmd_response128_t ch6o,
 	output wb_cmd_response128_t ch7o,
+`endif	
 	output reg ch0hit,
 	output reg ch1hit,
 	output reg ch2hit,
@@ -85,9 +119,10 @@ module mpmc10_cache_wb (input rst, wclk, inv,
 	output reg ch6hit,
 	output reg ch7hit
 );
+parameter WID=256;
 parameter DEP=1024;
-parameter LOBIT=4;
-parameter HIBIT=13;
+parameter LOBIT=WID==256?5:4;
+parameter HIBIT=WID==256?14:13;
 
 integer n,n2,n3,n4,n5;
 
@@ -98,13 +133,13 @@ reg [31:0] radrr [0:8];
 reg wchi_stb, wchi_stb_r;
 reg [15:0] wchi_sel;
 reg [31:0] wchi_adr, wchi_adr1;
-reg [127:0] wchi_dat;
+reg [WID-1:0] wchi_dat;
 
 mpmc10_quad_cache_line_t doutb [0:8];
 mpmc10_quad_cache_line_t wrdata, wdata;
 
 reg [31:0] wadr;
-reg [127:0] lddat1, lddat2;
+reg [WID-1:0] lddat1, lddat2;
 reg [31:0] wadr2;
 reg wstrb;
 reg [$clog2(CACHE_ASSOC)-1:0] wway;
@@ -173,7 +208,7 @@ always_comb rstb[8] <= ld.cyc ? ld.stb : wchi.stb;
 always_ff @(posedge wclk) wchi_stb_r <= wchi.stb;
 always_ff @(posedge wclk) wchi_stb <= wchi_stb_r;
 always_ff @(posedge wclk) wchi_sel <= wchi.sel;
-always_ff @(posedge wclk) wchi_dat <= wchi.data1;
+always_ff @(posedge wclk) wchi_dat <= wchi.dat;
 
 reg [8:0] rclkp;
 always_comb
@@ -366,15 +401,15 @@ always_comb wway = hit8a[0] ? 2'd0 : hit8a[1] ? 2'd1 : hit8a[2] ? 2'd2 : hit8a[3
 
 always_comb
 begin
-	ch0o.dat <= 'd0;
-	ch1o.dat <= 'd0;
-	ch2o.dat <= 'd0;
-	ch3o.dat <= 'd0;
-	ch4o.dat <= 'd0;
-	ch5o.dat <= 'd0;
-	ch6o.dat <= 'd0;
-	ch7o.dat <= 'd0;
-	wrdata <= 'd0;
+	ch0o.dat <= {WID{1'b0}};
+	ch1o.dat <= {WID{1'b0}};
+	ch2o.dat <= {WID{1'b0}};
+	ch3o.dat <= {WID{1'b0}};
+	ch4o.dat <= {WID{1'b0}};
+	ch5o.dat <= {WID{1'b0}};
+	ch6o.dat <= {WID{1'b0}};
+	ch7o.dat <= {WID{1'b0}};
+	wrdata <= {WID{1'b0}};
 	for (n2 = 0; n2 < CACHE_ASSOC; n2 = n2 + 1) begin
 		if (hit0a[n2]) ch0o.dat <= doutb[0].lines[n2];
 		if (hit1a[n2]) ch1o.dat <= doutb[1].lines[n2];
@@ -439,7 +474,7 @@ if (rst)
 else
 	wadr2 <= wadr;
 always_ff @(posedge wclk)
-	lddat1 <= ld.data1;
+	lddat1 <= ld.dat;
 always_ff @(posedge wclk)
 	lddat2 <= lddat1;
 always_ff @(posedge wclk)
@@ -497,7 +532,7 @@ generate begin : gWrData
 			wdata.lines[3].tag <= wrdata.lines[3].tag;
 		end
 	end
-	for (g = 0; g < 16; g = g + 1)
+	for (g = 0; g < WID/8; g = g + 1)
 	always_ff @(posedge wclk)
 		begin
 			if (ldcycd2) begin
