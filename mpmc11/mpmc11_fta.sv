@@ -91,6 +91,20 @@ parameter CACHE = 8'hDE;
 parameter STREAM = 8'h21;
 parameter RMW = 8'h82;
 
+fta_cmd_request256_t [7:0] chi;
+
+always_comb
+begin
+	ch0.tCopyRequest(chi[0]);
+	ch1.tCopyRequest(chi[1]);
+	ch2.tCopyRequest(chi[2]);
+	ch3.tCopyRequest(chi[3]);
+	ch4.tCopyRequest(chi[4]);
+	ch5.tCopyRequest(chi[5]);
+	ch6.tCopyRequest(chi[6]);
+	ch7.tCopyRequest(chi[7]);
+end
+
 fta_cmd_request256_t ch0i2;
 fta_cmd_request256_t ch1i2;
 fta_cmd_request256_t ch2i2;
@@ -99,16 +113,6 @@ fta_cmd_request256_t ch4i2;
 fta_cmd_request256_t ch5i2;
 fta_cmd_request256_t ch6i2;
 fta_cmd_request256_t ch7i2;
-fta_cmd_request256_t [7:0] chi;
-
-always_comb chi[0] = ch0.req;
-always_comb chi[1] = ch1.req;
-always_comb chi[2] = ch2.req;
-always_comb chi[3] = ch3.req;
-always_comb chi[4] = ch4.req;
-always_comb chi[5] = ch5.req;
-always_comb chi[6] = ch6.req;
-always_comb chi[7] = ch7.req;
 
 fta_cmd_response256_t ch0oa, ch0ob, ch0oc, ch0od;
 fta_cmd_response256_t ch1oa, ch1ob, ch1oc, ch1od;
@@ -147,14 +151,81 @@ reg rmw5;
 reg rmw6;
 reg rmw7;
 
-assign ch0.resp = STREAM[0] ? ch0ob : rmw0 ? ch0oc : CACHE[0] ? ch0oa : ch0od;
-assign ch1.resp = STREAM[1] ? ch1ob : rmw1 ? ch1oc : CACHE[1] ? ch1oa : ch1od;
-assign ch2.resp = STREAM[2] ? ch2ob : rmw2 ? ch2oc : CACHE[2] ? ch2oa : ch2od;
-assign ch3.resp = STREAM[3] ? ch3ob : rmw3 ? ch3oc : CACHE[3] ? ch3oa : ch3od;
-assign ch4.resp = STREAM[4] ? ch4ob : rmw4 ? ch4oc : CACHE[4] ? ch4oa : ch4od;
-assign ch5.resp = STREAM[5] ? ch5ob : rmw5 ? ch5oc : CACHE[5] ? ch5oa : ch5od;
-assign ch6.resp = STREAM[6] ? ch6ob : rmw6 ? ch6oc : CACHE[6] ? ch6oa : ch6od;
-assign ch7.resp = STREAM[7] ? ch7ob : rmw7 ? ch7oc : CACHE[7] ? ch7oa : ch7od;
+always_comb
+begin
+	if (STREAM[0])
+		ch0.tCopyResponse(ch0ob);
+	else if (rmw0)
+		ch0.tCopyResponse(ch0oc);
+	else if (CACHE[0])
+		ch0.tCopyResponse(ch0oa);
+	else
+		ch0.tCopyResponse(ch0od);
+
+	if (STREAM[1])
+		ch1.tCopyResponse(ch1ob);
+	else if (rmw1)
+		ch1.tCopyResponse(ch1oc);
+	else if (CACHE[1])
+		ch1.tCopyResponse(ch1oa);
+	else
+		ch1.tCopyResponse(ch1od);
+
+	if (STREAM[2])
+		ch2.tCopyResponse(ch2ob);
+	else if (rmw2)
+		ch2.tCopyResponse(ch2oc);
+	else if (CACHE[2])
+		ch2.tCopyResponse(ch2oa);
+	else
+		ch2.tCopyResponse(ch2od);
+
+	if (STREAM[3])
+		ch3.tCopyResponse(ch3ob);
+	else if (rmw3)
+		ch3.tCopyResponse(ch3oc);
+	else if (CACHE[3])
+		ch3.tCopyResponse(ch3oa);
+	else
+		ch3.tCopyResponse(ch3od);
+
+	if (STREAM[4])
+		ch4.tCopyResponse(ch4ob);
+	else if (rmw4)
+		ch4.tCopyResponse(ch4oc);
+	else if (CACHE[4])
+		ch4.tCopyResponse(ch4oa);
+	else
+		ch4.tCopyResponse(ch4od);
+
+	if (STREAM[5])
+		ch5.tCopyResponse(ch5ob);
+	else if (rmw5)
+		ch5.tCopyResponse(ch5oc);
+	else if (CACHE[5])
+		ch5.tCopyResponse(ch5oa);
+	else
+		ch5.tCopyResponse(ch5od);
+
+	if (STREAM[6])
+		ch6.tCopyResponse(ch6ob);
+	else if (rmw6)
+		ch6.tCopyResponse(ch6oc);
+	else if (CACHE[6])
+		ch6.tCopyResponse(ch6oa);
+	else
+		ch6.tCopyResponse(ch6od);
+
+	if (STREAM[7])
+		ch7.tCopyResponse(ch7ob);
+	else if (rmw7)
+		ch7.tCopyResponse(ch7oc);
+	else if (CACHE[7])
+		ch7.tCopyResponse(ch7oa);
+	else
+		ch7.tCopyResponse(ch7od);
+
+end
 
 mpmc11_fifoe_t [7:0] req_fifoi;
 mpmc11_fifoe_t [7:0] req_fifog;
@@ -394,6 +465,14 @@ fta_bus_interface #(.DATA_WIDTH(256)) ch5_if();
 fta_bus_interface #(.DATA_WIDTH(256)) ch6_if();
 fta_bus_interface #(.DATA_WIDTH(256)) ch7_if();
 
+assign ch0_if.rst = STREAM[0] ? 1'b0 : ch0.rst;
+assign ch1_if.rst = STREAM[1] ? 1'b0 : ch1.rst;
+assign ch2_if.rst = STREAM[2] ? 1'b0 : ch2.rst;
+assign ch3_if.rst = STREAM[3] ? 1'b0 : ch3.rst;
+assign ch4_if.rst = STREAM[4] ? 1'b0 : ch4.rst;
+assign ch5_if.rst = STREAM[5] ? 1'b0 : ch5.rst;
+assign ch6_if.rst = STREAM[6] ? 1'b0 : ch6.rst;
+assign ch7_if.rst = STREAM[7] ? 1'b0 : ch7.rst;
 assign ch0_if.clk = STREAM[0] ? 1'b0 : ch0.clk;
 assign ch1_if.clk = STREAM[1] ? 1'b0 : ch1.clk;
 assign ch2_if.clk = STREAM[2] ? 1'b0 : ch2.clk;
@@ -402,23 +481,27 @@ assign ch4_if.clk = STREAM[4] ? 1'b0 : ch4.clk;
 assign ch5_if.clk = STREAM[5] ? 1'b0 : ch5.clk;
 assign ch6_if.clk = STREAM[6] ? 1'b0 : ch6.clk;
 assign ch7_if.clk = STREAM[7] ? 1'b0 : ch7.clk;
-assign ch0_if.req = STREAM[0] ? {$bits(fta_cmd_request256_t){1'b0}} : ch0.req;
-assign ch1_if.req = STREAM[1] ? {$bits(fta_cmd_request256_t){1'b0}} : ch1.req;
-assign ch2_if.req = STREAM[2] ? {$bits(fta_cmd_request256_t){1'b0}} : ch2.req;
-assign ch3_if.req = STREAM[3] ? {$bits(fta_cmd_request256_t){1'b0}} : ch3.req;
-assign ch4_if.req = STREAM[4] ? {$bits(fta_cmd_request256_t){1'b0}} : ch4.req;
-assign ch5_if.req = STREAM[5] ? {$bits(fta_cmd_request256_t){1'b0}} : ch5.req;
-assign ch6_if.req = STREAM[6] ? {$bits(fta_cmd_request256_t){1'b0}} : ch6.req;
-assign ch7_if.req = STREAM[7] ? {$bits(fta_cmd_request256_t){1'b0}} : ch7.req;
 
-assign ch0oa = ch0_if.resp;
-assign ch1oa = ch1_if.resp;
-assign ch2oa = ch2_if.resp;
-assign ch3oa = ch3_if.resp;
-assign ch4oa = ch4_if.resp;
-assign ch5oa = ch5_if.resp;
-assign ch6oa = ch6_if.resp;
-assign ch7oa = ch7_if.resp;
+assign ch0_if.req = STREAM[0] ? 1000'd0 : ch0.req;
+assign ch1_if.req = STREAM[1] ? 1000'd0 : ch1.req;
+assign ch2_if.req = STREAM[2] ? 1000'd0 : ch2.req;
+assign ch3_if.req = STREAM[3] ? 1000'd0 : ch3.req;
+assign ch4_if.req = STREAM[4] ? 1000'd0 : ch4.req;
+assign ch5_if.req = STREAM[5] ? 1000'd0 : ch5.req;
+assign ch6_if.req = STREAM[6] ? 1000'd0 : ch6.req;
+assign ch7_if.req = STREAM[7] ? 1000'd0 : ch7.req;
+
+always_comb
+begin
+	ch0_if.tCopyResponseTo(ch0oa);
+	ch1_if.tCopyResponseTo(ch1oa);
+	ch2_if.tCopyResponseTo(ch2oa);
+	ch3_if.tCopyResponseTo(ch3oa);
+	ch4_if.tCopyResponseTo(ch4oa);
+	ch5_if.tCopyResponseTo(ch5oa);
+	ch6_if.tCopyResponseTo(ch6oa);
+	ch7_if.tCopyResponseTo(ch7oa);
+end
 
 mpmc11_cache_fta ucache1
 (
@@ -504,21 +587,21 @@ roundRobin rr1
 always_comb
 begin
 	req_fifoi[0].port <= 4'd0;
-	req_fifoi[0].req <= ch0.req;
 	req_fifoi[1].port <= 4'd1;
-	req_fifoi[1].req <= ch1.req;
 	req_fifoi[2].port <= 4'd2;
-	req_fifoi[2].req <= ch2.req;
 	req_fifoi[3].port <= 4'd3;
-	req_fifoi[3].req <= ch3.req;
 	req_fifoi[4].port <= 4'd4;
-	req_fifoi[4].req <= ch4.req;
 	req_fifoi[5].port <= 4'd5;
-	req_fifoi[5].req <= ch5.req;
 	req_fifoi[6].port <= 4'd6;
-	req_fifoi[6].req <= ch6.req;
 	req_fifoi[7].port <= 4'd7;
-	req_fifoi[7].req <= ch7.req;
+	ch0.tCopyRequest(req_fifoi[0].req);
+	ch1.tCopyRequest(req_fifoi[1].req);
+	ch2.tCopyRequest(req_fifoi[2].req);
+	ch3.tCopyRequest(req_fifoi[3].req);
+	ch4.tCopyRequest(req_fifoi[4].req);
+	ch5.tCopyRequest(req_fifoi[5].req);
+	ch6.tCopyRequest(req_fifoi[6].req);
+	ch7.tCopyRequest(req_fifoi[7].req);
 end
 
 // An asynchronous fifo is used at the input to allow the clock to be different
