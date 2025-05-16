@@ -1,6 +1,6 @@
 // ============================================================================
 //        __
-//   \\__/ o\    (C) 2018-2022  Robert Finch, Waterloo
+//   \\__/ o\    (C) 2018-2021  Robert Finch, Waterloo
 //    \  __ /    All rights reserved.
 //     \/_//     robfinch<remove>@finitron.ca
 //       ||
@@ -66,6 +66,7 @@ always_comb
 	memopi <= memo + adr_i[3:0];
 always_comb
 	memomi <= memo - adr_i[3:0];
+assign o = memo;
 
 wire pe_cs;
 edge_det ued1 (.rst(rst_i), .clk(clk_i), .ce(1'b1), .i(cs), .pe(pe_cs), .ne(), .ee());

@@ -84,13 +84,13 @@ wire clka = clk;
 wire clkb = clk;
 wire ena = 1'b1;
 wire enb = 1'b1;
-reg [8191:0] gate;		// gates 13 bits in a tid
+reg [8191:0] gate;		// gates 16 bits in a asid
 initial begin
 	for (n = 0; n < 8192; n = n + 1)
 		gate[n] = 1'b0;
 end
 reg gate_open;
-reg [12:0] tid_ndx;
+reg [15:0] tid_ndx;
 reg [27:0] tmp;
 reg [16:0] iadr;
 reg cs1,cs2,cs3,csb1,csb2;
@@ -239,8 +239,13 @@ else begin
 		if (~doutb[31]) begin
 			// and conforming or priv. match
 			if ((doutb[7:0]==8'h00 || doutb[7:0]==fta1.pl) 
-			&& (fta1.key[19:0]==doutb[27:8] || doutb[27:8]==20'h0)
-			&& fta1.seg==fta_bus_pkg::CODE) begin
+			&& (fta1.key[0]==doutb[27:8]
+				|| fta1.key[1]==doutb[27:8]
+				|| fta1.key[2]==doutb[27:8]
+				|| fta1.key[3]==doutb[27:8]
+				|| doutb[27:8]==20'h0)
+			//&& fta1.seg==fta_bus_pkg::CODE	// ToDo: enable bit
+			) begin
 				// allow through
 				fta_req_o <= fta1;
 				gate[fta1.tid] <= 1'b1;
@@ -248,7 +253,6 @@ else begin
 			else begin
 				// report back a priv error
 				gate[fta1.tid] <= 1'b0;
-				fta_resp_o.cid <= fta1.cid;
 				fta_resp_o.next <= 1'b0;
 				fta_resp_o.stall <= 1'b0;
 				fta_resp_o.pri <= 4'd7;
@@ -264,7 +268,11 @@ else begin
 		else begin
 			// and no priv required or priv. greater
 			if ((doutb[7:0]==8'h00 || doutb[7:0] <= fta1.pl)
-			&& (fta1.key[19:0]==doutb[27:8] || doutb[27:8]==20'h0)
+			&& (fta1.key[0]==doutb[27:8]
+				|| fta1.key[1]==doutb[27:8]
+				|| fta1.key[2]==doutb[27:8]
+				|| fta1.key[3]==doutb[27:8]
+				|| doutb[27:8]==20'h0)
 			&& fta1.seg!=fta_bus_pkg::CODE) begin
 				// allow through
 				fta_req_o <= fta1;
@@ -273,7 +281,6 @@ else begin
 			else begin
 				// report back a priv error
 				gate[fta1.tid] <= 1'b0;
-				fta_resp_o.cid <= fta1.cid;
 				fta_resp_o.next <= 1'b0;
 				fta_resp_o.stall <= 1'b0;
 				fta_resp_o.pri <= 4'd7;
@@ -288,7 +295,6 @@ else begin
 	end
 	// Request to read lot gate info.
 	else if (csb1) begin
-		fta_resp_o.cid <= fta1.cid;
 		fta_resp_o.next <= 1'b0;
 		fta_resp_o.stall <= 1'b0;
 		fta_resp_o.pri <= 4'd7;
@@ -301,7 +307,6 @@ else begin
 	end
 	// Request to read config info.
 	else if (cs_config2) begin
-		fta_resp_o.cid <= fta2.cid;
 		fta_resp_o.next <= 1'b0;
 		fta_resp_o.stall <= 1'b0;
 		fta_resp_o.pri <= 4'd7;

@@ -21,9 +21,10 @@
 //                                                                          
 // ============================================================================
 //
-module scratchmem(rst_i, clk_i, cyc_i, stb_i, ack_o, we_i, sel_i, adr_i, dat_i, dat_o);
+module scratchmem(rst_i, clk_i, cs_i, cyc_i, stb_i, ack_o, we_i, sel_i, adr_i, dat_i, dat_o);
 input rst_i;
 input clk_i;
+input cs_i;
 input cyc_i;
 input stb_i;
 output ack_o;
@@ -53,7 +54,7 @@ begin
 end
 end
 
-wire cs = cyc_i && stb_i && adr_i[31:14]==18'h00000;
+wire cs = cyc_i && stb_i && cs_i;
 
 reg rdy,rdy1;
 always @(posedge clk_i)

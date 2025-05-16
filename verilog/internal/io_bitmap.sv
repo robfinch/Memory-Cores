@@ -221,6 +221,6 @@ always_ff @(posedge clk_i)
 		dat_o <= 32'd0;
 
 always_ff @(posedge clk_i)
-	gate_o <= doutb[adr_i[12:8]] & enb;
+	gate_o <= enb;//doutb[adr_i[12:8]] & enb;
 			
 endmodule

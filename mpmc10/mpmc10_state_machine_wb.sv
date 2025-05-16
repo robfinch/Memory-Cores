@@ -36,6 +36,9 @@
 //
 import mpmc10_pkg::*;
 
+`define WID256 1'b1;
+//`define WID128 1'b1;
+
 module mpmc10_state_machine_wb(rst, clk, calib_complete, to, rdy, wdf_rdy, fifo_empty,
 	rd_rst_busy, fifo_out, state,
 	num_strips, req_strip_cnt, resp_strip_cnt, rd_data_valid, rmw_hit);
@@ -47,7 +50,12 @@ input rdy;
 input wdf_rdy;
 input fifo_empty;
 input rd_rst_busy;
+`ifdef WID256
+input wb_cmd_request256_t fifo_out;
+`endif
+`ifdef WID128
 input wb_cmd_request128_t fifo_out;
+`endif
 output mpmc10_state_t state;
 input [5:0] num_strips;
 input [5:0] req_strip_cnt;

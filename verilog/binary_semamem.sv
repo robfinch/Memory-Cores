@@ -68,6 +68,7 @@ ack_gen #(
 	.REGISTER_OUTPUT(1)
 ) uag1
 (
+	.rst_i(rst_i),
 	.clk_i(clk_i),
 	.ce_i(1'b1),
 	.rid_i('d0),
@@ -93,7 +94,7 @@ if (cs & we_i & ack_o)
 always_ff @(posedge clk_i)
 	casez(adr_i[13:12])
 	2'b00:	memi <= (~|memo) ? dat_i : memo;
-	2'b01:	memi <= (memo[23:0]==dat_i[23:0]) ? 32'd0 : memo;
+	2'b01:	memi <= (memo[31:0]==dat_i[31:0]) ? 32'd0 : memo;
 	2'b1?:	memi <= dat_i;
 	endcase
 
