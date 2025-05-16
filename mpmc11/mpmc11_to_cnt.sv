@@ -44,14 +44,16 @@ output reg [15:0] to_cnt;
 
 always_ff @(posedge clk)
 if (state==mpmc11_pkg::IDLE) begin	// We can stay in the idle state as long as we like
-	to_cnt <= 'd0;
+	to_cnt <= 16'd0;
 end
 else begin
 	if (state==prev_state) begin
 		to_cnt <= to_cnt+2'd1;
 		if (to_cnt[9])
-			to_cnt <= 'd0;
+			to_cnt <= 16'd0;
 	end
+	else
+		to_cnt <= 16'd0;
 end
 
 endmodule
