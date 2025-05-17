@@ -61,12 +61,12 @@ output app_en,
 output [2:0] app_cmd,
 output [29:0] app_addr,
 input app_rd_data_valid,
-output [31:0] app_wdf_mask,
-output reg [WIDX8-1:0] app_wdf_data,
+output [mpmc11_pkg::WIDX8/8-1:0] app_wdf_mask,
+output reg [mpmc11_pkg::WIDX8-1:0] app_wdf_data,
 input app_wdf_rdy,
 output app_wdf_wren,
 output app_wdf_end,
-input [WIDX8-1:0] app_rd_data,
+input [mpmc11_pkg::WIDX8-1:0] app_rd_data,
 input app_rd_data_end,
 output reg app_ref_req,
 input app_ref_ack,
@@ -89,7 +89,7 @@ parameter PORT_PRESENT = 8'hFF;
 parameter REFRESH_BIT = 4'd0;
 parameter CACHE = 8'hDE;
 parameter STREAM = 8'h21;
-parameter RMW = 8'h82;
+parameter RMW = 8'h02;
 
 fta_cmd_request256_t [7:0] chi;
 
@@ -434,7 +434,7 @@ integer n1,n2,n3;
 reg v;
 wire full;
 wire [7:0] empty;
-wire almost_full;
+wire [7:0] almost_full;
 wire [4:0] cnt;
 reg [7:0] rd_fifo;
 reg [7:0] wr_fifo;
@@ -447,15 +447,15 @@ wire [5:0] resp_burst_cnt;
 wire [15:0] tocnt;
 reg [31:0] adr;
 reg [3:0] uport;		// update port
-wire [31:0] wmask;
-wire [31:0] mem_wdf_mask2;
-reg [WIDX8-1:0] dat128;
-wire [WIDX8-1:0] dat256;
+wire [mpmc11_pkg::WIDX8/8-1:0] wmask;
+wire [mpmc11_pkg::WIDX8/8-1:0] mem_wdf_mask2;
+reg [mpmc11_pkg::WIDX8-1:0] dat128;
+wire [mpmc11_pkg::WIDX8-1:0] dat256;
 wire [3:0] resv_ch [0:NAR-1];
 wire [31:0] resv_adr [0:NAR-1];
 wire rb1;
 reg [7:0] req;
-reg [WIDX8-1:0] rd_data_r;
+reg [mpmc11_pkg::WIDX8-1:0] rd_data_r;
 reg rd_data_valid_r;
 reg cas_ok;
 
@@ -587,12 +587,13 @@ always_comb
 begin
 	ld.bte <= fta_bus_pkg::LINEAR;
 	ld.cti <= fta_bus_pkg::CLASSIC;
+	ld.cmd <= fta_bus_pkg::CMD_LOAD;
 	ld.blen <= 6'd0;
-	ld.cyc <= !hitt[uport] &&
+	ld.cyc <= //!hitt[uport] &&
 						 fifoo.req.cyc &&
 						 !fifoo.req.we &&
 						 rd_data_valid_r &&
-						 (uport!=4'd0 && uport!=4'd5 && uport!=4'd15)
+						 (!STREAM[uport] && uport!=4'd15)
 						 ;
 	ld.we <= 1'b0;
 	ld.adr <= {app_waddr[31:5],5'h0};
@@ -689,34 +690,42 @@ begin
 	ch0oa.adr = ch0_if.resp.adr;
 	ch0oa.dat = ch0_if.resp.dat;
 	ch0oa.ack = ch0_if.resp.ack;
+	ch0oa.rty = ch0_if.resp.rty;
 	ch1oa = 1000'd0;
 	ch1oa.adr = ch1_if.resp.adr;
 	ch1oa.dat = ch1_if.resp.dat;
 	ch1oa.ack = ch1_if.resp.ack;
+	ch1oa.rty = ch1_if.resp.rty;
 	ch2oa = 1000'd0;
 	ch2oa.adr = ch2_if.resp.adr;
 	ch2oa.dat = ch2_if.resp.dat;
 	ch2oa.ack = ch2_if.resp.ack;
+	ch2oa.rty = ch2_if.resp.rty;
 	ch3oa = 1000'd0;
 	ch3oa.adr = ch3_if.resp.adr;
 	ch3oa.dat = ch3_if.resp.dat;
 	ch3oa.ack = ch3_if.resp.ack;
+	ch3oa.rty = ch3_if.resp.rty;
 	ch4oa = 1000'd0;
 	ch4oa.adr = ch4_if.resp.adr;
 	ch4oa.dat = ch4_if.resp.dat;
 	ch4oa.ack = ch4_if.resp.ack;
+	ch4oa.rty = ch4_if.resp.rty;
 	ch5oa = 1000'd0;
 	ch5oa.adr = ch5_if.resp.adr;
 	ch5oa.dat = ch5_if.resp.dat;
 	ch5oa.ack = ch5_if.resp.ack;
+	ch5oa.rty = ch5_if.resp.rty;
 	ch6oa = 1000'd0;
 	ch6oa.adr = ch6_if.resp.adr;
 	ch6oa.dat = ch6_if.resp.dat;
 	ch6oa.ack = ch6_if.resp.ack;
+	ch6oa.rty = ch6_if.resp.rty;
 	ch7oa = 1000'd0;
 	ch7oa.adr = ch7_if.resp.adr;
 	ch7oa.dat = ch7_if.resp.dat;
 	ch7oa.ack = ch7_if.resp.ack;
+	ch7oa.rty = ch7_if.resp.rty;
 end
 
 mpmc11_cache_fta ucache1
@@ -727,6 +736,7 @@ mpmc11_cache_fta ucache1
 	.wchi(fifoo),
 	.wcho(),
 	.ld(ld),
+	.to(tocnt[8]),
 	.ch0(ch0_if),
 	.ch1(ch1_if),
 	.ch2(ch2_if),
@@ -768,11 +778,10 @@ mpmc11_strm_read_fifo ustrm
 	.rst(irst),
 	.wclk(mem_ui_clk),
 	.wr(src_wr[g]),
-	.wadr({app_waddr[31:5],5'h0}),
+	.wadr({app_waddr[31:5],5'h0}),	// only approximate
 	.wdat(rd_data_r),
 	.last_strip(resp_burst_cnt==burst_len),
 	.rclk(chclk[g]),
-	.req(chi[g]),
 	.resp(chob[g])
 );
 end else begin
@@ -908,11 +917,22 @@ mpmc11_asfifo_fta ufifo
 	.ocd(cd_fifo[g]),
 	.full(),
 	.empty(empty[g]),
-	.almost_full(),
+	.almost_full(almost_full[g]),
 	.rd_rst_busy(rd_rst_busy[g]),
 	.wr_rst_busy(wr_rst_busy[g]),
 	.cnt()
 );
+always_comb
+case(g)
+0:	ch0.resp.stall = almost_full[g];
+1:	ch1.resp.stall = almost_full[g];
+2:	ch2.resp.stall = almost_full[g];
+3:	ch3.resp.stall = almost_full[g];
+4:	ch4.resp.stall = almost_full[g];
+5:	ch5.resp.stall = almost_full[g];
+6:	ch6.resp.stall = almost_full[g];
+7:	ch7.resp.stall = almost_full[g];
+endcase
 // Make the change detect sticky until state machine reaches PRESET1.
 always_ff @(posedge mem_ui_clk)
 if (mem_ui_rst)
@@ -920,7 +940,7 @@ if (mem_ui_rst)
 else begin
 	if (cd_fifo[g])
 		lcd_fifo[g] <= req_fifog[g].req.cyc;
-	else if (state==PRESET1)
+	else if (state==mpmc11_pkg::PRESET1)
 		lcd_fifo[g] <= 1'b0;
 end
 always_ff @(posedge mem_ui_clk)
@@ -1028,8 +1048,8 @@ mpmc11_data_select #(.WID(256)) uds1
 reg rmw;
 reg rmw_hit;
 reg rmw_ack;
-reg [WIDX8-1:0] opa, opa1, opb, opc, t1;
-reg [WIDX8-1:0] rmw_dat;
+reg [mpmc11_pkg::WIDX8-1:0] opa, opa1, opb, opc, t1;
+reg [mpmc11_pkg::WIDX8-1:0] rmw_dat;
 `ifdef SUPPORT_AMO
 always_comb
 	case(req_fifoo.port)
@@ -1138,7 +1158,7 @@ default:
 	endcase
 endcase
 always_ff @(posedge mem_ui_clk)
-	rmw_dat <= t1 << {req_fifoo.req.padr[4:0],3'b0};
+	rmw_dat <= t1 << {req_fifoo.req.adr[4:0],3'b0};
 
 always_ff @(posedge mem_ui_clk)
 if (irst) begin
@@ -1222,9 +1242,9 @@ reg [WIDX8-1:0] dat128x;
 generate begin
 	for (g = 0; g < WIDX8/8; g = g + 1)
 		always_comb
-//			if (mem_wdf_mask2[g])
-//				dat128x[g*8+7:g*8] = 8'hFF;
-//			else
+			if (mem_wdf_mask2[g])
+				dat128x[g*8+7:g*8] = 8'hFF;
+			else
 				dat128x[g*8+7:g*8] = data128a[g*8+7:g*8];
 end
 endgenerate

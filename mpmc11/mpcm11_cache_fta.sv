@@ -40,10 +40,11 @@ import const_pkg::*;
 import fta_bus_pkg::*;
 import mpmc11_pkg::*;
 
-module mpmc11_cache_fta (input rst, wclk, inv, 
+module mpmc11_cache_fta (input rst, wclk, inv,
 	input fta_cmd_request256_t wchi, 
 	output fta_cmd_response256_t wcho,
 	input fta_cmd_request256_t ld,
+	input to,
 	fta_bus_interface.slave ch0,
 	fta_bus_interface.slave ch1,
 	fta_bus_interface.slave ch2,
@@ -72,6 +73,7 @@ module mpmc11_cache_fta (input rst, wclk, inv,
 parameter DEP=1024;
 parameter LOBIT=5;
 parameter HIBIT=14;
+parameter TAGLOBIT=15;
 parameter PORT_PRESENT=8'hFF;
 
 integer n,n2,n3,n4,n5;
@@ -287,15 +289,15 @@ generate begin : gReaddat
 		always_comb vbito7a[g] <= vbit[g][radrr[7][HIBIT:LOBIT]];
 		always_comb vbito8a[g] <= vbit[g][radrr[8][HIBIT:LOBIT]];
 		
-		always_ff @(posedge ch0.clk)	hit0a[g] = (doutb[0].lines[g].tag==radrr[0][31:LOBIT]) && (vbito0a[g]==1'b1);
-		always_ff @(posedge ch1.clk)	hit1a[g] = (doutb[1].lines[g].tag==radrr[1][31:LOBIT]) && (vbito1a[g]==1'b1);
-		always_ff @(posedge ch2.clk)	hit2a[g] = (doutb[2].lines[g].tag==radrr[2][31:LOBIT]) && (vbito2a[g]==1'b1);
-		always_ff @(posedge ch3.clk)	hit3a[g] = (doutb[3].lines[g].tag==radrr[3][31:LOBIT]) && (vbito3a[g]==1'b1);
-		always_ff @(posedge ch4.clk)	hit4a[g] = (doutb[4].lines[g].tag==radrr[4][31:LOBIT]) && (vbito4a[g]==1'b1);
-		always_ff @(posedge ch5.clk)	hit5a[g] = (doutb[5].lines[g].tag==radrr[5][31:LOBIT]) && (vbito5a[g]==1'b1);
-		always_ff @(posedge ch6.clk)	hit6a[g] = (doutb[6].lines[g].tag==radrr[6][31:LOBIT]) && (vbito6a[g]==1'b1);
-		always_ff @(posedge ch7.clk)	hit7a[g] = (doutb[7].lines[g].tag==radrr[7][31:LOBIT]) && (vbito7a[g]==1'b1);
-		always_ff @(posedge wclk)	hit8a[g] = (doutb[8].lines[g].tag==radrr[8][31:LOBIT]) && (vbito8a[g]==1'b1);
+		always_ff @(posedge ch0.clk)	hit0a[g] = (doutb[0].lines[g].tag==radrr[0][31:TAGLOBIT]) && (vbito0a[g]==1'b1);
+		always_ff @(posedge ch1.clk)	hit1a[g] = (doutb[1].lines[g].tag==radrr[1][31:TAGLOBIT]) && (vbito1a[g]==1'b1);
+		always_ff @(posedge ch2.clk)	hit2a[g] = (doutb[2].lines[g].tag==radrr[2][31:TAGLOBIT]) && (vbito2a[g]==1'b1);
+		always_ff @(posedge ch3.clk)	hit3a[g] = (doutb[3].lines[g].tag==radrr[3][31:TAGLOBIT]) && (vbito3a[g]==1'b1);
+		always_ff @(posedge ch4.clk)	hit4a[g] = (doutb[4].lines[g].tag==radrr[4][31:TAGLOBIT]) && (vbito4a[g]==1'b1);
+		always_ff @(posedge ch5.clk)	hit5a[g] = (doutb[5].lines[g].tag==radrr[5][31:TAGLOBIT]) && (vbito5a[g]==1'b1);
+		always_ff @(posedge ch6.clk)	hit6a[g] = (doutb[6].lines[g].tag==radrr[6][31:TAGLOBIT]) && (vbito6a[g]==1'b1);
+		always_ff @(posedge ch7.clk)	hit7a[g] = (doutb[7].lines[g].tag==radrr[7][31:TAGLOBIT]) && (vbito7a[g]==1'b1);
+		always_ff @(posedge wclk)	hit8a[g] = (doutb[8].lines[g].tag==radrr[8][31:TAGLOBIT]) && (vbito8a[g]==1'b1);
 	end
 	always_comb ch0hit = |hit0a & stb0;
 	always_comb ch1hit = |hit1a & stb1;
@@ -305,14 +307,14 @@ generate begin : gReaddat
 	always_comb ch5hit = |hit5a & stb5;
 	always_comb ch6hit = |hit6a & stb6;
 	always_comb ch7hit = |hit7a & stb7;
-	always_comb ch0.resp.ack = (|hit0a && stb0 && (ch0.req.cmd==fta_bus_pkg::CMD_LOAD||ch0.req.cmd==fta_bus_pkg::CMD_LOADZ)) | (ch0wack & stb0);
-	always_comb ch1.resp.ack = (|hit1a && stb1 && (ch1.req.cmd==fta_bus_pkg::CMD_LOAD||ch1.req.cmd==fta_bus_pkg::CMD_LOADZ)) | (ch1wack & stb1);
-	always_comb ch2.resp.ack = (|hit2a && stb2 && (ch2.req.cmd==fta_bus_pkg::CMD_LOAD||ch2.req.cmd==fta_bus_pkg::CMD_LOADZ)) | (ch2wack & stb2);
-	always_comb ch3.resp.ack = (|hit3a && stb3 && (ch3.req.cmd==fta_bus_pkg::CMD_LOAD||ch3.req.cmd==fta_bus_pkg::CMD_LOADZ)) | (ch3wack & stb3);
-	always_comb ch4.resp.ack = (|hit4a && stb4 && (ch4.req.cmd==fta_bus_pkg::CMD_LOAD||ch4.req.cmd==fta_bus_pkg::CMD_LOADZ)) | (ch4wack & stb4);
-	always_comb ch5.resp.ack = (|hit5a && stb5 && (ch5.req.cmd==fta_bus_pkg::CMD_LOAD||ch5.req.cmd==fta_bus_pkg::CMD_LOADZ)) | (ch5wack & stb5);
-	always_comb ch6.resp.ack = (|hit6a && stb6 && (ch6.req.cmd==fta_bus_pkg::CMD_LOAD||ch6.req.cmd==fta_bus_pkg::CMD_LOADZ)) | (ch6wack & stb6);
-	always_comb ch7.resp.ack = (|hit7a && stb7 && (ch7.req.cmd==fta_bus_pkg::CMD_LOAD||ch7.req.cmd==fta_bus_pkg::CMD_LOADZ)) | (ch7wack & stb7);
+	always_comb ch0.resp.ack = (|hit0a && stb0 && (ch0.req.cmd==fta_bus_pkg::CMD_LOAD||ch0.req.cmd==fta_bus_pkg::CMD_LOADZ)) | ((ch0wack) & stb0);
+	always_comb ch1.resp.ack = (|hit1a && stb1 && (ch1.req.cmd==fta_bus_pkg::CMD_LOAD||ch1.req.cmd==fta_bus_pkg::CMD_LOADZ)) | ((ch1wack) & stb1);
+	always_comb ch2.resp.ack = (|hit2a && stb2 && (ch2.req.cmd==fta_bus_pkg::CMD_LOAD||ch2.req.cmd==fta_bus_pkg::CMD_LOADZ)) | ((ch2wack) & stb2);
+	always_comb ch3.resp.ack = (|hit3a && stb3 && (ch3.req.cmd==fta_bus_pkg::CMD_LOAD||ch3.req.cmd==fta_bus_pkg::CMD_LOADZ)) | ((ch3wack) & stb3);
+	always_comb ch4.resp.ack = (|hit4a && stb4 && (ch4.req.cmd==fta_bus_pkg::CMD_LOAD||ch4.req.cmd==fta_bus_pkg::CMD_LOADZ)) | ((ch4wack) & stb4);
+	always_comb ch5.resp.ack = (|hit5a && stb5 && (ch5.req.cmd==fta_bus_pkg::CMD_LOAD||ch5.req.cmd==fta_bus_pkg::CMD_LOADZ)) | ((ch5wack) & stb5);
+	always_comb ch6.resp.ack = (|hit6a && stb6 && (ch6.req.cmd==fta_bus_pkg::CMD_LOAD||ch6.req.cmd==fta_bus_pkg::CMD_LOADZ)) | ((ch6wack) & stb6);
+	always_comb ch7.resp.ack = (|hit7a && stb7 && (ch7.req.cmd==fta_bus_pkg::CMD_LOAD||ch7.req.cmd==fta_bus_pkg::CMD_LOADZ)) | ((ch7wack) & stb7);
 	always_comb ch0.resp.err = fta_bus_pkg::OKAY;
 	always_comb ch1.resp.err = fta_bus_pkg::OKAY;
 	always_comb ch2.resp.err = fta_bus_pkg::OKAY;
@@ -321,14 +323,14 @@ generate begin : gReaddat
 	always_comb ch5.resp.err = fta_bus_pkg::OKAY;
 	always_comb ch6.resp.err = fta_bus_pkg::OKAY;
 	always_comb ch7.resp.err = fta_bus_pkg::OKAY;
-	always_comb ch0.resp.rty = 1'b0;
-	always_comb ch1.resp.rty = 1'b0;
-	always_comb ch2.resp.rty = 1'b0;
-	always_comb ch3.resp.rty = 1'b0;
-	always_comb ch4.resp.rty = 1'b0;
-	always_comb ch5.resp.rty = 1'b0;
-	always_comb ch6.resp.rty = 1'b0;
-	always_comb ch7.resp.rty = 1'b0;
+	always_comb ch0.resp.rty = stb0 & to;
+	always_comb ch1.resp.rty = stb1 & to;
+	always_comb ch2.resp.rty = stb2 & to;
+	always_comb ch3.resp.rty = stb3 & to;
+	always_comb ch4.resp.rty = stb4 & to;
+	always_comb ch5.resp.rty = stb5 & to;
+	always_comb ch6.resp.rty = stb6 & to;
+	always_comb ch7.resp.rty = stb7 & to;
 /*
 	always_comb ch0.resp.cid = ch0i.cid;
 	always_comb ch1.resp.cid = ch1i.cid;
@@ -437,14 +439,14 @@ always_ff @(posedge wclk)
 // For a load due to a read miss the entire line is updated.
 // For a write hit, just the portion of the line corresponding to the hit is
 // updated.
-reg [18:0] t0,t1,t2;
+reg [16:0] t0,t1,t2;
 reg m0,m1,m2;
 generate begin : gWrData
 	// LRU update
 	always_ff @(posedge wclk)
 	begin
 		if (ldcycd2) begin
-			wdata.lines[0].tag <= wadr2[31:LOBIT];			// set tag
+			wdata.lines[0].tag <= wadr2[31:TAGLOBIT];			// set tag
 			wdata.lines[1].tag <= t0;
 			wdata.lines[2].tag <= t1;
 			wdata.lines[3].tag <= t2;

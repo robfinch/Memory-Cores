@@ -37,7 +37,7 @@
 import const_pkg::*;
 import mpmc11_pkg::*;
 
-module mpmc11_strm_read_fifo(rst, wclk, wr, wadr, wdat, last_strip, rclk, req, resp);
+module mpmc11_strm_read_fifo(rst, wclk, wr, wadr, wdat, last_strip, rclk, resp);
 input rst;
 input wclk;
 input wr;
@@ -45,7 +45,6 @@ input [31:0] wadr;
 input [WIDX8-1:0] wdat;
 input last_strip;
 input rclk;
-input fta_cmd_request256_t req;
 output fta_cmd_response256_t resp;
 
 fta_cmd_response256_t resp1;

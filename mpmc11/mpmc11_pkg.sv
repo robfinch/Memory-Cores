@@ -1,6 +1,6 @@
 // ============================================================================
 //        __
-//   \\__/ o\    (C) 2022-2024  Robert Finch, Waterloo
+//   \\__/ o\    (C) 2022-2025  Robert Finch, Waterloo
 //    \  __ /    All rights reserved.
 //     \/_//     robfinch<remove>@finitron.ca
 //       ||
@@ -72,7 +72,7 @@ typedef enum logic [4:0] {
 
 typedef struct packed
 {
-	logic [31:5] tag;
+	logic [31:15] tag;
 	logic modified;
 	logic [WIDX8-1:0] data;
 } mpmc11_cache_line_t;
