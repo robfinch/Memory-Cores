@@ -36,13 +36,14 @@
 //
 import mpmc11_pkg::*;
 
-module mpmc11_addr_gen(rst, clk, state, rdy, burst_len, burst_cnt, addr_base, addr);
+module mpmc11_addr_gen(rst, clk, state, rdy, wdf_rdy, burst_len, burst_cnt, addr_base, addr);
 parameter WID=256;
 localparam INC_AMT = WID/8;
 input rst;
 input clk;
 input mpmc11_state_t state;
 input rdy;
+input wdf_rdy;
 input [5:0] burst_len;
 input [5:0] burst_cnt;
 input [31:0] addr_base;
@@ -63,6 +64,11 @@ mpmc11_pkg::READ_DATA0:
 		next_addr = addr;
 mpmc11_pkg::READ_DATA2:
 	if (rdy)
+		next_addr = burst_len==6'd0 ? addr : addr + INC_AMT;
+	else
+		next_addr = addr;
+mpmc11_pkg::WRITE_DATA1:
+	if (wdf_rdy & rdy)
 		next_addr = burst_len==6'd0 ? addr : addr + INC_AMT;
 	else
 		next_addr = addr;

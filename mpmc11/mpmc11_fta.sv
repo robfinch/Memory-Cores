@@ -441,7 +441,7 @@ begin
 		ch7.resp.ack = ch7oc.ack;
 	end
 	*/
-	else if (CACHE[7]) begin
+	else if (ch7.req.adr[31:30]==2'b10) begin
 		ch7.resp = 1000'd0;
 		ch7.resp.tid = ch7oa.tid;
 		ch7.resp.adr = ch7oa.adr;
@@ -968,7 +968,8 @@ reg [8:0] lcd_fifo;					// latched change detect
 generate begin : gInputFifos
 for (g = 0; g < 9; g = g + 1) begin
 assign reqo[g] = !empty[g];//req_fifog[g].req.cyc;
-always_comb wr_fifo[g] = req_fifoi[g].req.cyc && (!CACHE[g]||req_fifoi[g].req.we);
+always_comb wr_fifo[g] = req_fifoi[g].req.cyc && ((!CACHE[g]&&!(g==4'd7 &&
+    req_fifoi[g].req.adr[31:30]==2'b10))||req_fifoi[g].req.we);
 always_comb rd_fifo[g] = sel[g] & rd_fifo_sm[g];
 
 if (PORT_PRESENT[g] || g==4'd8) begin
@@ -1068,6 +1069,7 @@ mpmc11_addr_gen uag1
 	.clk(mem_ui_clk),
 	.state(state),
 	.rdy(app_rdy),
+	.wdf_rdy(app_wdf_rdy),
 	.burst_len(burst_len),
 	.burst_cnt(req_burst_cnt),
 	.addr_base(adr),

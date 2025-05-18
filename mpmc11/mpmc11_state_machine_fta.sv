@@ -121,7 +121,7 @@ else begin
 		next_state = WRITE_DATA1;
 	// Write data fifo first, done when wdf_rdy is high
 	WRITE_DATA1:	// set app_en high
-		if (wdf_rdy & rdy)// && req_burst_cnt==burst_len)
+		if (wdf_rdy & rdy && req_burst_cnt==burst_len)
 			next_state = mpmc11_pkg::IDLE;
 //			next_state = WRITE_DATA2;
 		else

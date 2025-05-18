@@ -202,7 +202,7 @@ genvar gway,gport;
 
 generate begin : gCacheRAM
 	for (gport = 0; gport < 9; gport = gport + 1) begin
-if (PORT_PRESENT[gport] || gport==9) begin
+if (PORT_PRESENT[gport] || gport==8) begin
 	xpm_memory_sdpram #(
 		.ADDR_WIDTH_A($clog2(DEP)),
 		.ADDR_WIDTH_B($clog2(DEP)),
@@ -388,6 +388,18 @@ else begin
 		miss.tid <= ch2.req.tid;
 		miss.adr <= ch2.req.adr;
 	end
+	else if (rstb[3] & ~rstb4[3] & ~ch3hit & ~ch3.req.we) begin
+		rstb4[3] <= 1'b1;
+		miss.cyc <= HIGH;
+		miss.tid <= ch3.req.tid;
+		miss.adr <= ch3.req.adr;
+	end
+	else if (rstb[6] & ~rstb4[6] & ~ch6hit & ~ch6.req.we) begin
+		rstb4[6] <= 1'b1;
+		miss.cyc <= HIGH;
+		miss.tid <= ch6.req.tid;
+		miss.adr <= ch6.req.adr;
+	end
 	else if (rstb[7] & ~rstb4[7] & ~ch7hit & ~ch7.req.we) begin
 		rstb4[7] <= 1'b1;
 		miss.cyc <= HIGH;
@@ -397,6 +409,8 @@ else begin
 	if (ch0hit) rstb4[0] <= 1'b0;
 	if (ch1hit) rstb4[1] <= 1'b0;
 	if (ch2hit) rstb4[2] <= 1'b0;
+	if (ch3hit) rstb4[3] <= 1'b0;
+	if (ch6hit) rstb4[6] <= 1'b0;
 	if (ch7hit) rstb4[7] <= 1'b0;
 end
 
@@ -414,17 +428,17 @@ begin
 	ch7.resp.dat <= 256'd0;
 	wrdata <= 256'd0;
 	for (n2 = 0; n2 < CACHE_ASSOC; n2 = n2 + 1) begin
-		if (hit0a[n2]) ch0.resp.dat <= doutb[0].lines[n2];
-		if (hit1a[n2]) ch1.resp.dat <= doutb[1].lines[n2];
-		if (hit2a[n2]) ch2.resp.dat <= doutb[2].lines[n2];
-		if (hit3a[n2]) ch3.resp.dat <= doutb[3].lines[n2];
-		if (hit4a[n2]) ch4.resp.dat <= doutb[4].lines[n2];
-		if (hit5a[n2]) ch5.resp.dat <= doutb[5].lines[n2];
-		if (hit6a[n2]) ch6.resp.dat <= doutb[6].lines[n2];
-		if (hit7a[n2]) ch7.resp.dat <= doutb[7].lines[n2];
+		if (hit0a[n2]) ch0.resp.dat <= doutb[0].lines[n2].data;
+		if (hit1a[n2]) ch1.resp.dat <= doutb[1].lines[n2].data;
+		if (hit2a[n2]) ch2.resp.dat <= doutb[2].lines[n2].data;
+		if (hit3a[n2]) ch3.resp.dat <= doutb[3].lines[n2].data;
+		if (hit4a[n2]) ch4.resp.dat <= doutb[4].lines[n2].data;
+		if (hit5a[n2]) ch5.resp.dat <= doutb[5].lines[n2].data;
+		if (hit6a[n2]) ch6.resp.dat <= doutb[6].lines[n2].data;
+		if (hit7a[n2]) ch7.resp.dat <= doutb[7].lines[n2].data;
+		if (hit8a[n2]) wrdata <= doutb[8].lines[n2].data;
 	end
 //	if (|hit8a)
-		wrdata <= doutb[8];
 end
 
 reg b0,b1,b2;

@@ -45,8 +45,6 @@ input [5:0] burst_cnt;
 input [5:0] burst_len;
 output reg wend;
 
-// Writes are not done in bursts in the system. So, every write cycle is the
-// last cycle of the burst.
-assign wend = (state==mpmc11_pkg::PRESET3 || state==mpmc11_pkg::WRITE_DATA1); /*&& rdy && wdf_rdy && (burst_cnt==burst_len); */
+assign wend = (state==mpmc11_pkg::PRESET3 || state==mpmc11_pkg::WRITE_DATA1) /*&& rdy && wdf_rdy*/ && (burst_cnt==burst_len);
 
 endmodule

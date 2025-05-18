@@ -56,7 +56,7 @@ else begin
 	case(state)
 	mpmc11_pkg::PRESET3:
 		on <= 1'b1;
-	mpmc11_pkg::WRITE_DATA0:
+	mpmc11_pkg::WRITE_DATA1:
 		if (wdf_rdy && rdy && on) begin
 	  	if (burst_cnt <= burst_len)
 	    	burst_cnt <= burst_cnt + 3'd1;
