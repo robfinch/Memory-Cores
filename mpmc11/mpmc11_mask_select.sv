@@ -1,7 +1,7 @@
 `timescale 1ns / 1ps
 // ============================================================================
 //        __
-//   \\__/ o\    (C) 2015-2024  Robert Finch, Waterloo
+//   \\__/ o\    (C) 2015-2025  Robert Finch, Waterloo
 //    \  __ /    All rights reserved.
 //     \/_//     robfinch<remove>@finitron.ca
 //       ||
@@ -36,25 +36,25 @@
 //
 import mpmc11_pkg::*;
 
-module mpmc11_mask_select(rst, clk, state, we, wmask, mask, mask2);
+module mpmc11_mask_select(rst, clk, state, we, wmask, mask);
+parameter WID=256;
 input rst;
 input clk;
 input mpmc11_state_t state;
 input we;
-input [31:0] wmask;
-output reg [31:0] mask;
-output reg [31:0] mask2;
+input [WID/8-1:0] wmask;
+output reg [WID/8-1:0] mask;
 
 // Setting the data mask. Values are enabled when the data mask is zero.
 always_ff @(posedge clk)
 if (rst)
-  mask <= 32'h0000;
+  mask <= {WID/8{1'b0}};
 else begin
-	if (state==PRESET3)
-		mask <= we ? ~wmask : 32'h0000;
+	if (state==mpmc11_pkg::PRESET2)
+		mask <= ~wmask & {WID/8{we}};
 	// For RMW cycle all bytes are writtten.
-	else if (state==WRITE_TRAMP1)
-		mask <= 32'h0000;
+	else if (state==mpmc11_pkg::WRITE_TRAMP1)
+		mask <= {WID/8{1'b0}};
 end
 
 endmodule

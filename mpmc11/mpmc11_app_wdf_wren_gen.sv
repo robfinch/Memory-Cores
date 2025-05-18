@@ -37,7 +37,7 @@
 import mpmc11_pkg::*;
 
 module mpmc11_app_wdf_wren_gen(clk, state, rdy, wdf_rdy, wren);
-input clk;
+input clk;		// Not  used
 input mpmc11_state_t state;
 input rdy;
 input wdf_rdy;
@@ -45,13 +45,6 @@ output reg wren;
 
 // app_wdf_wren is used to strobe data into the data fifo when app_wdf_rdy is 
 // true. It is before en is asserted to set the command and address.
-reg wren1;
-always_ff @(posedge clk)
-begin
-	wren1 <= 1'b0;
-	if (state==WRITE_DATA0 && rdy)// WRITE_DATA0 && rdy)
-		wren1 <= 1'b1;
-end
-always_comb wren = (state==WRITE_DATA1) & rdy & wdf_rdy;
+always_comb wren = (state==mpmc11_pkg::WRITE_DATA1) & rdy & wdf_rdy;
  
 endmodule

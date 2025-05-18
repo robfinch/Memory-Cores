@@ -68,13 +68,14 @@ module mpmc11_cache_fta (input rst, wclk, inv,
 	output reg ch4hit,
 	output reg ch5hit,
 	output reg ch6hit,
-	output reg ch7hit
+	output reg ch7hit,
+	output fta_cmd_request256_t miss
 );
 parameter DEP=1024;
 parameter LOBIT=5;
 parameter HIBIT=14;
 parameter TAGLOBIT=15;
-parameter PORT_PRESENT=8'hFF;
+parameter PORT_PRESENT=9'h1FF;
 
 integer n,n2,n3,n4,n5;
 
@@ -123,7 +124,7 @@ reg stb4;
 reg stb5;
 reg stb6;
 reg stb7;
-reg [8:0] rstb;
+reg [8:0] rstb,rstb2,rstb3,rstb4;
 
 always_ff @(posedge ch0.clk) radrr[0] <= ch0.req.adr;
 always_ff @(posedge ch1.clk) radrr[1] <= ch1.req.adr;
@@ -145,6 +146,11 @@ always_ff @(posedge ch4.clk) stb4 <= ch4.req.cyc;
 always_ff @(posedge ch5.clk) stb5 <= ch5.req.cyc;
 always_ff @(posedge ch6.clk) stb6 <= ch6.req.cyc;
 always_ff @(posedge ch7.clk) stb7 <= ch7.req.cyc;
+
+always_ff @(posedge wclk)
+	rstb2 <= rstb;
+always_ff @(posedge wclk)
+	rstb3 <= rstb2;
 
 always_comb rstb[0] <= ch0.req.cyc & ~ch0.req.we;
 always_comb rstb[1] <= ch1.req.cyc & ~ch1.req.we;
@@ -236,7 +242,7 @@ if (PORT_PRESENT[gport] || gport==9) begin
 		.clka(wclk),                 // 1-bit input: Clock signal for port A. Also clocks port B when
 		                                 // parameter CLOCKING_MODE is "common_clock".
 
-		.clkb(rclkp[gport]),                     // 1-bit input: Clock signal for port B when parameter CLOCKING_MODE is
+		.clkb(wclk),//rclkp[gport]),                     // 1-bit input: Clock signal for port B when parameter CLOCKING_MODE is
 		                                 // "independent_clock". Unused when parameter CLOCKING_MODE is
 		                                 // "common_clock".
 
@@ -351,6 +357,48 @@ generate begin : gReaddat
 	always_comb ch7.resp.tid = ch7.req.tid;
 end
 endgenerate
+
+always_comb miss.bte = fta_bus_pkg::LINEAR;
+always_comb miss.cti = fta_bus_pkg::CLASSIC;
+always_comb miss.cmd = fta_bus_pkg::CMD_LOAD;
+always_comb miss.blen = 6'd0;
+always_comb miss.we = 1'b0;
+always_comb miss.sel = {32{1'b1}};
+
+always_ff @(posedge wclk)
+if (rst)
+	rstb4 <= 8'h00;
+else begin
+	miss.cyc <= LOW;
+	if (rstb3[0] & ~rstb4[0] & ~ch0hit & ~ch0.req.we) begin
+		rstb4[0] <= 1'b1;
+		miss.cyc <= HIGH;
+		miss.tid <= ch0.req.tid;
+		miss.adr <= ch0.req.adr;
+	end
+	else if (rstb[1] & ~rstb4[1] & ~ch1hit & ~ch1.req.we) begin
+		rstb4[1] <= 1'b1;
+		miss.cyc <= HIGH;
+		miss.tid <= ch1.req.tid;
+		miss.adr <= ch1.req.adr;
+	end
+	else if (rstb[2] & ~rstb4[2] & ~ch2hit & ~ch2.req.we) begin
+		rstb4[2] <= 1'b1;
+		miss.cyc <= HIGH;
+		miss.tid <= ch2.req.tid;
+		miss.adr <= ch2.req.adr;
+	end
+	else if (rstb[7] & ~rstb4[7] & ~ch7hit & ~ch7.req.we) begin
+		rstb4[7] <= 1'b1;
+		miss.cyc <= HIGH;
+		miss.tid <= ch7.req.tid;
+		miss.adr <= ch7.req.adr;
+	end
+	if (ch0hit) rstb4[0] <= 1'b0;
+	if (ch1hit) rstb4[1] <= 1'b0;
+	if (ch2hit) rstb4[2] <= 1'b0;
+	if (ch7hit) rstb4[7] <= 1'b0;
+end
 
 always_comb wway = hit8a[0] ? 2'd0 : hit8a[1] ? 2'd1 : hit8a[2] ? 2'd2 : hit8a[3] ? 2'd3 : 2'd0;
 

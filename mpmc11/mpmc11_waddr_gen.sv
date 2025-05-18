@@ -57,11 +57,11 @@ if (rst) begin
 	on <= 1'b0;
 end
 else begin
-	if (state==READ_DATA0)
+	if (state==mpmc11_pkg::READ_DATA0)
 		on <= 1'b1;
 	if (burst_cnt == burst_len && valid)
 		on <= 1'b0;
-	if (state==PRESET2)
+	if (state==mpmc11_pkg::PRESET2)
 		addr <= {addr_base[31:5],5'h0};
 	else if (valid && burst_cnt != burst_len && on)
 		addr[31:5] <= addr[31:5] + 2'd1;

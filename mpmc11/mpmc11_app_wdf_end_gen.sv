@@ -1,7 +1,7 @@
 `timescale 1ns / 1ps
 // ============================================================================
 //        __
-//   \\__/ o\    (C) 2015-2024  Robert Finch, Waterloo
+//   \\__/ o\    (C) 2015-2025  Robert Finch, Waterloo
 //    \  __ /    All rights reserved.
 //     \/_//     robfinch<remove>@finitron.ca
 //       ||
@@ -45,16 +45,8 @@ input [5:0] burst_cnt;
 input [5:0] burst_len;
 output reg wend;
 
-// app_wdf_wren is used to strobe data into the data fifo when app_wdf_rdy is 
-// true.
-/*
-always_ff @(posedge clk)
-begin
-	wend <= 1'b0;
-	if (state==WRITE_DATA0 && rdy)
-		wend <= burst_cnt==burst_len;
-end
-*/
-assign wend = (state==WRITE_DATA1) && rdy && wdf_rdy && (burst_cnt==burst_len);
+// Writes are not done in bursts in the system. So, every write cycle is the
+// last cycle of the burst.
+assign wend = (state==mpmc11_pkg::PRESET3 || state==mpmc11_pkg::WRITE_DATA1); /*&& rdy && wdf_rdy && (burst_cnt==burst_len); */
 
 endmodule

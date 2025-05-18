@@ -57,7 +57,7 @@ else begin
 	case(state)
 	mpmc11_pkg::IDLE:
 		next_cmd = mpmc11_pkg::CMD_WRITE;
-	mpmc11_pkg::PRESET3:
+	mpmc11_pkg::PRESET2:
 		if (wr)
 			next_cmd = mpmc11_pkg::CMD_WRITE;
 		else

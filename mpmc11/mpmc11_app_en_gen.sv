@@ -54,23 +54,24 @@ if (rst)
 	en1 <= 1'b0;
 else begin
 	case(state)
-	WRITE_DATA1:
+	mpmc11_pkg::WRITE_DATA1:
 		en1 <= 1'b1;
-	WRITE_DATA2:
+	mpmc11_pkg::WRITE_DATA2:
 		if (rdy)
 			en1 <= 1'b0;
 		else
 			en1 <= 1'b1;
-	READ_DATA0:
+	mpmc11_pkg::READ_DATA0:
 		en1 <= 1'b0;
-	READ_DATA1:
+	mpmc11_pkg::READ_DATA1:
 		en1 <= 1'b1;
 	default:
 		en1 <= 1'b0;
 	endcase
 end
 
-always_comb en = (state==WRITE_DATA1 & rdy & wdf_rdy) || (state==READ_DATA0 & rdy || (state==READ_DATA2 && rdy && burst_cnt <= burst_len));
+always_comb en = (state==mpmc11_pkg::WRITE_DATA1 & rdy & wdf_rdy) ||
+	(state==mpmc11_pkg::READ_DATA0 & rdy || (state==mpmc11_pkg::READ_DATA2 && rdy && burst_cnt <= burst_len));
 // en1 & ~(state==READ_DATA1 && rdy && burst_cnt==burst_len);
 
 endmodule

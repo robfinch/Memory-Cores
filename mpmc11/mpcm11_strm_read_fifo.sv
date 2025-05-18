@@ -1,7 +1,7 @@
 `timescale 1ns / 1ps
 // ============================================================================
 //        __
-//   \\__/ o\    (C) 2015-2024  Robert Finch, Waterloo
+//   \\__/ o\    (C) 2015-2025  Robert Finch, Waterloo
 //    \  __ /    All rights reserved.
 //     \/_//     robfinch<remove>@finitron.ca
 //       ||
@@ -56,8 +56,7 @@ reg rd_en;
 wire data_valid;
 always_ff @(posedge rclk)
 begin
-	if (data_valid)
-		resp <= resp2;
+	resp <= resp2;
 	resp.ack <= data_valid & resp2.ack;
 end
 

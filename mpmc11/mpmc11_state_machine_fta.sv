@@ -79,127 +79,130 @@ end
 
 always_comb
 if (rst)
-	next_state <= mpmc11_pkg::IDLE;	
+	next_state = mpmc11_pkg::IDLE;	
 else begin
-	next_state <= mpmc11_pkg::IDLE;
+	next_state = mpmc11_pkg::IDLE;
 	case(state)
 	// If the request was a streaming channel and there was a hit on it, do
 	// not do the request.
 	mpmc11_pkg::IDLE:
 		if (calib_complete) begin
-			if (ref_req)
-				next_state <= mpmc11_pkg::REFRESH;
-			else if (!rst_busy) begin
+//			if (ref_req)
+//				next_state = mpmc11_pkg::REFRESH;
+//			else 
+			if (!rst_busy) begin
 				if (fifo_v)
-					next_state <= PRESET1;
+					next_state = PRESET1;
 				else
-					next_state <= mpmc11_pkg::IDLE;
+					next_state = mpmc11_pkg::IDLE;
 			end
 		end
 		else
-			next_state <= mpmc11_pkg::IDLE;
+			next_state = mpmc11_pkg::IDLE;
+/*
 	REFRESH:
 		if (app_ref_ack)
-			next_state <= mpmc11_pkg::IDLE;
+			next_state = mpmc11_pkg::IDLE;
 		else
-			next_state <= mpmc11_pkg::REFRESH;
+			next_state = mpmc11_pkg::REFRESH;
+*/			
 	PRESET1:
-		next_state <= PRESET2;
+		next_state = PRESET2;
 	PRESET2:
-		next_state <= PRESET3;
+		next_state = PRESET3;
 	PRESET3:
 		if (fifo_out.cyc && fifo_out.we)//cmd==fta_bus_pkg::CMD_STORE)
-			next_state <= WRITE_DATA0;
+			next_state = WRITE_DATA0;
 		else if (fifo_out.cyc)
-			next_state <= READ_DATA0;
+			next_state = READ_DATA0;
 		else
-			next_state <= mpmc11_pkg::IDLE;
+			next_state = mpmc11_pkg::IDLE;
 	WRITE_DATA0:
-		next_state <= WRITE_DATA1;
+		next_state = WRITE_DATA1;
 	// Write data fifo first, done when wdf_rdy is high
 	WRITE_DATA1:	// set app_en high
 		if (wdf_rdy & rdy)// && req_burst_cnt==burst_len)
-			next_state <= mpmc11_pkg::IDLE;
-//			next_state <= WRITE_DATA2;
+			next_state = mpmc11_pkg::IDLE;
+//			next_state = WRITE_DATA2;
 		else
-			next_state <= WRITE_DATA1;
+			next_state = WRITE_DATA1;
 //	WRITE_DATA1:	
-//		next_state <= WRITE_DATA2;
+//		next_state = WRITE_DATA2;
 	// Write command to the command fifo
 	// Write occurs when app_rdy is true
 	WRITE_DATA2:
 		if (rdy)
-			next_state <= mpmc11_pkg::IDLE;
+			next_state = mpmc11_pkg::IDLE;
 		else
-			next_state <= WRITE_DATA2;
+			next_state = WRITE_DATA2;
 	// Data is now written first, at WRITE_DATA0
 	// Write data to the data fifo
 	// Write occurs when app_wdf_wren is true and app_wdf_rdy is true
 	/*
 	WRITE_DATA3:
 		if (wdf_rdy)
-			next_state <= mpmc11_pkg::IDLE;
+			next_state = mpmc11_pkg::IDLE;
 		else
-			next_state <= WRITE_DATA3;
+			next_state = WRITE_DATA3;
 	*/
 	// There could be multiple read requests submitted before any response occurs.
 	READ_DATA0:
 		if (rdy)
-			next_state <= READ_DATA2;
+			next_state = READ_DATA2;
 		else
-			next_state <= READ_DATA0;
-//		next_state <= READ_DATA1;
+			next_state = READ_DATA0;
+//		next_state = READ_DATA1;
 	// Could it take so long to do the request that we start getting responses
 	// back?
 	READ_DATA1:
 		if (req_burst_cnt==burst_len)
-			next_state <= READ_DATA2;
+			next_state = READ_DATA2;
 		else
-			next_state <= READ_DATA0;
+			next_state = READ_DATA0;
 	// Wait for incoming responses, but only for so long to prevent a hang.
 	// Submit more requests for a burst.
 	READ_DATA2:
 		if (rd_data_valid && resp_burst_cnt==burst_len) begin
 			case(fifo_out.cmd)
 			fta_bus_pkg::CMD_LOAD,fta_bus_pkg::CMD_LOADZ:
-				next_state <= WAIT_NACK;
+				next_state = WAIT_NACK;
 			fta_bus_pkg::CMD_ADD,fta_bus_pkg::CMD_OR,fta_bus_pkg::CMD_AND,fta_bus_pkg::CMD_EOR,fta_bus_pkg::CMD_ASL,fta_bus_pkg::CMD_LSR,
 			fta_bus_pkg::CMD_MIN,fta_bus_pkg::CMD_MAX,fta_bus_pkg::CMD_MINU,fta_bus_pkg::CMD_MAXU,fta_bus_pkg::CMD_CAS:
-				next_state <= mpmc11_pkg::ALU;
+				next_state = mpmc11_pkg::ALU;
 			default:
-				next_state <= WAIT_NACK;
+				next_state = WAIT_NACK;
 			endcase
 		end
 		else
-			next_state <= READ_DATA2;
+			next_state = READ_DATA2;
 	
 	mpmc11_pkg::ALU:
 		if (rmw_hit)
-			next_state <= mpmc11_pkg::ALU1;
+			next_state = mpmc11_pkg::ALU1;
 	mpmc11_pkg::ALU1:
-		next_state <= mpmc11_pkg::ALU2;
+		next_state = mpmc11_pkg::ALU2;
 	mpmc11_pkg::ALU2:
-		next_state <= mpmc11_pkg::ALU3;
+		next_state = mpmc11_pkg::ALU3;
 	mpmc11_pkg::ALU3:
-		next_state <= mpmc11_pkg::ALU4;
+		next_state = mpmc11_pkg::ALU4;
 	mpmc11_pkg::ALU4:
-		next_state <= WRITE_TRAMP1;
+		next_state = WRITE_TRAMP1;
 		
 	WRITE_TRAMP1:
-		next_state <= WRITE_DATA0;
+		next_state = WRITE_DATA0;
 
 	WAIT_NACK:
 		// If we're not seeing a nack and there is a channel selected, then the
 		// cache tag must not have updated correctly.
 		// For writes, assume a nack by now.
-		next_state <= mpmc11_pkg::IDLE;
+		next_state = mpmc11_pkg::IDLE;
 		
-	default:	next_state <= mpmc11_pkg::IDLE;
+	default:	next_state = mpmc11_pkg::IDLE;
 	endcase
 
 	// Is the state machine hung? Do not time out during calibration.
 	if (to && calib_complete)
-		next_state <= mpmc11_pkg::IDLE;
+		next_state = mpmc11_pkg::IDLE;
 end
 
 endmodule
