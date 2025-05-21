@@ -85,7 +85,7 @@ output rst_busy
 );
 parameter NAR = 2;			// Number of address reservations
 parameter CL = 3'd4;		// Cache read latency
-parameter PORT_PRESENT = 8'h81;
+parameter PORT_PRESENT = 9'h181;
 parameter REFRESH_BIT = 4'd0;
 parameter CACHE = 9'h5E;
 parameter STREAM = 8'h21;
@@ -430,6 +430,7 @@ begin
 		ch7.resp.adr = ch7ob.adr;
 		ch7.resp.dat = ch7ob.dat;
 		ch7.resp.ack = ch7ob.ack;
+		ch7.resp.rty = 1'b0;
 		ch7.resp.err = fta_bus_pkg::OKAY;
 	end
 	/*
@@ -447,6 +448,7 @@ begin
 		ch7.resp.adr = ch7oa.adr;
 		ch7.resp.dat = ch7oa.dat;
 		ch7.resp.ack = ch7oa.ack;
+		ch7.resp.rty = ch7oa.rty;
 		ch7.resp.err = fta_bus_pkg::OKAY;
 	end
 	else begin
@@ -455,6 +457,7 @@ begin
 		ch7.resp.adr = ch7od.adr;
 		ch7.resp.dat = ch7od.dat;
 		ch7.resp.ack = ch7od.ack;
+		ch7.resp.rty = 1'b0;
 		ch7.resp.err = fta_bus_pkg::OKAY;
 	end
 
@@ -515,7 +518,7 @@ reg irst;
 // Refresh generation
 reg [REFRESH_BIT:0] ref_cnt;
 reg ref_req;
-reg ref_ack = 1'b0;
+wire ref_ack;
 generate begin : gRefresh
 if (REFRESH_BIT > 0) begin
 always_ff @(posedge mem_ui_clk)
