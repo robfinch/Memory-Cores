@@ -1,6 +1,6 @@
 // ============================================================================
 //        __
-//   \\__/ o\    (C) 2022  Robert Finch, Waterloo
+//   \\__/ o\    (C) 2022-2025  Robert Finch, Waterloo
 //    \  __ /    All rights reserved.
 //     \/_//     robfinch<remove>@finitron.ca
 //       ||
@@ -35,7 +35,7 @@
 //
 // ============================================================================
 
-module io_bitmap(rst_i, clk_i, cs_i, cyc_i, stb_i, ack_o, we_i, asid_i, adr_i, dat_i, dat_o,
+module io_bitmap(rst_i, clk_i, cs_i, cyc_i, stb_i, ack_o, we_i, ioas_i, adr_i, dat_i, dat_o,
 	iocs_i, gate_o, gate_en);
 input rst_i;
 input clk_i;
@@ -44,8 +44,8 @@ input cyc_i;
 input stb_i;
 output ack_o;
 input we_i;
-input [5:0] asid_i;
-input [19:0] adr_i;
+input [7:0] ioas_i;
+input [23:0] adr_i;
 input [31:0] dat_i;
 output reg [31:0] dat_o;
 input iocs_i;
@@ -112,7 +112,7 @@ always_comb
       .MEMORY_INIT_PARAM("0"),        // String
       .MEMORY_OPTIMIZATION("true"),   // String
       .MEMORY_PRIMITIVE("auto"),      // String
-      .MEMORY_SIZE(4096*64),          // DECIMAL
+      .MEMORY_SIZE(8192*32),          // DECIMAL
       .MESSAGE_CONTROL(0),            // DECIMAL
       .READ_DATA_WIDTH_A(32),         // DECIMAL
       .READ_DATA_WIDTH_B(32),         // DECIMAL
@@ -149,7 +149,7 @@ always_comb
                                        // on the data output of port B.
 
       .addra(adr_i[14: 2]), 					// ADDR_WIDTH_A-bit input: Address for port A write and read operations.
-      .addrb({asid_i[5:0],adr_i[19:13]}), // ADDR_WIDTH_B-bit input: Address for port B write and read operations.
+      .addrb({adr_i[23:14],ioas_i[7:5]}), 	// ADDR_WIDTH_B-bit input: Address for port B write and read operations.
       .clka(clk_i),                     // 1-bit input: Clock signal for port A. Also clocks port B when
                                        // parameter CLOCKING_MODE is "common_clock".
 
@@ -221,6 +221,6 @@ always_ff @(posedge clk_i)
 		dat_o <= 32'd0;
 
 always_ff @(posedge clk_i)
-	gate_o <= enb;//doutb[adr_i[12:8]] & enb;
+	gate_o <= enb;// & doutb[ioas_i[4:0]];
 			
 endmodule
