@@ -78,6 +78,7 @@ fta_bus_interface.slave ch4,
 fta_bus_interface.slave ch5,
 fta_bus_interface.slave ch6,
 fta_bus_interface.slave ch7,
+input [7:0] fifo_rst,
 //input fta_cmd_request256_t ch0i,
 //output fta_cmd_response256_t ch0o,
 output mpmc11_state_t state,
@@ -222,28 +223,24 @@ reg rmw7;
 always_comb
 begin
 	if (STREAM[0]) begin
-		ch0.resp = 1000'd0;
 		ch0.resp.tid = ch0ob.tid;
 		ch0.resp.adr = ch0ob.adr;
 		ch0.resp.dat = ch0ob.dat;
 		ch0.resp.ack = ch0ob.ack;
 	end
 	else if (rmw0) begin
-		ch0.resp = 1000'd0;
 		ch0.resp.tid = ch0oc.tid;
 		ch0.resp.adr = ch0oc.adr;
 		ch0.resp.dat = ch0oc.dat;
 		ch0.resp.ack = ch0oc.ack;
 	end
 	else if (CACHE[0]) begin
-		ch0.resp = 1000'd0;
 		ch0.resp.tid = ch0oa.tid;
 		ch0.resp.adr = ch0oa.adr;
 		ch0.resp.dat = ch0oa.dat;
 		ch0.resp.ack = ch0oa.ack;
 	end
 	else begin
-		ch0.resp = 1000'd0;
 		ch0.resp.tid = ch0od.tid;
 		ch0.resp.adr = ch0od.adr;
 		ch0.resp.dat = ch0od.dat;
@@ -251,28 +248,24 @@ begin
 	end
 
 	if (STREAM[1]) begin
-		ch1.resp = 1000'd0;
 		ch1.resp.tid = ch1ob.tid;
 		ch1.resp.adr = ch1ob.adr;
 		ch1.resp.dat = ch1ob.dat;
 		ch1.resp.ack = ch1ob.ack;
 	end
 	else if (rmw1) begin
-		ch1.resp = 1000'd0;
 		ch1.resp.tid = ch1oc.tid;
 		ch1.resp.adr = ch1oc.adr;
 		ch1.resp.dat = ch1oc.dat;
 		ch1.resp.ack = ch1oc.ack;
 	end
 	else if (CACHE[1]) begin
-		ch1.resp = 1000'd0;
 		ch1.resp.tid = ch1oa.tid;
 		ch1.resp.adr = ch1oa.adr;
 		ch1.resp.dat = ch1oa.dat;
 		ch1.resp.ack = ch1oa.ack;
 	end
 	else begin
-		ch1.resp = 1000'd0;
 		ch1.resp.tid = ch1od.tid;
 		ch1.resp.adr = ch1od.adr;
 		ch1.resp.dat = ch1od.dat;
@@ -280,28 +273,24 @@ begin
 	end
 
 	if (STREAM[2]) begin
-		ch2.resp = 1000'd0;
 		ch2.resp.tid = ch2ob.tid;
 		ch2.resp.adr = ch2ob.adr;
 		ch2.resp.dat = ch2ob.dat;
 		ch2.resp.ack = ch2ob.ack;
 	end
 	else if (rmw2) begin
-		ch2.resp = 1000'd0;
 		ch2.resp.tid = ch2oc.tid;
 		ch2.resp.adr = ch2oc.adr;
 		ch2.resp.dat = ch2oc.dat;
 		ch2.resp.ack = ch2oc.ack;
 	end
 	else if (CACHE[2]) begin
-		ch2.resp = 1000'd0;
 		ch2.resp.tid = ch2oa.tid;
 		ch2.resp.adr = ch2oa.adr;
 		ch2.resp.dat = ch2oa.dat;
 		ch2.resp.ack = ch2oa.ack;
 	end
 	else begin
-		ch2.resp = 1000'd0;
 		ch2.resp.tid = ch2od.tid;
 		ch2.resp.adr = ch2od.adr;
 		ch2.resp.dat = ch2od.dat;
@@ -309,28 +298,24 @@ begin
 	end
 
 	if (STREAM[3]) begin
-		ch3.resp = 1000'd0;
 		ch3.resp.tid = ch3ob.tid;
 		ch3.resp.adr = ch3ob.adr;
 		ch3.resp.dat = ch3ob.dat;
 		ch3.resp.ack = ch3ob.ack;
 	end
 	else if (rmw3) begin
-		ch3.resp = 1000'd0;
 		ch3.resp.tid = ch3oc.tid;
 		ch3.resp.adr = ch3oc.adr;
 		ch3.resp.dat = ch3oc.dat;
 		ch3.resp.ack = ch3oc.ack;
 	end
 	else if (CACHE[3]) begin
-		ch3.resp = 1000'd0;
 		ch3.resp.tid = ch3oa.tid;
 		ch3.resp.adr = ch3oa.adr;
 		ch3.resp.dat = ch3oa.dat;
 		ch3.resp.ack = ch3oa.ack;
 	end
 	else begin
-		ch3.resp = 1000'd0;
 		ch3.resp.tid = ch3od.tid;
 		ch3.resp.adr = ch3od.adr;
 		ch3.resp.dat = ch3od.dat;
@@ -338,28 +323,24 @@ begin
 	end
 
 	if (STREAM[4]) begin
-		ch4.resp = 1000'd0;
 		ch4.resp.tid = ch4ob.tid;
 		ch4.resp.adr = ch4ob.adr;
 		ch4.resp.dat = ch4ob.dat;
 		ch4.resp.ack = ch4ob.ack;
 	end
 	else if (rmw4) begin
-		ch4.resp = 1000'd0;
 		ch4.resp.tid = ch4oc.tid;
 		ch4.resp.adr = ch4oc.adr;
 		ch4.resp.dat = ch4oc.dat;
 		ch4.resp.ack = ch4oc.ack;
 	end
 	else if (CACHE[4]) begin
-		ch4.resp = 1000'd0;
 		ch4.resp.tid = ch4oa.tid;
 		ch4.resp.adr = ch4oa.adr;
 		ch4.resp.dat = ch4oa.dat;
 		ch4.resp.ack = ch4oa.ack;
 	end
 	else begin
-		ch4.resp = 1000'd0;
 		ch4.resp.tid = ch4od.tid;
 		ch4.resp.adr = ch4od.adr;
 		ch4.resp.dat = ch4od.dat;
@@ -367,28 +348,24 @@ begin
 	end
 
 	if (STREAM[5]) begin
-		ch5.resp = 1000'd0;
 		ch5.resp.tid = ch5ob.tid;
 		ch5.resp.adr = ch5ob.adr;
 		ch5.resp.dat = ch5ob.dat;
 		ch5.resp.ack = ch5ob.ack;
 	end
 	else if (rmw5) begin
-		ch5.resp = 1000'd0;
 		ch5.resp.tid = ch5oc.tid;
 		ch5.resp.adr = ch5oc.adr;
 		ch5.resp.dat = ch5oc.dat;
 		ch5.resp.ack = ch5oc.ack;
 	end
 	else if (CACHE[5]) begin
-		ch5.resp = 1000'd0;
 		ch5.resp.tid = ch5oa.tid;
 		ch5.resp.adr = ch5oa.adr;
 		ch5.resp.dat = ch5oa.dat;
 		ch5.resp.ack = ch5oa.ack;
 	end
 	else begin
-		ch5.resp = 1000'd0;
 		ch5.resp.tid = ch5od.tid;
 		ch5.resp.adr = ch5od.adr;
 		ch5.resp.dat = ch5od.dat;
@@ -396,28 +373,24 @@ begin
 	end
 
 	if (STREAM[6]) begin
-		ch6.resp = 1000'd0;
 		ch6.resp.tid = ch6ob.tid;
 		ch6.resp.adr = ch6ob.adr;
 		ch6.resp.dat = ch6ob.dat;
 		ch6.resp.ack = ch6ob.ack;
 	end
 	else if (rmw6) begin
-		ch6.resp = 1000'd0;
 		ch6.resp.tid = ch6oc.tid;
 		ch6.resp.adr = ch6oc.adr;
 		ch6.resp.dat = ch6oc.dat;
 		ch6.resp.ack = ch6oc.ack;
 	end
 	else if (CACHE[6]) begin
-		ch6.resp = 1000'd0;
 		ch6.resp.tid = ch6oa.tid;
 		ch6.resp.adr = ch6oa.adr;
 		ch6.resp.dat = ch6oa.dat;
 		ch6.resp.ack = ch6oa.ack;
 	end
 	else begin
-		ch6.resp = 1000'd0;
 		ch6.resp.tid = ch6od.tid;
 		ch6.resp.adr = ch6od.adr;
 		ch6.resp.dat = ch6od.dat;
@@ -425,7 +398,6 @@ begin
 	end
 
 	if (STREAM[7]) begin
-		ch7.resp = 1000'd0;
 		ch7.resp.tid = ch7ob.tid;
 		ch7.resp.adr = ch7ob.adr;
 		ch7.resp.dat = ch7ob.dat;
@@ -443,16 +415,14 @@ begin
 	end
 	*/
 	else if (ch7.req.adr[31:30]==2'b10) begin
-		ch7.resp = 1000'd0;
 		ch7.resp.tid = ch7oa.tid;
 		ch7.resp.adr = ch7oa.adr;
 		ch7.resp.dat = ch7oa.dat;
 		ch7.resp.ack = ch7oa.ack;
-		ch7.resp.rty = ch7oa.rty;
+		ch7.resp.rty = 1'b0;//ch7oa.rty;
 		ch7.resp.err = fta_bus_pkg::OKAY;
 	end
 	else begin
-		ch7.resp = 1000'd0;
 		ch7.resp.tid = ch7od.tid;
 		ch7.resp.adr = ch7od.adr;
 		ch7.resp.dat = ch7od.dat;
@@ -480,14 +450,23 @@ reg v;
 wire full;
 wire [8:0] empty;
 wire [8:0] almost_full;
+wire almost_full0;
+wire almost_full1;
+wire almost_full2;
+wire almost_full3;
+wire almost_full4;
+wire almost_full5;
+wire almost_full6;
+wire almost_full7;
+wire almost_full8;
 wire [4:0] cnt;
 reg [8:0] rd_fifo;
 reg [8:0] wr_fifo;
 wire [8:0] rd_fifo_sm;
 mpmc11_state_t prev_state;
-reg [5:0] burst_len;	// from fifo
-wire [5:0] req_burst_cnt;
-wire [5:0] resp_burst_cnt;
+reg [7:0] burst_len;	// from fifo
+wire [7:0] req_burst_cnt;
+wire [7:0] resp_burst_cnt;
 
 wire [15:0] tocnt;
 reg [31:0] adr;
@@ -827,7 +806,7 @@ if (PORT_PRESENT[g] & STREAM[g]) begin
 	assign src_wr[g] = uport==g[3:0] && rd_data_valid_r;
 mpmc11_strm_read_fifo ustrm
 (
-	.rst(irst),
+	.rst(irst|fifo_rst[g]),
 	.wclk(mem_ui_clk),
 	.wr(src_wr[g]),
 	.wadr({app_waddr[31:5],5'h0}),	// only approximate
@@ -871,6 +850,7 @@ begin
 	req_fifoi[5].port <= 4'd5;
 	req_fifoi[6].port <= 4'd6;
 	req_fifoi[7].port <= 4'd7;
+	req_fifoi[8].port <= 4'd8;
 	
 	req_fifoi[0].req = 1000'd0;
 	req_fifoi[0].req.tid = ch0.req.tid;
@@ -968,57 +948,81 @@ end
 
 wire [8:0] cd_fifo;
 reg [8:0] lcd_fifo;					// latched change detect
+reg [8:0] rd_fifo_r;
 generate begin : gInputFifos
 for (g = 0; g < 9; g = g + 1) begin
 assign reqo[g] = !empty[g];//req_fifog[g].req.cyc;
 always_comb wr_fifo[g] = req_fifoi[g].req.cyc && ((!CACHE[g]&&!(g==4'd7 &&
     req_fifoi[g].req.adr[31:30]==2'b10))||req_fifoi[g].req.we);
-always_comb rd_fifo[g] = sel[g] & rd_fifo_sm[g];
-
-if (PORT_PRESENT[g] || g==4'd8) begin
-mpmc11_asfifo_fta ufifo
-(
-	.rst(mem_ui_rst),
-	.rd_clk(mem_ui_clk),
-	.rd_fifo(rd_fifo[g]),
-	.wr_clk(chclk[g]),
-	.wr_fifo(wr_fifo[g]),
-	.req_fifoi(req_fifoi[g]),
-	.req_fifoo(req_fifog[g]),
-	.ocd(cd_fifo[g]),
-	.full(),
-	.empty(empty[g]),
-	.almost_full(almost_full[g]),
-	.rd_rst_busy(rd_rst_busy[g]),
-	.wr_rst_busy(wr_rst_busy[g]),
-	.cnt()
-);
-always_comb
-case(g)
-0:	ch0.resp.stall = almost_full[g];
-1:	ch1.resp.stall = almost_full[g];
-2:	ch2.resp.stall = almost_full[g];
-3:	ch3.resp.stall = almost_full[g];
-4:	ch4.resp.stall = almost_full[g];
-5:	ch5.resp.stall = almost_full[g];
-6:	ch6.resp.stall = almost_full[g];
-7:	ch7.resp.stall = almost_full[g];
-endcase
-// Make the change detect sticky until state machine reaches PRESET1.
+always_comb rd_fifo[g] = sel[g] & rd_fifo_sm[g] & ~rd_fifo_r[g];
 always_ff @(posedge mem_ui_clk)
-if (mem_ui_rst)
-	lcd_fifo[g] <= 1'b0;
-else begin
-	if (cd_fifo[g])
-		lcd_fifo[g] <= req_fifog[g].req.cyc;
-	else if (state==mpmc11_pkg::PRESET1)
+	if (rd_fifo[g])
+		rd_fifo_r[g] <= 1'b1;
+	else if (state==mpmc11_pkg::IDLE)
+		rd_fifo_r[g] <= 1'b0;
+
+if (PORT_PRESENT[g] || g==4'd8)
+begin
+	mpmc11_asfifo_fta ufifo
+	(
+		.rst(mem_ui_rst),
+		.rd_clk(mem_ui_clk),
+		.rd_fifo(rd_fifo[g]),
+		.wr_clk(chclk[g]),
+		.wr_fifo(wr_fifo[g]),
+		.req_fifoi(req_fifoi[g]),
+		.req_fifoo(req_fifog[g]),
+		.ocd(cd_fifo[g]),
+		.full(),
+		.empty(empty[g]),
+		.almost_full(),
+		.prog_full(almost_full[g]),
+		.rd_rst_busy(rd_rst_busy[g]),
+		.wr_rst_busy(wr_rst_busy[g]),
+		.cnt()
+	);
+	
+	always_comb
+	case(g)
+	0:	ch0.resp.stall = almost_full[g];
+	1:	ch1.resp.stall = almost_full[g];
+	2:	ch2.resp.stall = almost_full[g];
+	3:	ch3.resp.stall = almost_full[g];
+	4:	ch4.resp.stall = almost_full[g];
+	5:	ch5.resp.stall = almost_full[g];
+	6:	ch6.resp.stall = almost_full[g];
+	7:	ch7.resp.stall = almost_full[g];
+	endcase
+	
+	// Make the change detect sticky until state machine reaches PRESET1.
+	always_ff @(posedge mem_ui_clk)
+	if (mem_ui_rst)
 		lcd_fifo[g] <= 1'b0;
-end
-always_ff @(posedge mem_ui_clk)
-if (state==mpmc11_pkg::IDLE)
-	req_fifoh[g] <= req_fifog[g];
+	else begin
+		if (cd_fifo[g])
+			lcd_fifo[g] <= req_fifog[g].req.cyc;
+		else if (state==mpmc11_pkg::PRESET1)
+			lcd_fifo[g] <= 1'b0;
+	end
+	always_ff @(posedge mem_ui_clk)
+	if (state==mpmc11_pkg::IDLE)
+		req_fifoh[g] <= req_fifog[g];
 
-end else begin
+end 
+else begin
+
+	always_comb
+	case(g)
+	0:	ch0.resp.stall = almost_full[g];
+	1:	ch1.resp.stall = almost_full[g];
+	2:	ch2.resp.stall = almost_full[g];
+	3:	ch3.resp.stall = almost_full[g];
+	4:	ch4.resp.stall = almost_full[g];
+	5:	ch5.resp.stall = almost_full[g];
+	6:	ch6.resp.stall = almost_full[g];
+	7:	ch7.resp.stall = almost_full[g];
+	endcase
+
 	assign req_fifog[g] = {$bits(mpmc11_fifoe_t){1'b0}};
 	assign req_fifoh[g] = {$bits(mpmc11_fifoe_t){1'b0}};
 	assign reqo[g] = 1'b0;
@@ -1026,6 +1030,7 @@ end else begin
 	assign wr_rst_busy[g] = 1'b0;
 	assign vg[g] = 1'b0;
 	assign empty[g] = 1'b1;
+	assign almost_full[g] = 1'b0;
 	assign cd_fifo[g] = 1'b0;
 	assign lcd_fifo[g] = 1'b0;
 end
@@ -1054,6 +1059,8 @@ if (state==mpmc11_pkg::WRITE_DATA0 || state==mpmc11_pkg::READ_DATA0)
 	v <= 1'b0;
 else if (req_sel != 4'd15 && state==mpmc11_pkg::IDLE)
 	v <= lcd_fifo[req_sel]; /*&& empty1[req_sel][4:0]!=5'h00; */
+else
+	v <= 1'b0;
 always_ff @(posedge mem_ui_clk)
 if (req_sel != 4'd15 && state==mpmc11_pkg::IDLE)
 	req_fifoo <= req_fifoh[req_sel];
@@ -1391,17 +1398,17 @@ else begin
 	if (ch6.clk & ~chclkd[6]) ch6od.ack <= 1'b0;
 	if (ch7.clk & ~chclkd[7]) ch7od.ack <= 1'b0;
 	if (rd_data_valid_r)
-	case(req_fifoo.port)
-	4'd0:	ch0od.ack <= 1'b1;
-	4'd1:	ch1od.ack <= 1'b1;
-	4'd2:	ch2od.ack <= 1'b1;
-	4'd3:	ch3od.ack <= 1'b1;
-	4'd4:	ch4od.ack <= 1'b1;
-	4'd5:	ch5od.ack <= 1'b1;
-	4'd6:	ch6od.ack <= 1'b1;
-	4'd7:	ch7od.ack <= 1'b1;
-	default:	;
-	endcase
+		case(req_fifoo.port)
+		4'd0:	ch0od.ack <= 1'b1;
+		4'd1:	ch1od.ack <= 1'b1;
+		4'd2:	ch2od.ack <= 1'b1;
+		4'd3:	ch3od.ack <= 1'b1;
+		4'd4:	ch4od.ack <= 1'b1;
+		4'd5:	ch5od.ack <= 1'b1;
+		4'd6:	ch6od.ack <= 1'b1;
+		4'd7:	ch7od.ack <= 1'b1;
+		default:	;
+		endcase
 end
 
 // Setting the data value. Unlike reads there is only a single strip involved.

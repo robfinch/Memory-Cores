@@ -40,13 +40,13 @@ module mpmc11_resp_strip_cnt(clk, state, valid, num_strips, strip_cnt);
 input clk;
 input mpmc11_state_t state;
 input valid;
-input [5:0] num_strips;
-output reg [5:0] strip_cnt;
+input [7:0] num_strips;
+output reg [7:0] strip_cnt;
 
 reg on;
 always_ff @(posedge clk)
 if (state==mpmc11_pkg::IDLE) begin
-	strip_cnt <= 6'd0;
+	strip_cnt <= 8'd0;
 	on <= 1'b0;
 end
 else begin

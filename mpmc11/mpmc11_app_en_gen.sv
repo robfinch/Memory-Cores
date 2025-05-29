@@ -42,8 +42,8 @@ input clk;
 input mpmc11_state_t state;
 input rdy;
 input wdf_rdy;
-input [5:0] burst_cnt;
-input [5:0] burst_len;
+input [7:0] burst_cnt;
+input [7:0] burst_len;
 output reg en;
 
 // app_en latches the command and address when app_rdy is active. If app_rdy

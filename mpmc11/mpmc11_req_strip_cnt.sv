@@ -1,7 +1,7 @@
 `timescale 1ns / 1ps
 // ============================================================================
 //        __
-//   \\__/ o\    (C) 2015-2024  Robert Finch, Waterloo
+//   \\__/ o\    (C) 2015-2025  Robert Finch, Waterloo
 //    \  __ /    All rights reserved.
 //     \/_//     robfinch<remove>@finitron.ca
 //       ||
@@ -43,13 +43,13 @@ input clk;
 input mpmc11_state_t state;
 input wdf_rdy;
 input rdy;
-input [5:0] num_strips;
-output reg [5:0] strip_cnt;
+input [7:0] num_strips;
+output reg [7:0] strip_cnt;
 
 reg on;
 always_ff @(posedge clk)
 if (state==mpmc11_pkg::IDLE) begin
-	strip_cnt <= 6'd0;
+	strip_cnt <= 8'd0;
 	on <= 1'b0;
 end
 else begin

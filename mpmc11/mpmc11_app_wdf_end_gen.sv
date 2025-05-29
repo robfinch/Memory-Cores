@@ -41,8 +41,8 @@ input clk;
 input mpmc11_state_t state;
 input rdy;
 input wdf_rdy;
-input [5:0] burst_cnt;
-input [5:0] burst_len;
+input [7:0] burst_cnt;
+input [7:0] burst_len;
 output reg wend;
 
 assign wend = (state==mpmc11_pkg::PRESET3 || state==mpmc11_pkg::WRITE_DATA1) /*&& rdy && wdf_rdy*/ && (burst_cnt==burst_len);

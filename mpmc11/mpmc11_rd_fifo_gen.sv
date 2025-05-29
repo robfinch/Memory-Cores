@@ -1,7 +1,7 @@
 `timescale 1ns / 1ps
 // ============================================================================
 //        __
-//   \\__/ o\    (C) 2015-2024  Robert Finch, Waterloo
+//   \\__/ o\    (C) 2015-2025  Robert Finch, Waterloo
 //    \  __ /    All rights reserved.
 //     \/_//     robfinch<remove>@finitron.ca
 //       ||
@@ -32,6 +32,8 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
+// Compute a vector of which fifo's could be read. One will be selected
+// later in mpmc11_fta.sv
 // ============================================================================
 //
 import mpmc11_pkg::*;
@@ -47,6 +49,7 @@ output reg [8:0] rd;
 
 integer jj;
 reg [8:0] next_rd;
+wire [8:0] sel;
 
 always_comb
 begin

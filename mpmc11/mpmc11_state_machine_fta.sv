@@ -56,9 +56,9 @@ input rst_busy;
 input fta_cmd_request256_t fifo_out;
 input fifo_v;
 output mpmc11_state_t state;
-input [5:0] burst_len;
-input [5:0] req_burst_cnt;
-input [5:0] resp_burst_cnt;
+input [7:0] burst_len;
+input [7:0] req_burst_cnt;
+input [7:0] resp_burst_cnt;
 input rd_data_valid;
 input rmw_hit;
 

@@ -1,7 +1,7 @@
 `timescale 1ns / 1ps
 // ============================================================================
 //        __
-//   \\__/ o\    (C) 2015-2024  Robert Finch, Waterloo
+//   \\__/ o\    (C) 2015-2025  Robert Finch, Waterloo
 //    \  __ /    All rights reserved.
 //     \/_//     robfinch<remove>@finitron.ca
 //       ||
@@ -44,8 +44,8 @@ input rst;
 input clk;
 input mpmc11_state_t state;
 input valid;
-input [5:0] burst_len;
-input [5:0] burst_cnt;
+input [7:0] burst_len;
+input [7:0] burst_cnt;
 input [31:0] addr_base;
 output reg [31:0] addr;
 
@@ -67,7 +67,8 @@ else begin
 		addr[31:5] <= addr[31:5] + 2'd1;
 	// Increment the address if we had to start a new burst.
 //	else if (state==WRITE_DATA3 && req_burst_cnt!=burst_len)
-//		app_addr <= app_addr + {req_burst_cnt,4'h0};	// works for only 1 missed burst
+//		app_addr <= app_addr + {req_burst_cnt,4'h0};	// works for only 1 missed burst 
+	addr[31:30] <= 2'b00;
 end
 
 endmodule

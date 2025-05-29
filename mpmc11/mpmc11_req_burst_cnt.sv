@@ -1,7 +1,7 @@
 `timescale 1ns / 1ps
 // ============================================================================
 //        __
-//   \\__/ o\    (C) 2015-2024  Robert Finch, Waterloo
+//   \\__/ o\    (C) 2015-2025  Robert Finch, Waterloo
 //    \  __ /    All rights reserved.
 //     \/_//     robfinch<remove>@finitron.ca
 //       ||
@@ -43,8 +43,8 @@ input clk;
 input mpmc11_state_t state;
 input wdf_rdy;
 input rdy;
-input [5:0] burst_len;
-output reg [5:0] burst_cnt;
+input [7:0] burst_len;
+output reg [7:0] burst_cnt;
 
 reg on;
 always_ff @(posedge clk)

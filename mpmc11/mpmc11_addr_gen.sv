@@ -44,8 +44,8 @@ input clk;
 input mpmc11_state_t state;
 input rdy;
 input wdf_rdy;
-input [5:0] burst_len;
-input [5:0] burst_cnt;
+input [7:0] burst_len;
+input [7:0] burst_cnt;
 input [31:0] addr_base;
 output reg [31:0] addr;
 
@@ -59,17 +59,17 @@ mpmc11_pkg::PRESET2:	// For both read and write.
 	next_addr = {addr_base[31:5],5'h0};
 mpmc11_pkg::READ_DATA0:
 	if (rdy)
-		next_addr = burst_len==6'd0 ? addr : addr + INC_AMT;
+		next_addr = burst_len==8'd0 ? addr : addr + INC_AMT;
 	else
 		next_addr = addr;
 mpmc11_pkg::READ_DATA2:
 	if (rdy)
-		next_addr = burst_len==6'd0 ? addr : addr + INC_AMT;
+		next_addr = burst_len==8'd0 ? addr : addr + INC_AMT;
 	else
 		next_addr = addr;
 mpmc11_pkg::WRITE_DATA1:
 	if (wdf_rdy & rdy)
-		next_addr = burst_len==6'd0 ? addr : addr + INC_AMT;
+		next_addr = burst_len==8'd0 ? addr : addr + INC_AMT;
 	else
 		next_addr = addr;
 default:
@@ -80,6 +80,6 @@ always_ff @(posedge clk)
 if (rst)
 	addr <= 32'h0;
 else
-	addr <= next_addr;
+	addr <= {2'b00,next_addr[29:0]};
 
 endmodule

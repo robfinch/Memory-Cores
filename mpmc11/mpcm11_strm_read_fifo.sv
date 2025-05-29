@@ -72,11 +72,11 @@ always_comb rd_en = !empty;
       .ECC_MODE("no_ecc"),       // String
       .FIFO_MEMORY_TYPE("auto"), // String
       .FIFO_READ_LATENCY(2),     // DECIMAL
-      .FIFO_WRITE_DEPTH(64),   // DECIMAL
+      .FIFO_WRITE_DEPTH(256),   // DECIMAL
       .FULL_RESET_VALUE(0),      // DECIMAL
       .PROG_EMPTY_THRESH(5),    // DECIMAL
-      .PROG_FULL_THRESH(58),     // DECIMAL
-      .RD_DATA_COUNT_WIDTH(7),   // DECIMAL
+      .PROG_FULL_THRESH(248),     // DECIMAL
+      .RD_DATA_COUNT_WIDTH(9),   // DECIMAL
       .READ_DATA_WIDTH($bits(fta_cmd_response256_t)),      // DECIMAL
       .READ_MODE("std"),         // String
       .RELATED_CLOCKS(0),        // DECIMAL
@@ -84,7 +84,7 @@ always_comb rd_en = !empty;
       .USE_ADV_FEATURES("170F"), // String
       .WAKEUP_TIME(0),           // DECIMAL
       .WRITE_DATA_WIDTH($bits(fta_cmd_response256_t)),     // DECIMAL
-      .WR_DATA_COUNT_WIDTH(7)    // DECIMAL
+      .WR_DATA_COUNT_WIDTH(9)    // DECIMAL
    )
    xpm_fifo_async_inst (
       .almost_empty(),   // 1-bit output: Almost Empty : When asserted, this signal indicates that

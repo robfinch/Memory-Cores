@@ -313,6 +313,14 @@ generate begin : gReaddat
 	always_comb ch5hit = |hit5a & stb5;
 	always_comb ch6hit = |hit6a & stb6;
 	always_comb ch7hit = |hit7a & stb7;
+	always_comb
+	begin
+		ch0.resp.stall = 1'b0;
+		ch0.resp.next = 1'b0;
+		ch0.resp.pri = 4'd7;
+		ch0.resp.ctag = 1'b0;
+		ch0.resp.adr = ch0.req.adr;
+	end
 	always_comb ch0.resp.ack = (|hit0a && stb0 && (ch0.req.cmd==fta_bus_pkg::CMD_LOAD||ch0.req.cmd==fta_bus_pkg::CMD_LOADZ)) | ((ch0wack) & stb0);
 	always_comb ch1.resp.ack = (|hit1a && stb1 && (ch1.req.cmd==fta_bus_pkg::CMD_LOAD||ch1.req.cmd==fta_bus_pkg::CMD_LOADZ)) | ((ch1wack) & stb1);
 	always_comb ch2.resp.ack = (|hit2a && stb2 && (ch2.req.cmd==fta_bus_pkg::CMD_LOAD||ch2.req.cmd==fta_bus_pkg::CMD_LOADZ)) | ((ch2wack) & stb2);

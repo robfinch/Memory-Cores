@@ -1,7 +1,7 @@
 `timescale 1ns / 1ps
 // ============================================================================
 //        __
-//   \\__/ o\    (C) 2015-2024  Robert Finch, Waterloo
+//   \\__/ o\    (C) 2015-2025  Robert Finch, Waterloo
 //    \  __ /    All rights reserved.
 //     \/_//     robfinch<remove>@finitron.ca
 //       ||
@@ -40,13 +40,13 @@ module mpmc11_resp_burst_cnt(clk, state, valid, burst_len, burst_cnt);
 input clk;
 input mpmc11_state_t state;
 input valid;
-input [5:0] burst_len;
-output reg [5:0] burst_cnt;
+input [7:0] burst_len;
+output reg [7:0] burst_cnt;
 
 reg on;
 always_ff @(posedge clk)
 if (state==mpmc11_pkg::IDLE) begin
-	burst_cnt <= 6'd0;
+	burst_cnt <= 8'd0;
 	on <= 1'b0;
 end
 else begin
