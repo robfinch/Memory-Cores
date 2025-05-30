@@ -91,6 +91,14 @@ parameter REFRESH_BIT = 4'd0;
 parameter CACHE = 9'h5E;
 parameter STREAM = 8'h21;
 parameter RMW = 8'h02;
+parameter CLK_RATIO0 = 2;
+parameter CLK_RATIO1 = 2;
+parameter CLK_RATIO2 = 2;
+parameter CLK_RATIO3 = 2;
+parameter CLK_RATIO4 = 2;
+parameter CLK_RATIO5 = 2;
+parameter CLK_RATIO6 = 2;
+parameter CLK_RATIO7 = 2;
 
 fta_cmd_request256_t [7:0] chi;
 
@@ -530,7 +538,7 @@ endgenerate
 
 wire rst_ext;
 // Generate negative pulse for MIG controller reset.
-pulse_extender #(9) upe1(.clk_i(sys_clk_i), .i(rst), .o(), .no(rstn));
+pulse_extender upe10(.clk_i(sys_clk_i), .ce_i(1'b1), .cnt_i(4'd9), .i(rst), .o(), .no(rstn));
 always_comb irst = rst||mem_ui_rst;
 
 wire [7:0] pe_req;
@@ -961,7 +969,7 @@ always_ff @(posedge mem_ui_clk)
 	else if (state==mpmc11_pkg::IDLE)
 		rd_fifo_r[g] <= 1'b0;
 
-if (PORT_PRESENT[g] || g==4'd8)
+if (((PORT_PRESENT >> g) & 1'b1) || g[3:0]==4'd8)
 begin
 	mpmc11_asfifo_fta ufifo
 	(
@@ -1377,39 +1385,56 @@ always_ff @(posedge mem_ui_clk) chclkd[5] <= ch5.clk;
 always_ff @(posedge mem_ui_clk) chclkd[6] <= ch6.clk;
 always_ff @(posedge mem_ui_clk) chclkd[7] <= ch7.clk;
 	
+reg ch0od_ack;
+reg ch1od_ack;
+reg ch2od_ack;
+reg ch3od_ack;
+reg ch4od_ack;
+reg ch5od_ack;
+reg ch6od_ack;
+reg ch7od_ack;
+
 always_ff @(posedge mem_ui_clk)
 if (irst) begin
-	ch0od.ack <= 1'd0;
-	ch1od.ack <= 1'd0;
-	ch2od.ack <= 1'd0;
-	ch3od.ack <= 1'd0;
-	ch4od.ack <= 1'd0;
-	ch5od.ack <= 1'd0;
-	ch6od.ack <= 1'd0;
-	ch7od.ack <= 1'd0;
+	ch0od_ack <= 1'd0;
+	ch1od_ack <= 1'd0;
+	ch2od_ack <= 1'd0;
+	ch3od_ack <= 1'd0;
+	ch4od_ack <= 1'd0;
+	ch5od_ack <= 1'd0;
+	ch6od_ack <= 1'd0;
+	ch7od_ack <= 1'd0;
 end
 else begin
-	if (ch0.clk & ~chclkd[0]) ch0od.ack <= 1'b0;
-	if (ch1.clk & ~chclkd[1]) ch1od.ack <= 1'b0;
-	if (ch2.clk & ~chclkd[2]) ch2od.ack <= 1'b0;
-	if (ch3.clk & ~chclkd[3]) ch3od.ack <= 1'b0;
-	if (ch4.clk & ~chclkd[4]) ch4od.ack <= 1'b0;
-	if (ch5.clk & ~chclkd[5]) ch5od.ack <= 1'b0;
-	if (ch6.clk & ~chclkd[6]) ch6od.ack <= 1'b0;
-	if (ch7.clk & ~chclkd[7]) ch7od.ack <= 1'b0;
+	ch0od_ack <= 1'b0;
+	ch1od_ack <= 1'b0;
+	ch2od_ack <= 1'b0;
+	ch3od_ack <= 1'b0;
+	ch4od_ack <= 1'b0;
+	ch5od_ack <= 1'b0;
+	ch6od_ack <= 1'b0;
+	ch7od_ack <= 1'b0;
 	if (rd_data_valid_r)
 		case(req_fifoo.port)
-		4'd0:	ch0od.ack <= 1'b1;
-		4'd1:	ch1od.ack <= 1'b1;
-		4'd2:	ch2od.ack <= 1'b1;
-		4'd3:	ch3od.ack <= 1'b1;
-		4'd4:	ch4od.ack <= 1'b1;
-		4'd5:	ch5od.ack <= 1'b1;
-		4'd6:	ch6od.ack <= 1'b1;
-		4'd7:	ch7od.ack <= 1'b1;
+		4'd0:	ch0od_ack <= 1'b1;
+		4'd1:	ch1od_ack <= 1'b1;
+		4'd2:	ch2od_ack <= 1'b1;
+		4'd3:	ch3od_ack <= 1'b1;
+		4'd4:	ch4od_ack <= 1'b1;
+		4'd5:	ch5od_ack <= 1'b1;
+		4'd6:	ch6od_ack <= 1'b1;
+		4'd7:	ch7od_ack <= 1'b1;
 		default:	;
 		endcase
 end
+pulse_extender upe0 (.clk_i(mem_ui_clk), .ce_i(1'b1), .cnt_i(CLK_RATIO0), .i(ch0od_ack), .o(ch0od.ack), .no());
+pulse_extender upe1 (.clk_i(mem_ui_clk), .ce_i(1'b1), .cnt_i(CLK_RATIO1), .i(ch1od_ack), .o(ch1od.ack), .no());
+pulse_extender upe2 (.clk_i(mem_ui_clk), .ce_i(1'b1), .cnt_i(CLK_RATIO2), .i(ch2od_ack), .o(ch2od.ack), .no());
+pulse_extender upe3 (.clk_i(mem_ui_clk), .ce_i(1'b1), .cnt_i(CLK_RATIO3), .i(ch3od_ack), .o(ch3od.ack), .no());
+pulse_extender upe4 (.clk_i(mem_ui_clk), .ce_i(1'b1), .cnt_i(CLK_RATIO4), .i(ch4od_ack), .o(ch4od.ack), .no());
+pulse_extender upe5 (.clk_i(mem_ui_clk), .ce_i(1'b1), .cnt_i(CLK_RATIO5), .i(ch5od_ack), .o(ch5od.ack), .no());
+pulse_extender upe6 (.clk_i(mem_ui_clk), .ce_i(1'b1), .cnt_i(CLK_RATIO6), .i(ch6od_ack), .o(ch6od.ack), .no());
+pulse_extender upe7 (.clk_i(mem_ui_clk), .ce_i(1'b1), .cnt_i(CLK_RATIO7), .i(ch7od_ack), .o(ch7od.ack), .no());
 
 // Setting the data value. Unlike reads there is only a single strip involved.
 // Force unselected byte lanes to $FF.???? Why?

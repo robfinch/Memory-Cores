@@ -450,11 +450,20 @@ begin
 end
 
 reg b0,b1,b2;
-reg ldcycd1,ldcycd2;
+reg ldcycd1,ldcycd2,ldcycd3;
 always_ff @(posedge wclk)
 	ldcycd1 <= ld.cyc;
 always_ff @(posedge wclk)
 	ldcycd2 <= ldcycd1;
+always_ff @(posedge wclk)
+	ldcycd3 <= ldcycd2;
+
+// These signals registered to improve timing.
+reg wchi_vbit,inv1;
+always_ff @(posedge wclk)
+	wchi_vbit <= |hit8a & |wchi_sel & wchi_stb & wchi.we & ~(ld.cyc|ldcycd1|ldcycd2|ldcycd3);
+always_ff @(posedge wclk)
+	inv1 <= inv;
 
 always_ff @(posedge wclk)
 if (rst) begin
@@ -475,9 +484,9 @@ else begin
 		b1 <= vbit[1][wadr[HIBIT:LOBIT]];
 		b2 <= vbit[2][wadr[HIBIT:LOBIT]];
 	end
-	if (|hit8a & |wchi_sel & wchi_stb & wchi.we & ~(ld.cyc|ldcycd1|ldcycd2))
+	if (wchi_vbit)
 		vbit[wway][wadr[HIBIT:LOBIT]] <= 1'b1;
-	else if (inv)
+	else if (inv1)
 		vbit[wway][wadr[HIBIT:LOBIT]] <= 1'b0;
 end
 
