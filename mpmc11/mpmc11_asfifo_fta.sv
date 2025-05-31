@@ -121,7 +121,7 @@ change_det #($bits(mpmc11_fifoe_t)) ucdfifo1
       .PROG_FULL_THRESH(DEPTH-5),	// DECIMAL
       .RD_DATA_COUNT_WIDTH($clog2(DEPTH)+1),   // DECIMAL
       .READ_DATA_WIDTH($bits(mpmc11_fifoe_t)),      // DECIMAL
-      .READ_MODE("fwft"),         // String
+      .READ_MODE("std"),         // String
       .RELATED_CLOCKS(0),        // DECIMAL
       .SIM_ASSERT_CHK(0),        // DECIMAL; 0=disable simulation messages, 1=enable simulation messages
       .USE_ADV_FEATURES("000E"), // String		enable almost full and prog full

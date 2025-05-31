@@ -88,17 +88,10 @@ parameter NAR = 2;			// Number of address reservations
 parameter CL = 3'd4;		// Cache read latency
 parameter PORT_PRESENT = 9'h181;
 parameter REFRESH_BIT = 4'd0;
-parameter CACHE = 9'h5E;
+parameter CACHE = 9'h4E;
 parameter STREAM = 8'h21;
 parameter RMW = 8'h02;
-parameter CLK_RATIO0 = 2;
-parameter CLK_RATIO1 = 2;
-parameter CLK_RATIO2 = 2;
-parameter CLK_RATIO3 = 2;
-parameter CLK_RATIO4 = 2;
-parameter CLK_RATIO5 = 2;
-parameter CLK_RATIO6 = 2;
-parameter CLK_RATIO7 = 2;
+parameter MDW = 256;
 
 fta_cmd_request256_t [7:0] chi;
 
@@ -235,24 +228,28 @@ begin
 		ch0.resp.adr = ch0ob.adr;
 		ch0.resp.dat = ch0ob.dat;
 		ch0.resp.ack = ch0ob.ack;
+		ch0.resp.rty = 1'b0;
 	end
 	else if (rmw0) begin
 		ch0.resp.tid = ch0oc.tid;
 		ch0.resp.adr = ch0oc.adr;
 		ch0.resp.dat = ch0oc.dat;
 		ch0.resp.ack = ch0oc.ack;
+		ch0.resp.rty = 1'b0;
 	end
 	else if (CACHE[0]) begin
 		ch0.resp.tid = ch0oa.tid;
 		ch0.resp.adr = ch0oa.adr;
 		ch0.resp.dat = ch0oa.dat;
 		ch0.resp.ack = ch0oa.ack;
+		ch0.resp.rty = 1'b0;
 	end
 	else begin
 		ch0.resp.tid = ch0od.tid;
 		ch0.resp.adr = ch0od.adr;
 		ch0.resp.dat = ch0od.dat;
 		ch0.resp.ack = ch0od.ack;
+		ch0.resp.rty = 1'b0;
 	end
 
 	if (STREAM[1]) begin
@@ -335,24 +332,28 @@ begin
 		ch4.resp.adr = ch4ob.adr;
 		ch4.resp.dat = ch4ob.dat;
 		ch4.resp.ack = ch4ob.ack;
+		ch4.resp.rty = 1'b0;
 	end
 	else if (rmw4) begin
 		ch4.resp.tid = ch4oc.tid;
 		ch4.resp.adr = ch4oc.adr;
 		ch4.resp.dat = ch4oc.dat;
 		ch4.resp.ack = ch4oc.ack;
+		ch4.resp.rty = 1'b0;
 	end
 	else if (CACHE[4]) begin
 		ch4.resp.tid = ch4oa.tid;
 		ch4.resp.adr = ch4oa.adr;
 		ch4.resp.dat = ch4oa.dat;
 		ch4.resp.ack = ch4oa.ack;
+		ch4.resp.rty = 1'b0;
 	end
 	else begin
 		ch4.resp.tid = ch4od.tid;
 		ch4.resp.adr = ch4od.adr;
 		ch4.resp.dat = ch4od.dat;
 		ch4.resp.ack = ch4od.ack;
+		ch4.resp.rty = 1'b0;
 	end
 
 	if (STREAM[5]) begin
@@ -836,6 +837,7 @@ wire [15:0] rd_rst_busy;
 wire [15:0] wr_rst_busy;
 wire [8:0] reqo;
 wire [8:0] vg;
+reg [3:0] req_sel1;
 
 roundRobin #(.N(9)) rr1
 (
@@ -957,12 +959,15 @@ end
 wire [8:0] cd_fifo;
 reg [8:0] lcd_fifo;					// latched change detect
 reg [8:0] rd_fifo_r;
+always_ff @(posedge mem_ui_clk)
+	if (state==mpmc11_pkg::IDLE)
+		req_sel1 <= req_sel;
 generate begin : gInputFifos
 for (g = 0; g < 9; g = g + 1) begin
 assign reqo[g] = !empty[g];//req_fifog[g].req.cyc;
-always_comb wr_fifo[g] = req_fifoi[g].req.cyc && ((!CACHE[g]&&!(g==4'd7 &&
+always_comb wr_fifo[g] = req_fifoi[g].req.cyc && (!(CACHE[g]||(g==4'd7 &&
     req_fifoi[g].req.adr[31:30]==2'b10))||req_fifoi[g].req.we);
-always_comb rd_fifo[g] = sel[g] & rd_fifo_sm[g] & ~rd_fifo_r[g];
+always_comb rd_fifo[g] = sel[g] && rd_fifo_sm[g] && !rd_fifo_r[g] && state==mpmc11_pkg::IDLE;
 always_ff @(posedge mem_ui_clk)
 	if (rd_fifo[g])
 		rd_fifo_r[g] <= 1'b1;
@@ -1009,7 +1014,7 @@ begin
 	else begin
 		if (cd_fifo[g])
 			lcd_fifo[g] <= req_fifog[g].req.cyc;
-		else if (state==mpmc11_pkg::PRESET1)
+		else if (state==mpmc11_pkg::PRESET1 && g[3:0]==req_sel1[3:0])
 			lcd_fifo[g] <= 1'b0;
 	end
 	always_ff @(posedge mem_ui_clk)
@@ -1065,13 +1070,13 @@ assign rst_busy = (|rd_rst_busy) || (|wr_rst_busy) || irst;
 always_ff @(posedge mem_ui_clk)
 if (state==mpmc11_pkg::WRITE_DATA0 || state==mpmc11_pkg::READ_DATA0)
 	v <= 1'b0;
-else if (req_sel != 4'd15 && state==mpmc11_pkg::IDLE)
-	v <= lcd_fifo[req_sel]; /*&& empty1[req_sel][4:0]!=5'h00; */
+else if (req_sel1 != 4'd15 && state==mpmc11_pkg::IDLE)
+	v <= lcd_fifo[req_sel1];
 else
 	v <= 1'b0;
 always_ff @(posedge mem_ui_clk)
-if (req_sel != 4'd15 && state==mpmc11_pkg::IDLE)
-	req_fifoo <= req_fifoh[req_sel];
+if (req_sel1 != 4'd15 && state==mpmc11_pkg::IDLE)
+	req_fifoo <= req_fifoh[req_sel1];
 always_comb
 	uport = fifoo.port;
 always_comb
@@ -1347,94 +1352,46 @@ else begin
 	default:	;
 	endcase
 end
-always_ff @(posedge mem_ui_clk)
-if (irst) begin
-	ch0od.dat <= 256'd0;
-	ch1od.dat <= 256'd0;
-	ch2od.dat <= 256'd0;
-	ch3od.dat <= 256'd0;
-	ch4od.dat <= 256'd0;
-	ch5od.dat <= 256'd0;
-	ch6od.dat <= 256'd0;
-	ch7od.dat <= 256'd0;
-end
-else begin
-	if (rd_data_valid_r)
-	case(req_fifoo.port)
-	4'd0:	ch0od.dat <= rd_data_r;
-	4'd1:	ch1od.dat <= rd_data_r;
-	4'd2:	ch2od.dat <= rd_data_r;
-	4'd3:	ch3od.dat <= rd_data_r;
-	4'd4:	ch4od.dat <= rd_data_r;
-	4'd5:	ch5od.dat <= rd_data_r;
-	4'd6:	ch6od.dat <= rd_data_r;
-	4'd7:	ch7od.dat <= rd_data_r;
-	default:	;
-	endcase
-end
 
+wire [7:0] chod_ack;
+wire [MDW-1:0] chod_dat [0:7];
+wire [7:0] ch_clk;
+assign ch_clk[0] = ch0.clk;
+assign ch_clk[1] = ch1.clk;
+assign ch_clk[2] = ch2.clk;
+assign ch_clk[3] = ch3.clk;
+assign ch_clk[4] = ch4.clk;
+assign ch_clk[5] = ch5.clk;
+assign ch_clk[6] = ch6.clk;
+assign ch_clk[7] = ch7.clk;
+generate begin : gPortDataAck
+	for (g = 0; g < 8; g = g + 1)
+		if (PORT_PRESENT[g]) begin
+mpmc11_od_data_latch #(.MDW(MDW)) uoddl (.rst(irst), .clk(mem_ui_clk), .port(g[3:0]), .fifo_port(req_fifoo.port), 
+	.rdy(rd_data_valid_r), .rd_data(rd_data_r), .port_data(chod_dat[g]));
 // Writes will not generate an ack because rd_data_valid_r is valid only for
 // reads.
-reg [7:0] chclkd;
-always_ff @(posedge mem_ui_clk) chclkd[0] <= ch0.clk;
-always_ff @(posedge mem_ui_clk) chclkd[1] <= ch1.clk;
-always_ff @(posedge mem_ui_clk) chclkd[2] <= ch2.clk;
-always_ff @(posedge mem_ui_clk) chclkd[3] <= ch3.clk;
-always_ff @(posedge mem_ui_clk) chclkd[4] <= ch4.clk;
-always_ff @(posedge mem_ui_clk) chclkd[5] <= ch5.clk;
-always_ff @(posedge mem_ui_clk) chclkd[6] <= ch6.clk;
-always_ff @(posedge mem_ui_clk) chclkd[7] <= ch7.clk;
-	
-reg ch0od_ack;
-reg ch1od_ack;
-reg ch2od_ack;
-reg ch3od_ack;
-reg ch4od_ack;
-reg ch5od_ack;
-reg ch6od_ack;
-reg ch7od_ack;
-
-always_ff @(posedge mem_ui_clk)
-if (irst) begin
-	ch0od_ack <= 1'd0;
-	ch1od_ack <= 1'd0;
-	ch2od_ack <= 1'd0;
-	ch3od_ack <= 1'd0;
-	ch4od_ack <= 1'd0;
-	ch5od_ack <= 1'd0;
-	ch6od_ack <= 1'd0;
-	ch7od_ack <= 1'd0;
+mpmc11_od_ack uodack (.rst(irst), .clk(mem_ui_clk), .port(g[3:0]),
+	.fifo_port(req_fifoo.port), .port_clk(ch_clk[g]), .rdy(rd_data_valid_r), .port_ack(chod_ack[g]));
+		end
 end
-else begin
-	ch0od_ack <= 1'b0;
-	ch1od_ack <= 1'b0;
-	ch2od_ack <= 1'b0;
-	ch3od_ack <= 1'b0;
-	ch4od_ack <= 1'b0;
-	ch5od_ack <= 1'b0;
-	ch6od_ack <= 1'b0;
-	ch7od_ack <= 1'b0;
-	if (rd_data_valid_r)
-		case(req_fifoo.port)
-		4'd0:	ch0od_ack <= 1'b1;
-		4'd1:	ch1od_ack <= 1'b1;
-		4'd2:	ch2od_ack <= 1'b1;
-		4'd3:	ch3od_ack <= 1'b1;
-		4'd4:	ch4od_ack <= 1'b1;
-		4'd5:	ch5od_ack <= 1'b1;
-		4'd6:	ch6od_ack <= 1'b1;
-		4'd7:	ch7od_ack <= 1'b1;
-		default:	;
-		endcase
-end
-pulse_extender upe0 (.clk_i(mem_ui_clk), .ce_i(1'b1), .cnt_i(CLK_RATIO0), .i(ch0od_ack), .o(ch0od.ack), .no());
-pulse_extender upe1 (.clk_i(mem_ui_clk), .ce_i(1'b1), .cnt_i(CLK_RATIO1), .i(ch1od_ack), .o(ch1od.ack), .no());
-pulse_extender upe2 (.clk_i(mem_ui_clk), .ce_i(1'b1), .cnt_i(CLK_RATIO2), .i(ch2od_ack), .o(ch2od.ack), .no());
-pulse_extender upe3 (.clk_i(mem_ui_clk), .ce_i(1'b1), .cnt_i(CLK_RATIO3), .i(ch3od_ack), .o(ch3od.ack), .no());
-pulse_extender upe4 (.clk_i(mem_ui_clk), .ce_i(1'b1), .cnt_i(CLK_RATIO4), .i(ch4od_ack), .o(ch4od.ack), .no());
-pulse_extender upe5 (.clk_i(mem_ui_clk), .ce_i(1'b1), .cnt_i(CLK_RATIO5), .i(ch5od_ack), .o(ch5od.ack), .no());
-pulse_extender upe6 (.clk_i(mem_ui_clk), .ce_i(1'b1), .cnt_i(CLK_RATIO6), .i(ch6od_ack), .o(ch6od.ack), .no());
-pulse_extender upe7 (.clk_i(mem_ui_clk), .ce_i(1'b1), .cnt_i(CLK_RATIO7), .i(ch7od_ack), .o(ch7od.ack), .no());
+endgenerate
+assign ch0od.dat = chod_dat[0];
+assign ch1od.dat = chod_dat[1];
+assign ch2od.dat = chod_dat[2];
+assign ch3od.dat = chod_dat[3];
+assign ch4od.dat = chod_dat[4];
+assign ch5od.dat = chod_dat[5];
+assign ch6od.dat = chod_dat[6];
+assign ch7od.dat = chod_dat[7];
+assign ch0od.ack = chod_ack[0];
+assign ch1od.ack = chod_ack[1];
+assign ch2od.ack = chod_ack[2];
+assign ch3od.ack = chod_ack[3];
+assign ch4od.ack = chod_ack[4];
+assign ch5od.ack = chod_ack[5];
+assign ch6od.ack = chod_ack[6];
+assign ch7od.ack = chod_ack[7];
 
 // Setting the data value. Unlike reads there is only a single strip involved.
 // Force unselected byte lanes to $FF.???? Why?
@@ -1491,7 +1448,6 @@ mpmc11_state_machine_fta usm1
 	.to(tocnt[8]),
 	.rdy(app_rdy),
 	.wdf_rdy(app_wdf_rdy),
-	.fifo_empty(&empty),
 	.fifo_v(v),
 	.rst_busy((rd_rst_busy[req_sel]) || (wr_rst_busy[req_sel])),
 	.fifo_out(req_fifoo.req),

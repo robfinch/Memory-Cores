@@ -39,7 +39,7 @@ import mpmc11_pkg::*;
 
 module mpmc11_state_machine_fta(rst, clk, calib_complete,
 	ref_req, ref_ack, app_ref_ack,
-	to, rdy, wdf_rdy, fifo_empty,
+	to, rdy, wdf_rdy,
 	rst_busy, fifo_out, fifo_v, state,
 	burst_len, req_burst_cnt, resp_burst_cnt, rd_data_valid, rmw_hit);
 input rst;
@@ -51,7 +51,6 @@ input app_ref_ack;
 input to;							// state machine time-out
 input rdy;
 input wdf_rdy;
-input fifo_empty;
 input rst_busy;
 input fta_cmd_request256_t fifo_out;
 input fifo_v;

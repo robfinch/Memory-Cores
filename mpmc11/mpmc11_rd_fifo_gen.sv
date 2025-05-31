@@ -49,7 +49,6 @@ output reg [8:0] rd;
 
 integer jj;
 reg [8:0] next_rd;
-wire [8:0] sel;
 
 always_comb
 begin
