@@ -337,14 +337,14 @@ generate begin : gReaddat
 	always_comb ch5.resp.err = fta_bus_pkg::OKAY;
 	always_comb ch6.resp.err = fta_bus_pkg::OKAY;
 	always_comb ch7.resp.err = fta_bus_pkg::OKAY;
-	always_comb ch0.resp.rty = stb0 & to;
-	always_comb ch1.resp.rty = stb1 & to;
+	always_comb ch0.resp.rty = (stb0 & to) | (rstb[0] & ~ch0hit & ~ch0.req.we);
+	always_comb ch1.resp.rty = (stb1 & to) | (rstb[1] & ~ch1hit & ~ch1.req.we);
 	always_comb ch2.resp.rty = stb2 & to;
 	always_comb ch3.resp.rty = stb3 & to;
 	always_comb ch4.resp.rty = stb4 & to;
 	always_comb ch5.resp.rty = stb5 & to;
 	always_comb ch6.resp.rty = stb6 & to;
-	always_comb ch7.resp.rty = stb7 & to;
+	always_comb ch7.resp.rty = (stb7 & to) | (rstb[7] & ~ch7hit & ~ch7.req.we);
 /*
 	always_comb ch0.resp.cid = ch0i.cid;
 	always_comb ch1.resp.cid = ch1i.cid;
@@ -366,16 +366,17 @@ generate begin : gReaddat
 end
 endgenerate
 
-always_comb miss.bte = fta_bus_pkg::LINEAR;
-always_comb miss.cti = fta_bus_pkg::CLASSIC;
-always_comb miss.cmd = fta_bus_pkg::CMD_LOAD;
-always_comb miss.blen = 6'd0;
-always_comb miss.we = 1'b0;
-always_comb miss.sel = {32{1'b1}};
-
 always_ff @(posedge wclk)
-if (rst)
+if (rst) begin
 	rstb4 <= 8'h00;
+	miss <= 1000'd0;
+	miss.bte <= fta_bus_pkg::LINEAR;
+	miss.cti <= fta_bus_pkg::CLASSIC;
+	miss.cmd <= fta_bus_pkg::CMD_LOAD;
+	miss.blen <= 6'd0;
+	miss.we <= 1'b0;
+	miss.sel = {32{1'b1}};
+end
 else begin
 	miss.cyc <= LOW;
 	if (rstb3[0] & ~rstb4[0] & ~ch0hit & ~ch0.req.we) begin

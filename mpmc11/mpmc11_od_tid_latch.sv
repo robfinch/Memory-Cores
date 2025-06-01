@@ -38,28 +38,23 @@
 // destination clock domain.
 // ============================================================================
 //
+import mpmc11_pkg::*;
 
-module mpmc11_od_data_latch(rst, clk, pclk, port, fifo_port, rdy, rd_data, port_data);
-parameter MDW = 256;
+module mpmc11_od_tid_latch(rst, clk, pclk, port, req, rdy, tid);
 input rst;
 input clk;
 input pclk;
 input [3:0] port;
-input [3:0] fifo_port;
+input mpmc11_fifoe_t req;
 input rdy;
-input [MDW-1:0] rd_data;
-output reg [MDW-1:0] port_data;
+output fta_bus_pkg::fta_tranid_t tid;
 
-reg [MDW-1:0] data1;
+fta_bus_pkg::fta_tranid_t tid1;
 
 always_ff @(posedge clk)
-if (rst)
-	data1 <= {MDW{1'b0}};
-else begin
-	if (rdy && port==fifo_port)
-		data1 <= rd_data;
-end
+	if (rdy && req.port==port)
+		tid1 <= req.req.tid;
 always_ff @(posedge pclk)
-	port_data <= data1;
+	tid <= tid1;
 
 endmodule

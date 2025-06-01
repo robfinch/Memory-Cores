@@ -38,7 +38,7 @@ import fta_bus_pkg::*;
 import mpmc11_pkg::*;
 
 module mpmc11_asfifo_fta(rst, rd_clk, rd_fifo, wr_clk, wr_fifo,
-	req_fifoi, req_fifoo, ocd,
+	req_fifoi, req_fifoo, ocd, rty,
 	full, empty, almost_full, prog_full, rd_rst_busy, wr_rst_busy, cnt);
 parameter DEPTH=32;
 input rst;
@@ -46,6 +46,7 @@ input rd_clk;
 input rd_fifo;
 input wr_clk;
 input wr_fifo;
+input rty;
 input mpmc11_fifoe_t req_fifoi;
 output mpmc11_fifoe_t req_fifoo;
 output ocd;									// output change detect
@@ -69,6 +70,8 @@ else if ((16'd1 << $clog2(DEPTH)) != DEPTH) begin
 end
 */
 
+wire ocd1;
+wire data_valid;
 wire rd_rst_busy1;
 wire ne_rd_rst_busy;
 edge_det urstbusy (.rst(rst), .clk(rd_clk), .ce(1'b1), .i(rd_rst_busy1), .pe(), .ne(ne_rd_rst_busy), .ee());
@@ -99,8 +102,10 @@ change_det #($bits(mpmc11_fifoe_t)) ucdfifo1
 	.clk(rd_clk),
 	.ce(1'b1),
 	.i(req_fifoo),
-	.cd(ocd)
+	.cd(ocd1)
 );
+
+assign ocd = data_valid;
 
 // XPM_FIFO instantiation template for Asynchronous FIFO configurations
 // Refer to the targeted device family architecture libraries guide for XPM_FIFO documentation
@@ -121,10 +126,10 @@ change_det #($bits(mpmc11_fifoe_t)) ucdfifo1
       .PROG_FULL_THRESH(DEPTH-5),	// DECIMAL
       .RD_DATA_COUNT_WIDTH($clog2(DEPTH)+1),   // DECIMAL
       .READ_DATA_WIDTH($bits(mpmc11_fifoe_t)),      // DECIMAL
-      .READ_MODE("std"),         // String
+      .READ_MODE("fwft"),         // String
       .RELATED_CLOCKS(0),        // DECIMAL
       .SIM_ASSERT_CHK(0),        // DECIMAL; 0=disable simulation messages, 1=enable simulation messages
-      .USE_ADV_FEATURES("000E"), // String		enable almost full and prog full
+      .USE_ADV_FEATURES("100E"), // String		enable data valid, almost full and prog full
       .WAKEUP_TIME(0),           // DECIMAL
       .WRITE_DATA_WIDTH($bits(mpmc11_fifoe_t)),     // DECIMAL
       .WR_DATA_COUNT_WIDTH($clog2(DEPTH)+1)    // DECIMAL
@@ -134,7 +139,7 @@ change_det #($bits(mpmc11_fifoe_t)) ucdfifo1
                                      // only one more read can be performed before the FIFO goes to empty.
       .almost_full(almost_full),		// 1-bit output: Almost Full: When asserted, this signal indicates that
                                      // only one more write can be performed before the FIFO is full.
-      .data_valid(),	   				    // 1-bit output: Read Data Valid: When asserted, this signal indicates
+      .data_valid(data_valid),	    // 1-bit output: Read Data Valid: When asserted, this signal indicates
                                      // that valid data is available on the output bus (dout).
       .dbiterr(),				             // 1-bit output: Double Bit Error: Indicates that the ECC decoder detected
                                      // a double-bit error and data in the FIFO core is corrupted.

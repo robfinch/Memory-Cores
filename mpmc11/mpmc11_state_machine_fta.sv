@@ -41,7 +41,8 @@ module mpmc11_state_machine_fta(rst, clk, calib_complete,
 	ref_req, ref_ack, app_ref_ack,
 	to, rdy, wdf_rdy,
 	rst_busy, fifo_out, fifo_v, state,
-	burst_len, req_burst_cnt, resp_burst_cnt, rd_data_valid, rmw_hit);
+	burst_len, req_burst_cnt, resp_burst_cnt, rd_data_valid, rmw_hit,
+	select_next);
 input rst;
 input clk;
 input calib_complete;
@@ -60,8 +61,12 @@ input [7:0] req_burst_cnt;
 input [7:0] resp_burst_cnt;
 input rd_data_valid;
 input rmw_hit;
+output reg select_next;		// select next input fifo output
 
 mpmc11_state_t next_state;
+
+always_comb
+	select_next = state==mpmc11_pkg::IDLE;
 
 always_ff @(posedge clk)
 if (rst) begin

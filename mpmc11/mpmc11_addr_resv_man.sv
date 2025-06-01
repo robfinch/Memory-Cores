@@ -84,15 +84,14 @@ assign adr[5] = adr5;
 assign adr[6] = adr6;
 assign adr[7] = adr7;
 
-roundRobin urr1
+RoundRobinArbiter urr1
 (
 	.rst(rst),
 	.clk(clk),
 	.ce(1'b1),
 	.req(srr),
-	.lock(8'h00),
-	.sel(),
-	.sel_enc(enc)
+	.grant(),
+	.grant_enc(enc)
 );
 
 // For address reservation below

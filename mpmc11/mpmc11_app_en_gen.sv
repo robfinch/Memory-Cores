@@ -71,7 +71,7 @@ else begin
 end
 
 always_comb en = (state==mpmc11_pkg::WRITE_DATA1 & rdy & wdf_rdy) ||
-	(state==mpmc11_pkg::READ_DATA0 & rdy || (state==mpmc11_pkg::READ_DATA2 && rdy && burst_cnt <= burst_len));
+	((state==mpmc11_pkg::READ_DATA0 & rdy) || (state==mpmc11_pkg::READ_DATA2 && rdy && burst_cnt <= burst_len));
 // en1 & ~(state==READ_DATA1 && rdy && burst_cnt==burst_len);
 
 endmodule
