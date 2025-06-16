@@ -41,7 +41,7 @@ module mpmc11_state_machine_fta(rst, clk, calib_complete,
 	ref_req, ref_ack, app_ref_ack,
 	to, rdy, wdf_rdy,
 	rst_busy, fifo_out, fifo_v, state,
-	burst_len, req_burst_cnt, resp_burst_cnt, rd_data_valid, rmw_hit,
+	burst_len, req_burst_cnt, resp_burst_cnt, rmw_hit,
 	select_next);
 input rst;
 input clk;
@@ -59,7 +59,6 @@ output mpmc11_state_t state;
 input [7:0] burst_len;
 input [7:0] req_burst_cnt;
 input [7:0] resp_burst_cnt;
-input rd_data_valid;
 input rmw_hit;
 output reg select_next;		// select next input fifo output
 
@@ -166,7 +165,7 @@ else begin
 	// Wait for incoming responses, but only for so long to prevent a hang.
 	// Submit more requests for a burst.
 	READ_DATA2:
-		if (rd_data_valid && resp_burst_cnt==burst_len) begin
+		if (resp_burst_cnt==burst_len+8'd1) begin
 			case(fifo_out.cmd)
 			fta_bus_pkg::CMD_LOAD,fta_bus_pkg::CMD_LOADZ:
 				next_state = WAIT_NACK;

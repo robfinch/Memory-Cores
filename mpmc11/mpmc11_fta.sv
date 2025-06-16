@@ -93,6 +93,7 @@ parameter STREAM = 8'h21;
 parameter RMW = 8'h00;
 parameter MDW = 256;
 
+wire clk100 = sys_clk_i;
 fta_cmd_request256_t [7:0] chi;
 
 always_comb
@@ -514,13 +515,13 @@ reg ref_req;
 wire ref_ack;
 generate begin : gRefresh
 if (REFRESH_BIT > 0) begin
-always_ff @(posedge mem_ui_clk)
+always_ff @(posedge sys_clk_i)
 if (rst)
 	ref_cnt <= {REFRESH_BIT+1{1'd0}};
 else
 	ref_cnt <= ref_cnt + 2'd1;
 // Trigger a refresh request immediately after calib_complete.
-always_ff @(posedge mem_ui_clk)
+always_ff @(posedge sys_clk_i)
 if (rst|~calib_complete)
 	ref_req <= 1'b0;
 else begin
@@ -648,7 +649,7 @@ reg ch6wack;
 reg ch7wack;
 reg [7:0] chw;
 
-always_ff @(posedge mem_ui_clk)
+always_ff @(posedge sys_clk_i)
 begin
 	ch0wack <= 1'b0;
 	ch1wack <= 1'b0;
@@ -672,7 +673,7 @@ begin
 		endcase
 end
 
-always_ff @(posedge mem_ui_clk)
+always_ff @(posedge sys_clk_i)
 begin
 	chw[0] <= 1'b0;
 	chw[1] <= 1'b0;
@@ -787,7 +788,7 @@ end
 mpmc11_cache_fta #(.PORT_PRESENT(PORT_PRESENT|9'h100)) ucache1
 (
 	.rst(irst),
-	.wclk(mem_ui_clk),
+	.wclk(sys_clk_i),
 	.inv(1'b0),
 	.wchi(fifoo.req),
 	.wcho(),
@@ -866,7 +867,7 @@ RoundRobinArbiter #(
   .NumRequests(10)
 ) urr1 (
 	.rst(rst),
-  .clk(mem_ui_clk),
+  .clk(sys_clk_i),
   .ce(select_next),
   .hold(1'b1),
   .req(reqo),
@@ -983,7 +984,7 @@ end
 wire [8:0] cd_fifo;
 reg [8:0] lcd_fifo;					// latched change detect
 reg [8:0] rd_fifo_r;
-always_ff @(posedge mem_ui_clk)
+always_ff @(posedge sys_clk_i)
 	if (state==mpmc11_pkg::IDLE)
 		req_sel1 <= req_sel;
 generate begin : gInputFifos
@@ -994,7 +995,7 @@ always_comb wr_fifo[g] = req_fifoi[g].req.cyc && (!(CACHE[g]||(g==4'd7 &&
   req_fifoi[g].req.adr[31:30]==2'b10))||req_fifoi[g].req.we);
 always_comb
 	rd_fifo[g] = sel[g] && rd_fifo_sm[g] && !rd_fifo_r[g] && state==mpmc11_pkg::IDLE;
-always_ff @(posedge mem_ui_clk)
+always_ff @(posedge sys_clk_i)
 	if (rd_fifo[g])
 		rd_fifo_r[g] <= 1'b1;
 	else if (state==mpmc11_pkg::PRESET1 && g[3:0]==req_sel1[3:0])
@@ -1005,7 +1006,7 @@ begin
 	mpmc11_asfifo_fta ufifo
 	(
 		.rst(mem_ui_rst),
-		.rd_clk(mem_ui_clk),
+		.rd_clk(sys_clk_i),
 		.rd_fifo(rd_fifo[g]),
 		.wr_clk(chclk[g]),
 		.wr_fifo(wr_fifo[g]),
@@ -1035,7 +1036,7 @@ begin
 	endcase
 	
 	// Make the change detect sticky until state machine reaches PRESET1.
-	always_ff @(posedge mem_ui_clk)
+	always_ff @(posedge sys_clk_i)
 	if (mem_ui_rst)
 		lcd_fifo[g] <= 1'b0;
 	else begin
@@ -1044,7 +1045,7 @@ begin
 		else if (state==mpmc11_pkg::PRESET1 && g[3:0]==req_sel1[3:0])
 			lcd_fifo[g] <= 1'b0;
 	end
-	always_ff @(posedge mem_ui_clk)
+	always_ff @(posedge sys_clk_i)
 	if (state==mpmc11_pkg::IDLE)
 		req_fifoh[g] <= req_fifog[g];
 
@@ -1094,14 +1095,14 @@ endgenerate
 
 assign rst_busy = (|rd_rst_busy) || (|wr_rst_busy) || irst;
 
-always_ff @(posedge mem_ui_clk)
+always_ff @(posedge sys_clk_i)
 if (state==mpmc11_pkg::WRITE_DATA0 || state==mpmc11_pkg::READ_DATA0)
 	v <= 1'b0;
 else if (req_sel != 4'd9 && state==mpmc11_pkg::IDLE)
 	v <= lcd_fifo[req_sel];
 else
 	v <= 1'b0;
-always_ff @(posedge mem_ui_clk)
+always_ff @(posedge sys_clk_i)
 if (req_sel != 4'd9 && state==mpmc11_pkg::IDLE)
 	req_fifoo <= req_fifoh[req_sel];
 always_comb
@@ -1141,7 +1142,7 @@ mpmc11_waddr_gen uwag1
 mpmc11_mask_select #(.WID(WIDX8)) unsks1
 (
 	.rst(irst),
-	.clk(mem_ui_clk),
+	.clk(sys_clk_i),
 	.state(state),
 	.we(req_fifoo.req.we), 
 	.wmask(req_fifoo.req.sel),
@@ -1153,7 +1154,7 @@ wire [WIDX8-1:0] data128b;
 
 mpmc11_data_select #(.WID(WIDX8)) uds1
 (
-	.clk(mem_ui_clk),
+	.clk(sys_clk_i),
 	.state(state),
 	.dati1(req_fifoo.req.data1),
 	.dati2(req_fifoo.req.data2),
@@ -1179,11 +1180,11 @@ always_comb
 	4'd7:	rmw_hit = hit7;
 	default:	rmw_hit = 1'b1;
 	endcase
-always_ff @(posedge mem_ui_clk)
+always_ff @(posedge sys_clk_i)
 	opb <= data128a >> {req_fifoo.req.padr[4:0],3'b0};
-always_ff @(posedge mem_ui_clk)
+always_ff @(posedge sys_clk_i)
 	opc <= data128b >> {req_fifoo.req.padr[4:0],3'b0};
-always_ff @(posedge mem_ui_clk)
+always_ff @(posedge sys_clk_i)
 	case(req_fifoo.port)
 	4'd0:	opa1 <= ch0oa.dat;
 	4'd1:	opa1 <= ch1oa.dat;
@@ -1195,9 +1196,9 @@ always_ff @(posedge mem_ui_clk)
 	4'd7:	opa1 <= ch7oa.dat;
 	default:	opa1 <= 'd0;
 	endcase
-always_ff @(posedge mem_ui_clk)
+always_ff @(posedge sys_clk_i)
 	opa <= opa1 >> {req_fifoo.req.padr[4:0],3'b0};
-always_ff @(posedge mem_ui_clk)
+always_ff @(posedge sys_clk_i)
 case(req_fifoo.req.sz)
 `ifdef SUPPORT_AMO_TETRA
 fta_bus_pkg::tetra:
@@ -1273,10 +1274,10 @@ default:
 	default:	t1 <= opa[127:0];
 	endcase
 endcase
-always_ff @(posedge mem_ui_clk)
+always_ff @(posedge sys_clk_i)
 	rmw_dat <= t1 << {req_fifoo.req.adr[4:0],3'b0};
 
-always_ff @(posedge mem_ui_clk)
+always_ff @(posedge sys_clk_i)
 if (irst) begin
 	ch0oc.dat <= 'd0;
 	ch1oc.dat <= 'd0;
@@ -1301,7 +1302,7 @@ if (state==WRITE_TRAMP1)
 	default:	;
 	endcase
 end
-always_ff @(posedge mem_ui_clk)
+always_ff @(posedge sys_clk_i)
 if (irst)
 	rmw_ack <= 1'b0;
 else begin
@@ -1419,7 +1420,7 @@ generate begin
 end
 endgenerate
 
-always_ff @(posedge mem_ui_clk)
+always_ff @(posedge sys_clk_i)
 if (irst)
   app_wdf_data <= 256'd0;
 else begin
@@ -1432,7 +1433,7 @@ end
 mpmc11_rd_fifo_gen urdf1
 (
 	.rst(irst),
-	.clk(mem_ui_clk),
+	.clk(sys_clk_i),
 	.state(state),
 	.empty(9'h00), //empty),
 	.rd_rst_busy(rd_rst_busy),
@@ -1440,7 +1441,7 @@ mpmc11_rd_fifo_gen urdf1
 	.rd(rd_fifo_sm)
 );
 
-always_ff @(posedge mem_ui_clk)
+always_ff @(posedge sys_clk_i)
 if (rst)
 	fifo_mask <= {$bits(fifo_mask){1'b1}};
 else begin
@@ -1453,7 +1454,7 @@ end
 mpmc11_state_machine_fta usm1
 (
 	.rst(irst),
-	.clk(mem_ui_clk),
+	.clk(sys_clk_i),
 	.calib_complete(calib_complete),
 	.ref_req(ref_req),
 	.ref_ack(ref_ack),
@@ -1468,14 +1469,13 @@ mpmc11_state_machine_fta usm1
 	.burst_len(burst_len),
 	.req_burst_cnt(req_burst_cnt),
 	.resp_burst_cnt(resp_burst_cnt),
-	.rd_data_valid(rd_data_valid_r),
 	.rmw_hit(rmw_hit),
 	.select_next(select_next)
 );
 
 mpmc11_to_cnt utoc1
 (
-	.clk(mem_ui_clk),
+	.clk(sys_clk_i),
 	.state(state),
 	.prev_state(prev_state),
 	.to_cnt(tocnt)
@@ -1483,7 +1483,7 @@ mpmc11_to_cnt utoc1
 
 mpmc11_prev_state upst1
 (
-	.clk(mem_ui_clk),
+	.clk(sys_clk_i),
 	.state(state),
 	.prev_state(prev_state)
 );
@@ -1503,7 +1503,7 @@ mpmc11_app_en_gen ueng1
 mpmc11_app_cmd_gen ucg1
 (
 	.rst(irst),
-	.clk(mem_ui_clk),
+	.clk(sys_clk_i),
 	.state(state),
 	.wr(req_fifoo.req.cyc & req_fifoo.req.we),
 	.cmd(app_cmd)
@@ -1551,7 +1551,7 @@ mpmc11_resp_burst_cnt urespsc1
 // Reservation status bit
 mpmc11_resv_bit ursb1
 (
-	.clk(mem_ui_clk),
+	.clk(sys_clk_i),
 	.state(state),
 	.wch(fifoo.port),
 	.we(fifoo.req.cyc & fifoo.req.we),
@@ -1565,7 +1565,7 @@ mpmc11_resv_bit ursb1
 mpmc11_addr_resv_man #(.NAR(NAR)) ursvm1
 (
 	.rst(irst),
-	.clk(mem_ui_clk),
+	.clk(sys_clk_i),
 	.state(state),
 	.adr0(32'h0),
 	.adr1(ch1.req.adr),

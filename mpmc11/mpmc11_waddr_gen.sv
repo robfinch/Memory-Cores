@@ -63,7 +63,7 @@ else begin
 		on <= 1'b0;
 	if (state==mpmc11_pkg::PRESET2)
 		addr <= {addr_base[31:5],5'h0};
-	else if (valid && burst_cnt != burst_len && on)
+	else if (valid && burst_cnt <= burst_len && on)
 		addr[31:5] <= addr[31:5] + 2'd1;
 	// Increment the address if we had to start a new burst.
 //	else if (state==WRITE_DATA3 && req_burst_cnt!=burst_len)
