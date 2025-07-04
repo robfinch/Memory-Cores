@@ -53,10 +53,11 @@ else begin
 	if (state==mpmc11_pkg::READ_DATA0)
 		on <= 1'b1;
 	if (valid && on) begin
-		if (burst_cnt <= burst_len)
+		if (burst_cnt <= burst_len) begin
   		burst_cnt <= burst_cnt + 3'd1;
-  	else
-  		on <= 1'b0;
+  		if (burst_cnt == burst_len)
+  			on <= 1'b0;
+  	end
   end
 end
 

@@ -48,30 +48,11 @@ output reg en;
 
 // app_en latches the command and address when app_rdy is active. If app_rdy
 // is not true, the command must be retried.
-reg en1;
-always_ff @(posedge clk)
-if (rst)
-	en1 <= 1'b0;
-else begin
-	case(state)
-	mpmc11_pkg::WRITE_DATA1:
-		en1 <= 1'b1;
-	mpmc11_pkg::WRITE_DATA2:
-		if (rdy)
-			en1 <= 1'b0;
-		else
-			en1 <= 1'b1;
-	mpmc11_pkg::READ_DATA0:
-		en1 <= 1'b0;
-	mpmc11_pkg::READ_DATA1:
-		en1 <= 1'b1;
-	default:
-		en1 <= 1'b0;
-	endcase
-end
 
-always_comb en = (state==mpmc11_pkg::WRITE_DATA1 & rdy & wdf_rdy) ||
-	((state==mpmc11_pkg::READ_DATA0 & rdy) || (state==mpmc11_pkg::READ_DATA2 && rdy && burst_cnt <= burst_len));
-// en1 & ~(state==READ_DATA1 && rdy && burst_cnt==burst_len);
+always_comb en =
+	(state==mpmc11_pkg::WRITE_DATA1 && rdy && wdf_rdy) ||
+	((state==mpmc11_pkg::READ_DATA0 && rdy) ||
+	 (state==mpmc11_pkg::READ_DATA2 && rdy && burst_cnt <= burst_len))
+	 ;
 
 endmodule

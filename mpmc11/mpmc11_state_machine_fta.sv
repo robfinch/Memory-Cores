@@ -124,7 +124,7 @@ else begin
 		next_state = WRITE_DATA1;
 	// Write data fifo first, done when wdf_rdy is high
 	WRITE_DATA1:	// set app_en high
-		if (wdf_rdy & rdy && req_burst_cnt==burst_len)
+		if (wdf_rdy && rdy && req_burst_cnt==burst_len)
 			next_state = mpmc11_pkg::IDLE;
 //			next_state = WRITE_DATA2;
 		else
@@ -150,7 +150,9 @@ else begin
 	*/
 	// There could be multiple read requests submitted before any response occurs.
 	READ_DATA0:
-		if (rdy)
+		if (rdy && burst_len==8'd0)
+			next_state = READ_DATA1;
+		else if (rdy)
 			next_state = READ_DATA2;
 		else
 			next_state = READ_DATA0;
@@ -158,10 +160,10 @@ else begin
 	// Could it take so long to do the request that we start getting responses
 	// back?
 	READ_DATA1:
-		if (req_burst_cnt==burst_len)
-			next_state = READ_DATA2;
+		if (resp_burst_cnt==8'd1)
+			next_state = WAIT_NACK;
 		else
-			next_state = READ_DATA0;
+			next_state = READ_DATA1;
 	// Wait for incoming responses, but only for so long to prevent a hang.
 	// Submit more requests for a burst.
 	READ_DATA2:

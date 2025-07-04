@@ -59,17 +59,26 @@ mpmc11_pkg::PRESET2:	// For both read and write.
 	next_addr = {addr_base[31:5],5'h0};
 mpmc11_pkg::READ_DATA0:
 	if (rdy)
-		next_addr = burst_len==8'd0 ? addr : addr + INC_AMT;
+//		next_addr = burst_len==8'd0 ? addr : addr + INC_AMT;
+		next_addr = addr + INC_AMT;
+	else
+		next_addr = addr;
+mpmc11_pkg::READ_DATA1:
+	if (rdy)
+//		next_addr = burst_len==8'd0 ? addr : addr + INC_AMT;
+		next_addr = addr + INC_AMT;
 	else
 		next_addr = addr;
 mpmc11_pkg::READ_DATA2:
 	if (rdy)
-		next_addr = burst_len==8'd0 ? addr : addr + INC_AMT;
+//		next_addr = burst_len==8'd0 ? addr : addr + INC_AMT;
+		next_addr = addr + INC_AMT;
 	else
 		next_addr = addr;
 mpmc11_pkg::WRITE_DATA1:
 	if (wdf_rdy & rdy)
-		next_addr = burst_len==8'd0 ? addr : addr + INC_AMT;
+//		next_addr = burst_len==8'd0 ? addr : addr + INC_AMT;
+		next_addr = addr + INC_AMT;
 	else
 		next_addr = addr;
 default:

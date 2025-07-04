@@ -1098,12 +1098,12 @@ assign rst_busy = (|rd_rst_busy) || (|wr_rst_busy) || irst;
 always_ff @(posedge sys_clk_i)
 if (state==mpmc11_pkg::WRITE_DATA0 || state==mpmc11_pkg::READ_DATA0)
 	v <= 1'b0;
-else if (req_sel != 4'd9 && state==mpmc11_pkg::IDLE)
+else if (req_sel < 4'd9 && state==mpmc11_pkg::IDLE)
 	v <= lcd_fifo[req_sel];
 else
 	v <= 1'b0;
 always_ff @(posedge sys_clk_i)
-if (req_sel != 4'd9 && state==mpmc11_pkg::IDLE)
+if (req_sel < 4'd9 && state==mpmc11_pkg::IDLE)
 	req_fifoo <= req_fifoh[req_sel];
 always_comb
 	uport = fifoo.port;

@@ -56,24 +56,32 @@ else begin
 	case(state)
 	mpmc11_pkg::PRESET3:
 		on <= 1'b1;
+
 	mpmc11_pkg::WRITE_DATA1:
 		if (wdf_rdy && rdy && on) begin
-	  	if (burst_cnt <= burst_len)
+	  	if (burst_cnt <= burst_len) begin
 	    	burst_cnt <= burst_cnt + 3'd1;
+	    	if (burst_cnt==burst_len)
+	    		on <= 1'b0;
+	    end
 	    else
 	    	on <= 1'b0;
 	  end
+
   mpmc11_pkg::READ_DATA0:
-  	if (rdy && on) begin
-	  	if (burst_cnt <= burst_len)
-		  	burst_cnt <= burst_cnt + 3'd1;
-		  else
-		  	on <= 1'b0;
-		end
+  	if (rdy)
+	  	burst_cnt <= burst_cnt + 3'd1;
+
+  mpmc11_pkg::READ_DATA1:
+  	on <= 1'b0;
+
   mpmc11_pkg::READ_DATA2:
   	if (rdy && on) begin
-	  	if (burst_cnt <= burst_len)
+	  	if (burst_cnt <= burst_len) begin
 		  	burst_cnt <= burst_cnt + 3'd1;
+	    	if (burst_cnt==burst_len)
+	    		on <= 1'b0;
+		  end
 		  else
 		  	on <= 1'b0;
 		end
