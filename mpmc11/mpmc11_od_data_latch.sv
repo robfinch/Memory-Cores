@@ -33,9 +33,6 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
 //
-// Generate read ack, crossing clock domains.
-// The ack pulse should be active for only a single clock cycle of the
-// destination clock domain.
 // ============================================================================
 //
 

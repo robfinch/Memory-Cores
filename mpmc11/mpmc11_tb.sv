@@ -39,6 +39,8 @@ reg [31:0] rnd;
 reg [2:0] ch1_cmd;
 reg [31:0] ch1_adr;
 reg ch1_we;
+reg [3:0] tidcnt;
+reg got_ack;
 
 fta_bus_interface #(.DATA_WIDTH(256)) ch0_if();
 fta_bus_interface #(.DATA_WIDTH(256)) ch1_if();
@@ -49,27 +51,37 @@ fta_bus_interface #(.DATA_WIDTH(256)) ch5_if();
 fta_bus_interface #(.DATA_WIDTH(256)) ch6_if();
 fta_bus_interface #(.DATA_WIDTH(256)) ch7_if();
 
-assign ch0_if.clk = clk100;
-assign ch1_if.clk = clk100;
-assign ch2_if.clk = clk100;
-assign ch3_if.clk = clk100;
-assign ch4_if.clk = clk100;
-assign ch5_if.clk = clk100;
-assign ch6_if.clk = clk100;
-assign ch7_if.clk = clk100;
+always_comb
+begin
+	ch2_if.req = 1000'd0;
+	ch3_if.req = 1000'd0;
+	ch4_if.req = 1000'd0;
+	ch5_if.req = 1000'd0;
+	ch6_if.req = 1000'd0;
+	ch7_if.req = 1000'd0;
+	ch0_if.clk = clk100;
+	ch1_if.clk = clk100;
+	ch2_if.clk = clk100;
+	ch3_if.clk = clk100;
+	ch4_if.clk = clk100;
+	ch5_if.clk = clk100;
+	ch6_if.clk = clk100;
+	ch7_if.clk = clk100;
 
-assign ch0_if.rst = rst;
-assign ch1_if.rst = rst;
-assign ch2_if.rst = rst;
-assign ch3_if.rst = rst;
-assign ch4_if.rst = rst;
-assign ch5_if.rst = rst;
-assign ch6_if.rst = rst;
-assign ch7_if.rst = rst;
+	ch0_if.rst = rst;
+	ch1_if.rst = rst;
+	ch2_if.rst = rst;
+	ch3_if.rst = rst;
+	ch4_if.rst = rst;
+	ch5_if.rst = rst;
+	ch6_if.rst = rst;
+	ch7_if.rst = rst;
+end
+
 
 mpmc11_fta #(
 	.STREAM(8'h01),
-	.CACHE(9'h000),
+	.CACHE(9'h002),
 	.PORT_PRESENT(9'h103))
 umpmc1
 (
@@ -117,15 +129,16 @@ if (rst) begin
 	app_rd_data_valid <= 1'b0;
 	ch0_if.req <= 1000'd0;
 	ch0_if.req.adr <= $urandom();
+	tidcnt <= 4'd0;
 end
 else begin
 	ch0_if.req <= 1000'd0;
-	ch1_if.req <= 1000'd0;
 	cnt1 <= cnt1 + 2'd1;
 	app_rdy <= cnt1[4:0] != 5'd0;
 	app_wdf_rdy = cnt1[4:0] != 5'd0;
 	if (cnt1[6:0]==7'd10) begin
 		ch0_if.req <= 1000'd0;
+		ch0_if.req.tid <= {6'd1,3'd0,tidcnt};
 		ch0_if.req.cmd <= fta_bus_pkg::CMD_LOAD;
 		ch0_if.req.blen <= 8'd29;
 		ch0_if.req.cyc <= 1'b1;
@@ -133,30 +146,7 @@ else begin
 		ch0_if.req.sel <= 32'hFFFFFFFF;
 		ch0_if.req.we <= 1'b0;
 		ch0_if.req.data1 <= {8{32'hDEADBEEF}};
-	end
-	if (!ch1_if.resp.stall && ($urandom() % 100) < 20) begin
-		rnd = $urandom();
-		ch1_if.req <= 1000'd0;
-		ch1_cmd = rnd[0] ? fta_bus_pkg::CMD_STORE : fta_bus_pkg::CMD_LOAD;
-		ch1_if.req.cmd <= ch1_cmd;
-		ch1_if.req.blen <= 8'd0;
-		ch1_if.req.cyc <= (rnd % 100) < 10;
-		ch1_adr = (rnd % 100) < 10 ? $urandom() : 32'h0;
-		ch1_if.req.adr <= ch1_adr;
-		ch1_if.req.sel <= 32'hFFFFFFFF;
-		ch1_we = rnd;
-		ch1_if.req.we <= ch1_we;
-		ch1_if.req.data1 <= {8{32'hDEADBEEF}};
-	end
-	if (ch1_if.resp.rty) begin
-		ch1_if.req <= 1000'd0;
-		ch1_if.req.cmd <= ch1_cmd;
-		ch1_if.req.blen <= 8'd0;
-		ch1_if.req.cyc <= (rnd % 100) < 10;
-		ch1_if.req.adr <= ch1_adr;
-		ch1_if.req.sel <= 32'hFFFFFFFF;
-		ch1_if.req.we <= ch1_we;
-		ch1_if.req.data1 <= {8{32'hDEADBEEF}};
+		tidcnt <= tidcnt + 1;
 	end
 	case(state)
 	4'd0:
@@ -183,6 +173,46 @@ else begin
 			state <= 4'd0;
 		end
 	endcase
+end
+
+always_ff @(posedge ch1_if.clk)
+if (rst) begin
+	got_ack <= 1'b1;
+end
+else begin
+	ch1_if.req <= 1000'd0;
+	if (!ch1_if.resp.stall && ($urandom() % 100) < 20 && got_ack) begin
+		got_ack <= 1'b0;
+		rnd = $urandom();
+		ch1_if.req <= 1000'd0;
+		ch1_if.req.tid <= {6'd2,3'd0,tidcnt};
+		ch1_cmd = rnd[0] ? fta_bus_pkg::CMD_STORE : fta_bus_pkg::CMD_LOAD;
+		ch1_if.req.cmd <= ch1_cmd;
+		ch1_if.req.blen <= 8'd0;
+		ch1_if.req.cyc <= 1'b1;//(rnd % 100) < 10;
+		ch1_adr = (rnd % 100) < 10 ? $urandom() : 32'h0;
+		ch1_if.req.adr <= ch1_adr;
+		ch1_if.req.sel <= 32'hFFFFFFFF;
+		ch1_we = rnd;
+		ch1_if.req.we <= ch1_we;
+		ch1_if.req.data1 <= {8{32'hDEADBEEF}};
+		if (ch1_we)
+			got_ack <= 1'b1;
+	end
+	if (ch1_if.resp.ack) begin
+		got_ack <= 1'b1;
+	end
+	if (ch1_if.resp.rty) begin
+		ch1_if.req <= 1000'd0;
+		ch1_if.req.tid <= {6'd2,3'd0,tidcnt};
+		ch1_if.req.cmd <= ch1_cmd;
+		ch1_if.req.blen <= 8'd0;
+		ch1_if.req.cyc <= (rnd % 100) < 10;
+		ch1_if.req.adr <= ch1_adr;
+		ch1_if.req.sel <= 32'hFFFFFFFF;
+		ch1_if.req.we <= ch1_we;
+		ch1_if.req.data1 <= {8{32'hDEADBEEF}};
+	end
 end
 
 endmodule

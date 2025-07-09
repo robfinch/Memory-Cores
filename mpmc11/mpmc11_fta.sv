@@ -213,7 +213,7 @@ assign chclk[4] = ch4.clk;
 assign chclk[5] = ch5.clk;
 assign chclk[6] = ch6.clk;
 assign chclk[7] = ch7.clk;
-assign chclk[8] = ch0.clk;
+assign chclk[8] = sys_clk_i;
 
 reg rmw0;
 reg rmw1;
@@ -449,7 +449,7 @@ begin
 end
 
 mpmc11_fifoe_t [8:0] req_fifoi;
-mpmc11_fifoe_t [8:0] req_fifog;
+mpmc11_fifoe_t [9:0] req_fifog;
 mpmc11_fifoe_t [8:0] req_fifoh;
 mpmc11_fifoe_t req_fifoo;
 fta_cmd_request256_t ld,miss;
@@ -860,7 +860,12 @@ reg [3:0] req_sel1;
 wire select_next;
 reg [9:0] reqod;
 always_ff @(posedge mem_ui_clk)
+if (irst)
+	reqod <= 10'h0;
+else
 	reqod <= reqo;
+
+// Hold the selection at 9 unless there is a valid request.
 always_comb reqo[9] = select_next & ~|reqod;
 
 RoundRobinArbiter #(
@@ -982,25 +987,49 @@ end
 // than the ui_clk.
 
 wire [8:0] cd_fifo;
-reg [8:0] lcd_fifo;					// latched change detect
+reg [9:0] lcd_fifo;					// latched change detect
 reg [8:0] rd_fifo_r;
+wire [8:0] pe_rd_fifo;
+reg [8:0] consumed;
 always_ff @(posedge sys_clk_i)
+if (irst)
+	req_sel1 <= 4'd9;
+else begin
 	if (state==mpmc11_pkg::IDLE)
 		req_sel1 <= req_sel;
+end
 generate begin : gInputFifos
 for (g = 0; g < 9; g = g + 1) begin
 always_comb
 	reqo[g] = !empty[g];//req_fifog[g].req.cyc;
 always_comb wr_fifo[g] = req_fifoi[g].req.cyc && (!(CACHE[g]||(g==4'd7 &&
   req_fifoi[g].req.adr[31:30]==2'b10))||req_fifoi[g].req.we);
+
+// The fifo should be read only once its previous output has been consumed.
+// The fifo can be read regardless of whether there is data available from it.
+// If there is no data available, then the output will not change so the change
+// detect later in this module will be false. Also, with no data available the
+// cycle strobe will be inactive.
+
 always_comb
-	rd_fifo[g] = sel[g] && rd_fifo_sm[g] && !rd_fifo_r[g] && state==mpmc11_pkg::IDLE;
+	consumed[g] = (uport==g[3:0] && state==mpmc11_pkg::PRESET1) ||
+		(req_fifog[g].req.cyc==1'b0);
+always_comb
+	rd_fifo[g] = consumed[g];
+
+//always_comb
+//	rd_fifo[g] = sel[g] && rd_fifo_sm[g] && !rd_fifo_r[g] && state==mpmc11_pkg::IDLE;
+/*
 always_ff @(posedge sys_clk_i)
-	if (rd_fifo[g])
+if (irst)
+	rd_fifo_r[g] <= 1'b0;
+else begin
+	if (pe_rd_fifo[g])
 		rd_fifo_r[g] <= 1'b1;
 	else if (state==mpmc11_pkg::PRESET1 && g[3:0]==req_sel1[3:0])
 		rd_fifo_r[g] <= 1'b0;
-
+end
+*/
 if (((PORT_PRESENT >> g) & 1'b1) || g[3:0]==4'd8)
 begin
 	mpmc11_asfifo_fta ufifo
@@ -1092,19 +1121,28 @@ assign wr_rst_busy[14] = 1'b0;
 assign wr_rst_busy[15] = 1'b0;
 end
 endgenerate
+always_comb
+	req_fifog[9] = 1000'd0;
+always_comb
+	lcd_fifo[9] = 1'b0;
 
 assign rst_busy = (|rd_rst_busy) || (|wr_rst_busy) || irst;
 
 always_ff @(posedge sys_clk_i)
 if (state==mpmc11_pkg::WRITE_DATA0 || state==mpmc11_pkg::READ_DATA0)
 	v <= 1'b0;
-else if (req_sel < 4'd9 && state==mpmc11_pkg::IDLE)
-	v <= lcd_fifo[req_sel];
+else if (req_sel1 < 4'd9 && state==mpmc11_pkg::IDLE)
+	v <= req_fifog[req_sel1].req.cyc;//lcd_fifo[req_sel1];
 else
 	v <= 1'b0;
 always_ff @(posedge sys_clk_i)
-if (req_sel < 4'd9 && state==mpmc11_pkg::IDLE)
-	req_fifoo <= req_fifoh[req_sel];
+if (irst)
+	req_fifoo <= 1000'd0;
+else begin
+	if (req_sel1 < 4'd9 && state==mpmc11_pkg::IDLE)
+		req_fifoo <= req_fifog[req_sel1];
+end
+
 always_comb
 	uport = fifoo.port;
 always_comb

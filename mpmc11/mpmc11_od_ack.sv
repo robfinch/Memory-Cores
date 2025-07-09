@@ -36,6 +36,9 @@
 // Generate read ack, crossing clock domains.
 // The ack pulse should be active for only a single clock cycle of the
 // destination clock domain.
+// The controller clock is likely faster than the port clock, so extend the
+// the controller generated ack by a few cycles, then detect the positive
+// edge on the port clock domain.
 // ============================================================================
 //
 
@@ -48,22 +51,32 @@ input [3:0] fifo_port;
 input rdy;
 output port_ack;
 
-reg chclkd;
 reg chod_ack;
 reg chod_acks;
-always_ff @(posedge clk) chclkd <= pclk;
+reg [3:0] chodq;
 
 always_ff @(posedge clk)
-if (rst)
+if (rst) begin
 	chod_ack <= 1'd0;
-else begin
-	if (pclk & ~chclkd) chod_ack <= 1'b0;
-	if (rdy && port==fifo_port)
-		chod_ack <= 1'b1;
+	chodq <= 4'd0;
 end
+else begin
+	if (rdy && port==fifo_port) begin
+		chodq <= 4'b0001;
+		chod_ack <= 1'b1;
+	end
+	else
+		chodq <= {chodq[2:0],1'b0};
+	if (chodq[3])
+		chod_ack <= 1'b0;
+end
+
 // Synchronize to port's clock domain.
 always_ff @(posedge pclk) chod_acks <= chod_ack;
 
-assign	port_ack = chod_acks;
+wire pe_chod_ack;
+edge_det ued1 (.rst(rst), .clk(pclk), .ce(1'b1), .i(chod_acks), .pe(pe_chod_ack), .ne(), .ee());
+
+assign	port_ack = pe_chod_ack;
 
 endmodule

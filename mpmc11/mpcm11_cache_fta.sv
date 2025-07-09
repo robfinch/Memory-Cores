@@ -81,6 +81,10 @@ integer n,n2,n3,n4,n5;
 
 reg [1023:0] vbit [0:CACHE_ASSOC-1];
 
+reg rst1;
+reg [7:0] ack,ack1,ack2;
+reg [7:0] load;
+reg [12:0] rtid [0:8];
 reg [31:0] radrr [0:8];
 reg wchi_stb, wchi_stb_r;
 reg [31:0] wchi_sel;
@@ -126,33 +130,59 @@ reg stb6;
 reg stb7;
 reg [8:0] rstb,rstb2,rstb3,rstb4;
 
-always_ff @(posedge ch0.clk) radrr[0] <= ch0.req.adr;
-always_ff @(posedge ch1.clk) radrr[1] <= ch1.req.adr;
-always_ff @(posedge ch2.clk) radrr[2] <= ch2.req.adr;
-always_ff @(posedge ch3.clk) radrr[3] <= ch3.req.adr;
-always_ff @(posedge ch4.clk) radrr[4] <= ch4.req.adr;
-always_ff @(posedge ch5.clk) radrr[5] <= ch5.req.adr;
-always_ff @(posedge ch6.clk) radrr[6] <= ch6.req.adr;
-always_ff @(posedge ch7.clk) radrr[7] <= ch7.req.adr;
+always_ff @(posedge ch0.clk) if (ch0.req.cyc) rtid[0] <= ch0.req.tid;
+always_ff @(posedge ch1.clk) if (ch1.req.cyc) rtid[1] <= ch1.req.tid;
+always_ff @(posedge ch2.clk) if (ch2.req.cyc) rtid[2] <= ch2.req.tid;
+always_ff @(posedge ch3.clk) if (ch3.req.cyc) rtid[3] <= ch3.req.tid;
+always_ff @(posedge ch4.clk) if (ch4.req.cyc) rtid[4] <= ch4.req.tid;
+always_ff @(posedge ch5.clk) if (ch5.req.cyc) rtid[5] <= ch5.req.tid;
+always_ff @(posedge ch6.clk) if (ch6.req.cyc) rtid[6] <= ch6.req.tid;
+always_ff @(posedge ch7.clk) if (ch7.req.cyc) rtid[7] <= ch7.req.tid;
+
+always_ff @(posedge ch0.clk) if (ch0.req.cyc) load[0] <= (ch0.req.cmd==fta_bus_pkg::CMD_LOAD||ch0.req.cmd==fta_bus_pkg::CMD_LOADZ);
+always_ff @(posedge ch1.clk) if (ch1.req.cyc) load[1] <= (ch1.req.cmd==fta_bus_pkg::CMD_LOAD||ch1.req.cmd==fta_bus_pkg::CMD_LOADZ);
+always_ff @(posedge ch2.clk) if (ch2.req.cyc) load[2] <= (ch2.req.cmd==fta_bus_pkg::CMD_LOAD||ch2.req.cmd==fta_bus_pkg::CMD_LOADZ);
+always_ff @(posedge ch3.clk) if (ch3.req.cyc) load[3] <= (ch3.req.cmd==fta_bus_pkg::CMD_LOAD||ch3.req.cmd==fta_bus_pkg::CMD_LOADZ);
+always_ff @(posedge ch4.clk) if (ch4.req.cyc) load[4] <= (ch4.req.cmd==fta_bus_pkg::CMD_LOAD||ch4.req.cmd==fta_bus_pkg::CMD_LOADZ);
+always_ff @(posedge ch5.clk) if (ch5.req.cyc) load[5] <= (ch5.req.cmd==fta_bus_pkg::CMD_LOAD||ch5.req.cmd==fta_bus_pkg::CMD_LOADZ);
+always_ff @(posedge ch6.clk) if (ch6.req.cyc) load[6] <= (ch6.req.cmd==fta_bus_pkg::CMD_LOAD||ch6.req.cmd==fta_bus_pkg::CMD_LOADZ);
+always_ff @(posedge ch7.clk) if (ch7.req.cyc) load[7] <= (ch7.req.cmd==fta_bus_pkg::CMD_LOAD||ch7.req.cmd==fta_bus_pkg::CMD_LOADZ);
+
+always_ff @(posedge ch0.clk) if (ch0.req.cyc) radrr[0] <= ch0.req.adr;
+always_ff @(posedge ch1.clk) if (ch1.req.cyc) radrr[1] <= ch1.req.adr;
+always_ff @(posedge ch2.clk) if (ch2.req.cyc) radrr[2] <= ch2.req.adr;
+always_ff @(posedge ch3.clk) if (ch3.req.cyc) radrr[3] <= ch3.req.adr;
+always_ff @(posedge ch4.clk) if (ch4.req.cyc) radrr[4] <= ch4.req.adr;
+always_ff @(posedge ch5.clk) if (ch5.req.cyc) radrr[5] <= ch5.req.adr;
+always_ff @(posedge ch6.clk) if (ch6.req.cyc) radrr[6] <= ch6.req.adr;
+always_ff @(posedge ch7.clk) if (ch7.req.cyc) radrr[7] <= ch7.req.adr;
 always_ff @(posedge wclk) radrr[8] <= ld.cyc ? ld.adr : wchi.adr;
 always_ff @(posedge wclk) wchi_adr1 <= wchi.adr;
 always_ff @(posedge wclk) wchi_adr <= wchi_adr1;
 
-always_ff @(posedge ch0.clk) stb0 <= ch0.req.cyc;
-always_ff @(posedge ch1.clk) stb1 <= ch1.req.cyc;
-always_ff @(posedge ch2.clk) stb2 <= ch2.req.cyc;
-always_ff @(posedge ch3.clk) stb3 <= ch3.req.cyc;
-always_ff @(posedge ch4.clk) stb4 <= ch4.req.cyc;
-always_ff @(posedge ch5.clk) stb5 <= ch5.req.cyc;
-always_ff @(posedge ch6.clk) stb6 <= ch6.req.cyc;
-always_ff @(posedge ch7.clk) stb7 <= ch7.req.cyc;
+always_ff @(posedge ch0.clk) if (ch0.req.cyc) stb0 <= ch0.req.cyc; else if (ack[0]) stb0 <= 1'b0;
+always_ff @(posedge ch1.clk) if (ch1.req.cyc) stb1 <= ch1.req.cyc; else if (ack[1]) stb1 <= 1'b0;
+always_ff @(posedge ch2.clk) if (ch2.req.cyc) stb2 <= ch2.req.cyc; else if (ack[2]) stb2 <= 1'b0;
+always_ff @(posedge ch3.clk) if (ch3.req.cyc) stb3 <= ch3.req.cyc; else if (ack[3]) stb3 <= 1'b0;
+always_ff @(posedge ch4.clk) if (ch4.req.cyc) stb4 <= ch4.req.cyc; else if (ack[4]) stb4 <= 1'b0;
+always_ff @(posedge ch5.clk) if (ch5.req.cyc) stb5 <= ch5.req.cyc; else if (ack[5]) stb5 <= 1'b0;
+always_ff @(posedge ch6.clk) if (ch6.req.cyc) stb6 <= ch6.req.cyc; else if (ack[6]) stb6 <= 1'b0;
+always_ff @(posedge ch7.clk) if (ch7.req.cyc) stb7 <= ch7.req.cyc; else if (ack[7]) stb7 <= 1'b0;
 
 always_ff @(posedge wclk)
 	rstb2 <= rstb;
 always_ff @(posedge wclk)
 	rstb3 <= rstb2;
 
-always_comb rstb[0] <= ch0.req.cyc & ~ch0.req.we;
+always_ff @(posedge ch0.clk) if (ch0.req.cyc) rstb[0] <= ch0.req.cyc & ~ch0.req.we; else if (ack[0]) rstb[0] <= 1'b0;
+always_ff @(posedge ch1.clk) if (ch1.req.cyc) rstb[1] <= ch1.req.cyc & ~ch1.req.we; else if (ack[1]) rstb[1] <= 1'b0;
+always_ff @(posedge ch2.clk) if (ch2.req.cyc) rstb[2] <= ch2.req.cyc & ~ch2.req.we; else if (ack[2]) rstb[2] <= 1'b0;
+always_ff @(posedge ch3.clk) if (ch3.req.cyc) rstb[3] <= ch3.req.cyc & ~ch3.req.we; else if (ack[3]) rstb[3] <= 1'b0;
+always_ff @(posedge ch4.clk) if (ch4.req.cyc) rstb[4] <= ch4.req.cyc & ~ch4.req.we; else if (ack[4]) rstb[4] <= 1'b0;
+always_ff @(posedge ch5.clk) if (ch5.req.cyc) rstb[5] <= ch5.req.cyc & ~ch5.req.we; else if (ack[5]) rstb[5] <= 1'b0;
+always_ff @(posedge ch6.clk) if (ch6.req.cyc) rstb[6] <= ch6.req.cyc & ~ch6.req.we; else if (ack[6]) rstb[6] <= 1'b0;
+always_ff @(posedge ch7.clk) if (ch7.req.cyc) rstb[7] <= ch7.req.cyc & ~ch7.req.we; else if (ack[7]) rstb[7] <= 1'b0;
+/*
 always_comb rstb[1] <= ch1.req.cyc & ~ch1.req.we;
 always_comb rstb[2] <= ch2.req.cyc & ~ch2.req.we;
 always_comb rstb[3] <= ch3.req.cyc & ~ch3.req.we;
@@ -161,7 +191,7 @@ always_comb rstb[5] <= ch5.req.cyc & ~ch5.req.we;
 always_comb rstb[6] <= ch6.req.cyc & ~ch6.req.we;
 always_comb rstb[7] <= ch7.req.cyc & ~ch7.req.we;
 always_comb rstb[8] <= ld.cyc ? ld.cyc : wchi.cyc;
-
+*/
 always_ff @(posedge wclk) wchi_stb_r <= wchi.cyc;
 always_ff @(posedge wclk) wchi_stb <= wchi_stb_r;
 always_ff @(posedge wclk) wchi_sel <= wchi.sel;
@@ -182,16 +212,16 @@ begin
 end
 
 reg [HIBIT-LOBIT:0] radr [0:8];
+always_ff @(posedge ch0.clk) if (ch0.req.cyc) radr[0] <= ch0.req.adr[HIBIT:LOBIT];
+always_ff @(posedge ch1.clk) if (ch1.req.cyc) radr[1] <= ch1.req.adr[HIBIT:LOBIT];
+always_ff @(posedge ch2.clk) if (ch2.req.cyc) radr[2] <= ch2.req.adr[HIBIT:LOBIT];
+always_ff @(posedge ch3.clk) if (ch3.req.cyc) radr[3] <= ch3.req.adr[HIBIT:LOBIT];
+always_ff @(posedge ch4.clk) if (ch4.req.cyc) radr[4] <= ch4.req.adr[HIBIT:LOBIT];
+always_ff @(posedge ch5.clk) if (ch5.req.cyc) radr[5] <= ch5.req.adr[HIBIT:LOBIT];
+always_ff @(posedge ch6.clk) if (ch6.req.cyc) radr[6] <= ch6.req.adr[HIBIT:LOBIT];
+always_ff @(posedge ch7.clk) if (ch7.req.cyc) radr[7] <= ch7.req.adr[HIBIT:LOBIT];
 always_comb
 begin
-	radr[0] = ch0.req.adr[HIBIT:LOBIT];
-	radr[1] = ch1.req.adr[HIBIT:LOBIT];
-	radr[2] = ch2.req.adr[HIBIT:LOBIT];
-	radr[3] = ch3.req.adr[HIBIT:LOBIT];
-	radr[4] = ch4.req.adr[HIBIT:LOBIT];
-	radr[5] = ch5.req.adr[HIBIT:LOBIT];
-	radr[6] = ch6.req.adr[HIBIT:LOBIT];
-	radr[7] = ch7.req.adr[HIBIT:LOBIT];
 	radr[8] = ld.cyc ? ld.adr[HIBIT:LOBIT] : wchi.adr[HIBIT:LOBIT];
 end
 
@@ -305,14 +335,6 @@ generate begin : gReaddat
 		always_ff @(posedge ch7.clk)	hit7a[g] = (doutb[7].lines[g].tag==radrr[7][31:TAGLOBIT]) && (vbito7a[g]==1'b1);
 		always_ff @(posedge wclk)	hit8a[g] = (doutb[8].lines[g].tag==radrr[8][31:TAGLOBIT]) && (vbito8a[g]==1'b1);
 	end
-	always_comb ch0hit = |hit0a & stb0;
-	always_comb ch1hit = |hit1a & stb1;
-	always_comb ch2hit = |hit2a & stb2;
-	always_comb ch3hit = |hit3a & stb3;
-	always_comb ch4hit = |hit4a & stb4;
-	always_comb ch5hit = |hit5a & stb5;
-	always_comb ch6hit = |hit6a & stb6;
-	always_comb ch7hit = |hit7a & stb7;
 	always_comb
 	begin
 		ch0.resp.stall = 1'b0;
@@ -321,53 +343,73 @@ generate begin : gReaddat
 		ch0.resp.ctag = 1'b0;
 		ch0.resp.adr = ch0.req.adr;
 	end
-	always_comb ch0.resp.ack = (|hit0a && stb0 && (ch0.req.cmd==fta_bus_pkg::CMD_LOAD||ch0.req.cmd==fta_bus_pkg::CMD_LOADZ)) | ((ch0wack) & stb0);
-	always_comb ch1.resp.ack = (|hit1a && stb1 && (ch1.req.cmd==fta_bus_pkg::CMD_LOAD||ch1.req.cmd==fta_bus_pkg::CMD_LOADZ)) | ((ch1wack) & stb1);
-	always_comb ch2.resp.ack = (|hit2a && stb2 && (ch2.req.cmd==fta_bus_pkg::CMD_LOAD||ch2.req.cmd==fta_bus_pkg::CMD_LOADZ)) | ((ch2wack) & stb2);
-	always_comb ch3.resp.ack = (|hit3a && stb3 && (ch3.req.cmd==fta_bus_pkg::CMD_LOAD||ch3.req.cmd==fta_bus_pkg::CMD_LOADZ)) | ((ch3wack) & stb3);
-	always_comb ch4.resp.ack = (|hit4a && stb4 && (ch4.req.cmd==fta_bus_pkg::CMD_LOAD||ch4.req.cmd==fta_bus_pkg::CMD_LOADZ)) | ((ch4wack) & stb4);
-	always_comb ch5.resp.ack = (|hit5a && stb5 && (ch5.req.cmd==fta_bus_pkg::CMD_LOAD||ch5.req.cmd==fta_bus_pkg::CMD_LOADZ)) | ((ch5wack) & stb5);
-	always_comb ch6.resp.ack = (|hit6a && stb6 && (ch6.req.cmd==fta_bus_pkg::CMD_LOAD||ch6.req.cmd==fta_bus_pkg::CMD_LOADZ)) | ((ch6wack) & stb6);
-	always_comb ch7.resp.ack = (|hit7a && stb7 && (ch7.req.cmd==fta_bus_pkg::CMD_LOAD||ch7.req.cmd==fta_bus_pkg::CMD_LOADZ)) | ((ch7wack) & stb7);
-	always_comb ch0.resp.err = fta_bus_pkg::OKAY;
-	always_comb ch1.resp.err = fta_bus_pkg::OKAY;
-	always_comb ch2.resp.err = fta_bus_pkg::OKAY;
-	always_comb ch3.resp.err = fta_bus_pkg::OKAY;
-	always_comb ch4.resp.err = fta_bus_pkg::OKAY;
-	always_comb ch5.resp.err = fta_bus_pkg::OKAY;
-	always_comb ch6.resp.err = fta_bus_pkg::OKAY;
-	always_comb ch7.resp.err = fta_bus_pkg::OKAY;
-	always_comb ch0.resp.rty = (stb0 & to) | (rstb[0] & ~ch0hit & ~ch0.req.we);
-	always_comb ch1.resp.rty = (stb1 & to) | (rstb[1] & ~ch1hit & ~ch1.req.we);
-	always_comb ch2.resp.rty = stb2 & to;
-	always_comb ch3.resp.rty = stb3 & to;
-	always_comb ch4.resp.rty = stb4 & to;
-	always_comb ch5.resp.rty = stb5 & to;
-	always_comb ch6.resp.rty = stb6 & to;
-	always_comb ch7.resp.rty = (stb7 & to) | (rstb[7] & ~ch7hit & ~ch7.req.we);
-/*
-	always_comb ch0.resp.cid = ch0i.cid;
-	always_comb ch1.resp.cid = ch1i.cid;
-	always_comb ch2.resp.cid = ch2i.cid;
-	always_comb ch3.resp.cid = ch3i.cid;
-	always_comb ch4.resp.cid = ch4i.cid;
-	always_comb ch5.resp.cid = ch5i.cid;
-	always_comb ch6.resp.cid = ch6i.cid;
-	always_comb ch7.resp.cid = ch7i.cid;
-*/
-	always_comb ch0.resp.tid = ch0.req.tid;
-	always_comb ch1.resp.tid = ch1.req.tid;
-	always_comb ch2.resp.tid = ch2.req.tid;
-	always_comb ch3.resp.tid = ch3.req.tid;
-	always_comb ch4.resp.tid = ch4.req.tid;
-	always_comb ch5.resp.tid = ch5.req.tid;
-	always_comb ch6.resp.tid = ch6.req.tid;
-	always_comb ch7.resp.tid = ch7.req.tid;
 end
 endgenerate
 
+always_comb ch0hit = |hit0a & stb0;
+always_comb ch1hit = |hit1a & stb1;
+always_comb ch2hit = |hit2a & stb2;
+always_comb ch3hit = |hit3a & stb3;
+always_comb ch4hit = |hit4a & stb4;
+always_comb ch5hit = |hit5a & stb5;
+always_comb ch6hit = |hit6a & stb6;
+always_comb ch7hit = |hit7a & stb7;
+
+always_comb ch0.resp.tid = ch0.req.tid;
+always_comb ch1.resp.tid = ch1.req.tid;
+always_comb ch2.resp.tid = ch2.req.tid;
+always_comb ch3.resp.tid = ch3.req.tid;
+always_comb ch4.resp.tid = ch4.req.tid;
+always_comb ch5.resp.tid = ch5.req.tid;
+always_comb ch6.resp.tid = ch6.req.tid;
+always_comb ch7.resp.tid = ch7.req.tid;
+always_comb ch0.resp.err = fta_bus_pkg::OKAY;
+always_comb ch1.resp.err = fta_bus_pkg::OKAY;
+always_comb ch2.resp.err = fta_bus_pkg::OKAY;
+always_comb ch3.resp.err = fta_bus_pkg::OKAY;
+always_comb ch4.resp.err = fta_bus_pkg::OKAY;
+always_comb ch5.resp.err = fta_bus_pkg::OKAY;
+always_comb ch6.resp.err = fta_bus_pkg::OKAY;
+always_comb ch7.resp.err = fta_bus_pkg::OKAY;
+always_comb ch0.resp.rty = 1'b0;//(stb0 & to) | (rstb[0] & ~ch0hit & ~ch0.req.we);
+always_comb ch1.resp.rty = 1'b0;//(stb1 & to) | (rstb[1] & ~ch1hit & ~ch1.req.we);
+always_comb ch2.resp.rty = 1'b0;//stb2 & to;
+always_comb ch3.resp.rty = 1'b0;//stb3 & to;
+always_comb ch4.resp.rty = 1'b0;//stb4 & to;
+always_comb ch5.resp.rty = 1'b0;//stb5 & to;
+always_comb ch6.resp.rty = 1'b0;//stb6 & to;
+always_comb ch7.resp.rty = 1'b0;//(stb7 & to) | (rstb[7] & ~ch7hit & ~ch7.req.we);
+
+// Ack pulses for only one clock cycle of the request's clock.
+always_ff @(posedge ch0.clk) if (rst1) ack[0] <= 1'b0; else ack[0] <= ((|hit0a && stb0 && load[0]) | ((ch0wack) & stb0)) & ~ack1[0] & ~ack2[0];
+always_ff @(posedge ch1.clk) if (rst1) ack[1] <= 1'b0; else ack[1] <= ((|hit1a && stb1 && load[1]) | ((ch1wack) & stb1)) & ~ack1[1] & ~ack2[1];
+always_ff @(posedge ch2.clk) if (rst1) ack[2] <= 1'b0; else ack[2] <= ((|hit2a && stb2 && load[2]) | ((ch2wack) & stb2)) & ~ack1[2] & ~ack2[2];
+always_ff @(posedge ch3.clk) if (rst1) ack[3] <= 1'b0; else ack[3] <= ((|hit3a && stb3 && load[3]) | ((ch3wack) & stb3)) & ~ack1[3] & ~ack2[3];
+always_ff @(posedge ch4.clk) if (rst1) ack[4] <= 1'b0; else ack[4] <= ((|hit4a && stb4 && load[4]) | ((ch4wack) & stb4)) & ~ack1[4] & ~ack2[4];
+always_ff @(posedge ch5.clk) if (rst1) ack[5] <= 1'b0; else ack[5] <= ((|hit5a && stb5 && load[5]) | ((ch5wack) & stb5)) & ~ack1[5] & ~ack2[5];
+always_ff @(posedge ch6.clk) if (rst1) ack[6] <= 1'b0; else ack[6] <= ((|hit6a && stb6 && load[6]) | ((ch6wack) & stb6)) & ~ack1[6] & ~ack2[6];
+always_ff @(posedge ch7.clk) if (rst1) ack[7] <= 1'b0; else ack[7] <= ((|hit7a && stb7 && load[7]) | ((ch7wack) & stb7)) & ~ack1[7] & ~ack2[7];
+
+always_ff @(posedge ch0.clk) if (rst1) begin ack1[0] <= 1'b0; ack2[0] <= 1'b0; end else begin ack1[0] <= ack[0]; ack2[0] <= ack1[0]; end
+always_ff @(posedge ch1.clk) if (rst1) begin ack1[1] <= 1'b0; ack2[1] <= 1'b0; end else begin ack1[1] <= ack[1]; ack2[1] <= ack1[1]; end
+always_ff @(posedge ch2.clk) if (rst1) begin ack1[2] <= 1'b0; ack2[2] <= 1'b0; end else begin ack1[2] <= ack[2]; ack2[2] <= ack1[2]; end
+always_ff @(posedge ch3.clk) if (rst1) begin ack1[3] <= 1'b0; ack2[3] <= 1'b0; end else begin ack1[3] <= ack[3]; ack2[3] <= ack1[3]; end
+always_ff @(posedge ch4.clk) if (rst1) begin ack1[4] <= 1'b0; ack2[4] <= 1'b0; end else begin ack1[4] <= ack[4]; ack2[4] <= ack1[4]; end
+always_ff @(posedge ch5.clk) if (rst1) begin ack1[5] <= 1'b0; ack2[5] <= 1'b0; end else begin ack1[5] <= ack[5]; ack2[5] <= ack1[5]; end
+always_ff @(posedge ch6.clk) if (rst1) begin ack1[6] <= 1'b0; ack2[6] <= 1'b0; end else begin ack1[6] <= ack[6]; ack2[6] <= ack1[6]; end
+always_ff @(posedge ch7.clk) if (rst1) begin ack1[7] <= 1'b0; ack2[7] <= 1'b0; end else begin ack1[7] <= ack[7]; ack2[7] <= ack1[7]; end
+
+always_comb ch0.resp.ack = ack[0];
+always_comb ch1.resp.ack = ack[1];
+always_comb ch2.resp.ack = ack[2];
+always_comb ch3.resp.ack = ack[3];
+always_comb ch4.resp.ack = ack[4];
+always_comb ch5.resp.ack = ack[5];
+always_comb ch6.resp.ack = ack[6];
+always_comb ch7.resp.ack = ack[7];
+
 always_ff @(posedge wclk)
-if (rst) begin
+if (rst1) begin
 	rstb4 <= 8'h00;
 	miss <= 1000'd0;
 	miss.bte <= fta_bus_pkg::LINEAR;
@@ -382,38 +424,38 @@ else begin
 	if (rstb3[0] & ~rstb4[0] & ~ch0hit & ~ch0.req.we) begin
 		rstb4[0] <= 1'b1;
 		miss.cyc <= HIGH;
-		miss.tid <= ch0.req.tid;
-		miss.adr <= ch0.req.adr;
+		miss.tid <= rtid[0];
+		miss.adr <= radrr[0];
 	end
 	else if (rstb[1] & ~rstb4[1] & ~ch1hit & ~ch1.req.we) begin
 		rstb4[1] <= 1'b1;
 		miss.cyc <= HIGH;
-		miss.tid <= ch1.req.tid;
-		miss.adr <= ch1.req.adr;
+		miss.tid <= rtid[1];
+		miss.adr <= radrr[1];
 	end
 	else if (rstb[2] & ~rstb4[2] & ~ch2hit & ~ch2.req.we) begin
 		rstb4[2] <= 1'b1;
 		miss.cyc <= HIGH;
-		miss.tid <= ch2.req.tid;
-		miss.adr <= ch2.req.adr;
+		miss.tid <= rtid[2];
+		miss.adr <= radrr[2];
 	end
 	else if (rstb[3] & ~rstb4[3] & ~ch3hit & ~ch3.req.we) begin
 		rstb4[3] <= 1'b1;
 		miss.cyc <= HIGH;
-		miss.tid <= ch3.req.tid;
-		miss.adr <= ch3.req.adr;
+		miss.tid <= rtid[3];
+		miss.adr <= radrr[3];
 	end
 	else if (rstb[6] & ~rstb4[6] & ~ch6hit & ~ch6.req.we) begin
 		rstb4[6] <= 1'b1;
 		miss.cyc <= HIGH;
-		miss.tid <= ch6.req.tid;
-		miss.adr <= ch6.req.adr;
+		miss.tid <= rtid[6];
+		miss.adr <= radrr[6];
 	end
 	else if (rstb[7] & ~rstb4[7] & ~ch7hit & ~ch7.req.we) begin
 		rstb4[7] <= 1'b1;
 		miss.cyc <= HIGH;
-		miss.tid <= ch7.req.tid;
-		miss.adr <= ch7.req.adr;
+		miss.tid <= rtid[7];
+		miss.adr <= radrr[7];
 	end
 	if (ch0hit) rstb4[0] <= 1'b0;
 	if (ch1hit) rstb4[1] <= 1'b0;
@@ -467,7 +509,7 @@ always_ff @(posedge wclk)
 	inv1 <= inv;
 
 always_ff @(posedge wclk)
-if (rst) begin
+if (rst1) begin
 	vbit[0][wadr2[HIBIT:LOBIT]] <= 'b0;	
 	vbit[1][wadr2[HIBIT:LOBIT]] <= 'b0;
 	vbit[2][wadr2[HIBIT:LOBIT]] <= 'b0;	
@@ -504,10 +546,18 @@ end
 // wadr2 is used to reset the cache tags during reset. Reset must be held for
 // 1024 cycles to reset all the tags.
 always_ff @(posedge wclk)
-if (rst)
-	wadr2 <= wadr2 + (32'd1 << LOBIT);
-else
-	wadr2 <= wadr;
+if (rst) begin
+	rst1 <= 1'b1;
+	wadr2 <= 32'h0;
+end
+else begin
+	if (wadr2 >= 32'h08000)
+		rst1 <= 1'b0;
+	if (rst1)
+		wadr2 <= wadr2 + (32'd1 << LOBIT);
+	else if (ld.cyc)
+		wadr2 <= wadr;
+end
 always_ff @(posedge wclk)
 	lddat1 <= ld.data1;
 always_ff @(posedge wclk)
@@ -604,7 +654,7 @@ endgenerate
 // delayed by a cycle due to a load.
 reg wack;
 always_ff @(posedge wclk)
-if (rst)
+if (rst1)
 	wack <= 1'b0;
 else begin
 	wack <= 1'b0;
