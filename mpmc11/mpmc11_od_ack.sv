@@ -53,21 +53,21 @@ output port_ack;
 
 reg chod_ack;
 reg chod_acks;
-reg [3:0] chodq;
+reg [4:0] chodq;
 
 always_ff @(posedge clk)
 if (rst) begin
 	chod_ack <= 1'd0;
-	chodq <= 4'd0;
+	chodq <= 5'd0;
 end
 else begin
-	if (rdy && port==fifo_port) begin
-		chodq <= 4'b0001;
-		chod_ack <= 1'b1;
-	end
+	if (rdy && port==fifo_port)
+		chodq <= 5'b00001;
 	else
-		chodq <= {chodq[2:0],1'b0};
-	if (chodq[3])
+		chodq <= {chodq[3:0],1'b0};
+	if (chodq[0])
+		chod_ack <= 1'b1;
+	if (chodq[4])
 		chod_ack <= 1'b0;
 end
 

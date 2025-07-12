@@ -45,7 +45,7 @@
 //`define SUPPORT_AMO_SHIFT	1'b1
 //`define SUPPORT_AMO_MULTI_SHIFT	1'b1
 
-import fta_bus_pkg::*;
+import wb_bus_pkg::*;
 import mpmc11_pkg::*;
 
 module mpmc11_fta (
@@ -55,6 +55,7 @@ input mem_ui_rst,
 input mem_ui_clk,
 input calib_complete,
 output reg rstn,
+output [31:0] app_waddr,
 input app_rdy,
 output app_en,
 output [2:0] app_cmd,
@@ -69,17 +70,17 @@ input [mpmc11_pkg::WIDX8-1:0] app_rd_data,
 input app_rd_data_end,
 output reg app_ref_req,
 input app_ref_ack,
-fta_bus_interface.slave ch0,
-fta_bus_interface.slave ch1,
-fta_bus_interface.slave ch2,
-fta_bus_interface.slave ch3,
-fta_bus_interface.slave ch4,
-fta_bus_interface.slave ch5,
-fta_bus_interface.slave ch6,
-fta_bus_interface.slave ch7,
+wb_bus_interface.slave ch0,
+wb_bus_interface.slave ch1,
+wb_bus_interface.slave ch2,
+wb_bus_interface.slave ch3,
+wb_bus_interface.slave ch4,
+wb_bus_interface.slave ch5,
+wb_bus_interface.slave ch6,
+wb_bus_interface.slave ch7,
 input [7:0] fifo_rst,
-//input fta_cmd_request256_t ch0i,
-//output fta_cmd_response256_t ch0o,
+//input wb_cmd_request256_t ch0i,
+//output wb_cmd_response256_t ch0o,
 output mpmc11_state_t state,
 output rst_busy
 );
@@ -93,7 +94,7 @@ parameter RMW = 8'h00;
 parameter MDW = 256;
 
 wire clk100 = sys_clk_i;
-fta_cmd_request256_t [7:0] chi;
+wb_cmd_request256_t [7:0] chi;
 
 always_comb
 begin
@@ -102,6 +103,7 @@ begin
 	chi[0].cmd = ch0.req.cmd;
 	chi[0].cti = ch0.req.cti;
 	chi[0].cyc = ch0.req.cyc;
+	chi[0].stb = ch0.req.stb;
 	chi[0].we = ch0.req.we;
 	chi[0].sel = ch0.req.sel;
 	chi[0].adr = ch0.req.adr;
@@ -111,6 +113,7 @@ begin
 	chi[1].blen = ch1.req.blen;
 	chi[1].cmd = ch1.req.cmd;
 	chi[1].cyc = ch1.req.cyc;
+	chi[1].stb = ch1.req.stb;
 	chi[1].we = ch1.req.we;
 	chi[1].sel = ch1.req.sel;
 	chi[1].adr = ch1.req.adr;
@@ -120,6 +123,7 @@ begin
 	chi[2].blen = ch2.req.blen;
 	chi[2].cmd = ch2.req.cmd;
 	chi[2].cyc = ch2.req.cyc;
+	chi[2].stb = ch2.req.stb;
 	chi[2].we = ch2.req.we;
 	chi[2].sel = ch2.req.sel;
 	chi[2].adr = ch2.req.adr;
@@ -129,6 +133,7 @@ begin
 	chi[3].blen = ch3.req.blen;
 	chi[3].cmd = ch3.req.cmd;
 	chi[3].cyc = ch3.req.cyc;
+	chi[3].stb = ch3.req.stb;
 	chi[3].we = ch3.req.we;
 	chi[3].sel = ch3.req.sel;
 	chi[3].adr = ch3.req.adr;
@@ -138,6 +143,7 @@ begin
 	chi[4].blen = ch4.req.blen;
 	chi[4].cmd = ch4.req.cmd;
 	chi[4].cyc = ch4.req.cyc;
+	chi[4].stb = ch4.req.stb;
 	chi[4].we = ch4.req.we;
 	chi[4].sel = ch4.req.sel;
 	chi[4].adr = ch4.req.adr;
@@ -148,6 +154,7 @@ begin
 	chi[5].cmd = ch5.req.cmd;
 	chi[5].cti = ch5.req.cti;
 	chi[5].cyc = ch5.req.cyc;
+	chi[5].stb = ch5.req.stb;
 	chi[5].we = ch5.req.we;
 	chi[5].sel = ch5.req.sel;
 	chi[5].adr = ch5.req.adr;
@@ -158,6 +165,7 @@ begin
 	chi[6].cmd = ch6.req.cmd;
 	chi[6].cti = ch6.req.cti;
 	chi[6].cyc = ch6.req.cyc;
+	chi[6].stb = ch6.req.stb;
 	chi[6].we = ch6.req.we;
 	chi[6].sel = ch6.req.sel;
 	chi[6].adr = ch6.req.adr;
@@ -168,31 +176,32 @@ begin
 	chi[7].cmd = ch7.req.cmd;
 	chi[7].cti = ch7.req.cti;
 	chi[7].cyc = ch7.req.cyc;
+	chi[7].stb = ch7.req.stb;
 	chi[7].we = ch7.req.we;
 	chi[7].sel = ch7.req.sel;
 	chi[7].adr = ch7.req.adr;
 	chi[7].data1 = ch7.req.data1;
 end
 
-fta_cmd_request256_t ch0i2;
-fta_cmd_request256_t ch1i2;
-fta_cmd_request256_t ch2i2;
-fta_cmd_request256_t ch3i2;
-fta_cmd_request256_t ch4i2;
-fta_cmd_request256_t ch5i2;
-fta_cmd_request256_t ch6i2;
-fta_cmd_request256_t ch7i2;
+wb_cmd_request256_t ch0i2;
+wb_cmd_request256_t ch1i2;
+wb_cmd_request256_t ch2i2;
+wb_cmd_request256_t ch3i2;
+wb_cmd_request256_t ch4i2;
+wb_cmd_request256_t ch5i2;
+wb_cmd_request256_t ch6i2;
+wb_cmd_request256_t ch7i2;
 
-fta_cmd_response256_t ch0oa, ch0ob, ch0oc, ch0od;
-fta_cmd_response256_t ch1oa, ch1ob, ch1oc, ch1od;
-fta_cmd_response256_t ch2oa, ch2ob, ch2oc, ch2od;
-fta_cmd_response256_t ch3oa, ch3ob, ch3oc, ch3od;
-fta_cmd_response256_t ch4oa, ch4ob, ch4oc, ch4od;
-fta_cmd_response256_t ch5oa, ch5ob, ch5oc, ch5od;
-fta_cmd_response256_t ch6oa, ch6ob, ch6oc, ch6od;
-fta_cmd_response256_t ch7oa, ch7ob, ch7oc, ch7od;
-fta_cmd_response256_t ch8oa, ch8ob, ch8oc, ch8od;
-fta_cmd_response256_t [8:0] chob;
+wb_cmd_response256_t ch0oa, ch0ob, ch0oc, ch0od;
+wb_cmd_response256_t ch1oa, ch1ob, ch1oc, ch1od;
+wb_cmd_response256_t ch2oa, ch2ob, ch2oc, ch2od;
+wb_cmd_response256_t ch3oa, ch3ob, ch3oc, ch3od;
+wb_cmd_response256_t ch4oa, ch4ob, ch4oc, ch4od;
+wb_cmd_response256_t ch5oa, ch5ob, ch5oc, ch5od;
+wb_cmd_response256_t ch6oa, ch6ob, ch6oc, ch6od;
+wb_cmd_response256_t ch7oa, ch7ob, ch7oc, ch7od;
+wb_cmd_response256_t ch8oa, ch8ob, ch8oc, ch8od;
+wb_cmd_response256_t [8:0] chob;
 always_comb ch0ob = chob[0];
 always_comb ch1ob = chob[1];
 always_comb ch2ob = chob[2];
@@ -212,7 +221,7 @@ assign chclk[4] = ch4.clk;
 assign chclk[5] = ch5.clk;
 assign chclk[6] = ch6.clk;
 assign chclk[7] = ch7.clk;
-assign chclk[8] = sys_clk_i;
+assign chclk[8] = ch0.clk;
 
 reg rmw0;
 reg rmw1;
@@ -229,24 +238,28 @@ always_comb
 begin
 	if (STREAM[0]) begin
 		ch0.resp.tid = ch0ob.tid;
+		ch0.resp.adr = ch0ob.adr;
 		ch0.resp.dat = ch0ob.dat;
 		ch0.resp.ack = ch0ob.ack;
 		ch0.resp.rty = 1'b0;
 	end
 	else if (rmw0) begin
 		ch0.resp.tid = ch0oc.tid;
+		ch0.resp.adr = ch0oc.adr;
 		ch0.resp.dat = ch0oc.dat;
 		ch0.resp.ack = ch0oc.ack;
 		ch0.resp.rty = 1'b0;
 	end
 	else if (CACHE[0]) begin
 		ch0.resp.tid = ch0oa.tid;
+		ch0.resp.adr = ch0oa.adr;
 		ch0.resp.dat = ch0oa.dat;
 		ch0.resp.ack = ch0oa.ack;
 		ch0.resp.rty = ch0oa.rty;
 	end
 	else begin
 		ch0.resp.tid = ch0od.tid;
+		ch0.resp.adr = ch0od.adr;
 		ch0.resp.dat = ch0od.dat;
 		ch0.resp.ack = ch0od.ack;
 		ch0.resp.rty = 1'b0;
@@ -254,99 +267,104 @@ begin
 
 	if (STREAM[1]) begin
 		ch1.resp.tid = ch1ob.tid;
+		ch1.resp.adr = ch1ob.adr;
 		ch1.resp.dat = ch1ob.dat;
 		ch1.resp.ack = ch1ob.ack;
-		ch1.resp.rty = 1'b0;
 	end
 	else if (rmw1) begin
 		ch1.resp.tid = ch1oc.tid;
+		ch1.resp.adr = ch1oc.adr;
 		ch1.resp.dat = ch1oc.dat;
 		ch1.resp.ack = ch1oc.ack;
-		ch1.resp.rty = 1'b0;
 	end
 	else if (CACHE[1]) begin
 		ch1.resp.tid = ch1oa.tid;
+		ch1.resp.adr = ch1oa.adr;
 		ch1.resp.dat = ch1oa.dat;
 		ch1.resp.ack = ch1oa.ack;
 		ch1.resp.rty = ch1oa.rty;
 	end
 	else begin
 		ch1.resp.tid = ch1od.tid;
+		ch1.resp.adr = ch1od.adr;
 		ch1.resp.dat = ch1od.dat;
 		ch1.resp.ack = ch1od.ack;
-		ch1.resp.rty = 1'b0;
 	end
 
 	if (STREAM[2]) begin
 		ch2.resp.tid = ch2ob.tid;
+		ch2.resp.adr = ch2ob.adr;
 		ch2.resp.dat = ch2ob.dat;
 		ch2.resp.ack = ch2ob.ack;
-		ch2.resp.rty = 1'b0;
 	end
 	else if (rmw2) begin
 		ch2.resp.tid = ch2oc.tid;
+		ch2.resp.adr = ch2oc.adr;
 		ch2.resp.dat = ch2oc.dat;
 		ch2.resp.ack = ch2oc.ack;
-		ch2.resp.rty = 1'b0;
 	end
 	else if (CACHE[2]) begin
 		ch2.resp.tid = ch2oa.tid;
+		ch2.resp.adr = ch2oa.adr;
 		ch2.resp.dat = ch2oa.dat;
 		ch2.resp.ack = ch2oa.ack;
-		ch2.resp.rty = 1'b0;
 	end
 	else begin
 		ch2.resp.tid = ch2od.tid;
+		ch2.resp.adr = ch2od.adr;
 		ch2.resp.dat = ch2od.dat;
 		ch2.resp.ack = ch2od.ack;
-		ch2.resp.rty = 1'b0;
 	end
 
 	if (STREAM[3]) begin
 		ch3.resp.tid = ch3ob.tid;
+		ch3.resp.adr = ch3ob.adr;
 		ch3.resp.dat = ch3ob.dat;
 		ch3.resp.ack = ch3ob.ack;
 	end
 	else if (rmw3) begin
 		ch3.resp.tid = ch3oc.tid;
+		ch3.resp.adr = ch3oc.adr;
 		ch3.resp.dat = ch3oc.dat;
 		ch3.resp.ack = ch3oc.ack;
 	end
 	else if (CACHE[3]) begin
 		ch3.resp.tid = ch3oa.tid;
+		ch3.resp.adr = ch3oa.adr;
 		ch3.resp.dat = ch3oa.dat;
 		ch3.resp.ack = ch3oa.ack;
 	end
 	else begin
 		ch3.resp.tid = ch3od.tid;
+		ch3.resp.adr = ch3od.adr;
 		ch3.resp.dat = ch3od.dat;
 		ch3.resp.ack = ch3od.ack;
 	end
 
 	if (STREAM[4]) begin
 		ch4.resp.tid = ch4ob.tid;
-//		ch4.resp.adr = ch4ob.adr;
+		ch4.resp.adr = ch4ob.adr;
 		ch4.resp.dat = ch4ob.dat;
 		ch4.resp.ack = ch4ob.ack;
 		ch4.resp.rty = 1'b0;
 	end
 	else if (rmw4) begin
 		ch4.resp.tid = ch4oc.tid;
-//		ch4.resp.adr = ch4oc.adr;
+		ch4.resp.adr = ch4oc.adr;
 		ch4.resp.dat = ch4oc.dat;
 		ch4.resp.ack = ch4oc.ack;
 		ch4.resp.rty = 1'b0;
 	end
 	else if (CACHE[4]) begin
 		ch4.resp.tid = ch4oa.tid;
-//		ch4.resp.adr = ch4oa.adr;
+		ch4.resp.adr = ch4oa.adr;
 		ch4.resp.dat = ch4oa.dat;
 		ch4.resp.ack = ch4oa.ack;
 		ch4.resp.rty = 1'b0;
 	end
 	else begin
 		ch4.resp.tid = ch4od.tid;
-//		ch4.resp.adr = ch4od.adr;
+		ch4.resp.adr = ch4od.adr;
 		ch4.resp.dat = ch4od.dat;
 		ch4.resp.ack = ch4od.ack;
 		ch4.resp.rty = 1'b0;
@@ -354,60 +372,61 @@ begin
 
 	if (STREAM[5]) begin
 		ch5.resp.tid = ch5ob.tid;
-//		ch5.resp.adr = ch5ob.adr;
+		ch5.resp.adr = ch5ob.adr;
 		ch5.resp.dat = ch5ob.dat;
 		ch5.resp.ack = ch5ob.ack;
 	end
 	else if (rmw5) begin
 		ch5.resp.tid = ch5oc.tid;
-//		ch5.resp.adr = ch5oc.adr;
+		ch5.resp.adr = ch5oc.adr;
 		ch5.resp.dat = ch5oc.dat;
 		ch5.resp.ack = ch5oc.ack;
 	end
 	else if (CACHE[5]) begin
 		ch5.resp.tid = ch5oa.tid;
-//		ch5.resp.adr = ch5oa.adr;
+		ch5.resp.adr = ch5oa.adr;
 		ch5.resp.dat = ch5oa.dat;
 		ch5.resp.ack = ch5oa.ack;
 	end
 	else begin
 		ch5.resp.tid = ch5od.tid;
-//		ch5.resp.adr = ch5od.adr;
+		ch5.resp.adr = ch5od.adr;
 		ch5.resp.dat = ch5od.dat;
 		ch5.resp.ack = ch5od.ack;
 	end
 
 	if (STREAM[6]) begin
 		ch6.resp.tid = ch6ob.tid;
+		ch6.resp.adr = ch6ob.adr;
 		ch6.resp.dat = ch6ob.dat;
 		ch6.resp.ack = ch6ob.ack;
-		ch6.resp.rty = 1'b0;
 	end
 	else if (rmw6) begin
 		ch6.resp.tid = ch6oc.tid;
+		ch6.resp.adr = ch6oc.adr;
 		ch6.resp.dat = ch6oc.dat;
 		ch6.resp.ack = ch6oc.ack;
-		ch6.resp.rty = 1'b0;
 	end
 	else if (CACHE[6]) begin
 		ch6.resp.tid = ch6oa.tid;
+		ch6.resp.adr = ch6oa.adr;
 		ch6.resp.dat = ch6oa.dat;
 		ch6.resp.ack = ch6oa.ack;
-		ch6.resp.rty = 1'b0;
 	end
 	else begin
 		ch6.resp.tid = ch6od.tid;
+		ch6.resp.adr = ch6od.adr;
 		ch6.resp.dat = ch6od.dat;
 		ch6.resp.ack = ch6od.ack;
-		ch6.resp.rty = 1'b0;
 	end
 
 	if (STREAM[7]) begin
 		ch7.resp.tid = ch7ob.tid;
+		ch7.resp.adr = ch7ob.adr;
 		ch7.resp.dat = ch7ob.dat;
 		ch7.resp.ack = ch7ob.ack;
 		ch7.resp.rty = 1'b0;
-		ch7.resp.err = fta_bus_pkg::OKAY;
+		ch7.resp.err = wb_bus_pkg::OKAY;
 	end
 	/*
 	else if (rmw7) begin
@@ -418,29 +437,31 @@ begin
 		ch7.resp.ack = ch7oc.ack;
 	end
 	*/
-	else if (CACHE[7]) begin
+	else if (ch7cache) begin
 		ch7.resp.tid = ch7oa.tid;
+		ch7.resp.adr = ch7oa.adr;
 		ch7.resp.dat = ch7oa.dat;
 		ch7.resp.ack = ch7oa.ack;
-		ch7.resp.rty = 1'b0;
-		ch7.resp.err = fta_bus_pkg::OKAY;
+		ch7.resp.rty = ch7oa.rty;
+		ch7.resp.err = wb_bus_pkg::OKAY;
 	end
 	else begin
 		ch7.resp.tid = ch7od.tid;
+		ch7.resp.adr = ch7od.adr;
 		ch7.resp.dat = ch7od.dat;
 		ch7.resp.ack = ch7od.ack;
 		ch7.resp.rty = 1'b0;
-		ch7.resp.err = fta_bus_pkg::OKAY;
+		ch7.resp.err = wb_bus_pkg::OKAY;
 	end
 
 end
 
 mpmc11_fifoe_t [8:0] req_fifoi;
-mpmc11_fifoe_t [9:0] req_fifog;
+mpmc11_fifoe_t [8:0] req_fifog;
 mpmc11_fifoe_t [8:0] req_fifoh;
 mpmc11_fifoe_t req_fifoo;
-fta_cmd_request256_t ld,miss;
-fta_cmd_request256_t fifo_mask;
+wb_cmd_request256_t ld,miss;
+wb_cmd_request256_t fifo_mask;
 mpmc11_fifoe_t fifoo;
 
 assign fifoo.req = req_fifoo.req;// & fifo_mask;
@@ -488,7 +509,7 @@ wire ch0_hit_ne, ch5_hit_ne;
 wire hit0, hit1, hit2, hit3, hit4, hit5, hit6, hit7;
 
 always_ff @(posedge mem_ui_clk)
-//if (app_rd_data_valid)
+if (app_rd_data_valid)
 	rd_data_r <= app_rd_data;
 always_ff @(posedge mem_ui_clk)
 	rd_data_valid_r <= app_rd_data_valid;
@@ -611,9 +632,9 @@ end
 always_comb
 begin
 	ld = 1000'd0;
-	ld.bte = fta_bus_pkg::LINEAR;
-	ld.cti = fta_bus_pkg::CLASSIC;
-	ld.cmd = fta_bus_pkg::CMD_LOAD;
+	ld.bte = wb_bus_pkg::LINEAR;
+	ld.cti = wb_bus_pkg::CLASSIC;
+	ld.cmd = wb_bus_pkg::CMD_LOAD;
 	ld.blen = 6'd0;
 	ld.cyc =  uport==4'd8 &&
 						 fifoo.req.cyc &&
@@ -674,14 +695,14 @@ begin
 		chw[uport] <= req_fifoo.req.cti==ERC;
 end
 
-fta_bus_interface #(.DATA_WIDTH(256)) ch0_if();
-fta_bus_interface #(.DATA_WIDTH(256)) ch1_if();
-fta_bus_interface #(.DATA_WIDTH(256)) ch2_if();
-fta_bus_interface #(.DATA_WIDTH(256)) ch3_if();
-fta_bus_interface #(.DATA_WIDTH(256)) ch4_if();
-fta_bus_interface #(.DATA_WIDTH(256)) ch5_if();
-fta_bus_interface #(.DATA_WIDTH(256)) ch6_if();
-fta_bus_interface #(.DATA_WIDTH(256)) ch7_if();
+wb_bus_interface #(.DATA_WIDTH(256)) ch0_if();
+wb_bus_interface #(.DATA_WIDTH(256)) ch1_if();
+wb_bus_interface #(.DATA_WIDTH(256)) ch2_if();
+wb_bus_interface #(.DATA_WIDTH(256)) ch3_if();
+wb_bus_interface #(.DATA_WIDTH(256)) ch4_if();
+wb_bus_interface #(.DATA_WIDTH(256)) ch5_if();
+wb_bus_interface #(.DATA_WIDTH(256)) ch6_if();
+wb_bus_interface #(.DATA_WIDTH(256)) ch7_if();
 
 assign ch0_if.rst = STREAM[0] ? 1'b0 : ch0.rst;
 assign ch1_if.rst = STREAM[1] ? 1'b0 : ch1.rst;
@@ -724,49 +745,49 @@ always_comb
 begin
 	ch0oa = 1000'd0;
 	ch0oa.tid = ch0_if.resp.tid;
-//	ch0oa.adr = ch0_if.resp.adr;
+	ch0oa.adr = ch0_if.resp.adr;
 	ch0oa.dat = ch0_if.resp.dat;
 	ch0oa.ack = ch0_if.resp.ack;
 	ch0oa.rty = ch0_if.resp.rty;
 	ch1oa = 1000'd0;
 	ch1oa.tid = ch1_if.resp.tid;
-//	ch1oa.adr = ch1_if.resp.adr;
+	ch1oa.adr = ch1_if.resp.adr;
 	ch1oa.dat = ch1_if.resp.dat;
 	ch1oa.ack = ch1_if.resp.ack;
 	ch1oa.rty = ch1_if.resp.rty;
 	ch2oa = 1000'd0;
 	ch2oa.tid = ch2_if.resp.tid;
-//	ch2oa.adr = ch2_if.resp.adr;
+	ch2oa.adr = ch2_if.resp.adr;
 	ch2oa.dat = ch2_if.resp.dat;
 	ch2oa.ack = ch2_if.resp.ack;
 	ch2oa.rty = ch2_if.resp.rty;
 	ch3oa = 1000'd0;
 	ch3oa.tid = ch3_if.resp.tid;
-//	ch3oa.adr = ch3_if.resp.adr;
+	ch3oa.adr = ch3_if.resp.adr;
 	ch3oa.dat = ch3_if.resp.dat;
 	ch3oa.ack = ch3_if.resp.ack;
 	ch3oa.rty = ch3_if.resp.rty;
 	ch4oa = 1000'd0;
 	ch4oa.tid = ch4_if.resp.tid;
-//	ch4oa.adr = ch4_if.resp.adr;
+	ch4oa.adr = ch4_if.resp.adr;
 	ch4oa.dat = ch4_if.resp.dat;
 	ch4oa.ack = ch4_if.resp.ack;
 	ch4oa.rty = ch4_if.resp.rty;
 	ch5oa = 1000'd0;
 	ch5oa.tid = ch5_if.resp.tid;
-//	ch5oa.adr = ch5_if.resp.adr;
+	ch5oa.adr = ch5_if.resp.adr;
 	ch5oa.dat = ch5_if.resp.dat;
 	ch5oa.ack = ch5_if.resp.ack;
 	ch5oa.rty = ch5_if.resp.rty;
 	ch6oa = 1000'd0;
 	ch6oa.tid = ch6_if.resp.tid;
-//	ch6oa.adr = ch6_if.resp.adr;
+	ch6oa.adr = ch6_if.resp.adr;
 	ch6oa.dat = ch6_if.resp.dat;
 	ch6oa.ack = ch6_if.resp.ack;
 	ch6oa.rty = ch6_if.resp.rty;
 	ch7oa = 1000'd0;
 	ch7oa.tid = ch7_if.resp.tid;
-//	ch7oa.adr = ch7_if.resp.adr;
+	ch7oa.adr = ch7_if.resp.adr;
 	ch7oa.dat = ch7_if.resp.dat;
 	ch7oa.ack = ch7_if.resp.ack;
 	ch7oa.rty = ch7_if.resp.rty;
@@ -821,9 +842,9 @@ if (PORT_PRESENT[g] & STREAM[g]) begin
 mpmc11_strm_read_fifo ustrm
 (
 	.rst(irst|fifo_rst[g]),
-	.sleep(uport!=g[3:0]),
 	.wclk(mem_ui_clk),
 	.wr(src_wr[g]),
+	.wadr({app_waddr[31:5],5'h0}),	// only approximate
 	.wdat(rd_data_r),
 	.last_strip(resp_burst_cnt==burst_len),
 	.rclk(chclk[g]),
@@ -831,7 +852,7 @@ mpmc11_strm_read_fifo ustrm
 );
 end else begin
 	assign src_wr[g] = 1'b0;
-	assign chob[g] = {$bits(fta_cmd_response256_t){1'b0}};
+	assign chob[g] = {$bits(wb_cmd_response256_t){1'b0}};
 end
 end
 end
@@ -847,12 +868,7 @@ reg [3:0] req_sel1;
 wire select_next;
 reg [9:0] reqod;
 always_ff @(posedge mem_ui_clk)
-if (irst)
-	reqod <= 10'h0;
-else
 	reqod <= reqo;
-
-// Hold the selection at 9 unless there is a valid request.
 always_comb reqo[9] = select_next & ~|reqod;
 
 RoundRobinArbiter #(
@@ -974,49 +990,25 @@ end
 // than the ui_clk.
 
 wire [8:0] cd_fifo;
-reg [9:0] lcd_fifo;					// latched change detect
+reg [8:0] lcd_fifo;					// latched change detect
 reg [8:0] rd_fifo_r;
-wire [8:0] pe_rd_fifo;
-reg [8:0] consumed;
 always_ff @(posedge sys_clk_i)
-if (irst)
-	req_sel1 <= 4'd9;
-else begin
 	if (state==mpmc11_pkg::IDLE)
 		req_sel1 <= req_sel;
-end
 generate begin : gInputFifos
 for (g = 0; g < 9; g = g + 1) begin
 always_comb
 	reqo[g] = !empty[g];//req_fifog[g].req.cyc;
 always_comb wr_fifo[g] = req_fifoi[g].req.cyc && (!(CACHE[g]||(g==4'd7 &&
   req_fifoi[g].req.adr[31:30]==2'b10))||req_fifoi[g].req.we);
-
-// The fifo should be read only once its previous output has been consumed.
-// The fifo can be read regardless of whether there is data available from it.
-// If there is no data available, then the output will not change so the change
-// detect later in this module will be false. Also, with no data available the
-// cycle strobe will be inactive.
-
 always_comb
-	consumed[g] = (uport==g[3:0] && state==mpmc11_pkg::PRESET1) ||
-		(req_fifog[g].req.cyc==1'b0);
-always_comb
-	rd_fifo[g] = consumed[g];
-
-//always_comb
-//	rd_fifo[g] = sel[g] && rd_fifo_sm[g] && !rd_fifo_r[g] && state==mpmc11_pkg::IDLE;
-/*
+	rd_fifo[g] = sel[g] && rd_fifo_sm[g] && !rd_fifo_r[g] && state==mpmc11_pkg::IDLE;
 always_ff @(posedge sys_clk_i)
-if (irst)
-	rd_fifo_r[g] <= 1'b0;
-else begin
-	if (pe_rd_fifo[g])
+	if (rd_fifo[g])
 		rd_fifo_r[g] <= 1'b1;
 	else if (state==mpmc11_pkg::PRESET1 && g[3:0]==req_sel1[3:0])
 		rd_fifo_r[g] <= 1'b0;
-end
-*/
+
 if (((PORT_PRESENT >> g) & 1'b1) || g[3:0]==4'd8)
 begin
 	mpmc11_asfifo_fta ufifo
@@ -1108,28 +1100,19 @@ assign wr_rst_busy[14] = 1'b0;
 assign wr_rst_busy[15] = 1'b0;
 end
 endgenerate
-always_comb
-	req_fifog[9] = 1000'd0;
-always_comb
-	lcd_fifo[9] = 1'b0;
 
 assign rst_busy = (|rd_rst_busy) || (|wr_rst_busy) || irst;
 
 always_ff @(posedge sys_clk_i)
 if (state==mpmc11_pkg::WRITE_DATA0 || state==mpmc11_pkg::READ_DATA0)
 	v <= 1'b0;
-else if (req_sel1 < 4'd9 && state==mpmc11_pkg::IDLE)
-	v <= req_fifog[req_sel1].req.cyc;//lcd_fifo[req_sel1];
+else if (req_sel < 4'd9 && state==mpmc11_pkg::IDLE)
+	v <= lcd_fifo[req_sel];
 else
 	v <= 1'b0;
 always_ff @(posedge sys_clk_i)
-if (irst)
-	req_fifoo <= 1000'd0;
-else begin
-	if (req_sel1 < 4'd9 && state==mpmc11_pkg::IDLE)
-		req_fifoo <= req_fifog[req_sel1];
-end
-
+if (req_sel < 4'd9 && state==mpmc11_pkg::IDLE)
+	req_fifoo <= req_fifoh[req_sel];
 always_comb
 	uport = fifoo.port;
 always_comb
@@ -1152,7 +1135,6 @@ mpmc11_addr_gen uag1
 	.addr({app_addr3,app_addr})
 );
 
-/*
 mpmc11_waddr_gen uwag1
 (
 	.rst(irst),
@@ -1164,7 +1146,6 @@ mpmc11_waddr_gen uwag1
 	.addr_base(adr),
 	.addr(app_waddr)
 );
-*/
 
 mpmc11_mask_select #(.WID(WIDX8)) unsks1
 (
@@ -1228,7 +1209,7 @@ always_ff @(posedge sys_clk_i)
 always_ff @(posedge sys_clk_i)
 case(req_fifoo.req.sz)
 `ifdef SUPPORT_AMO_TETRA
-fta_bus_pkg::tetra:
+wb_bus_pkg::tetra:
 	case(req_fifoo.req.cmd)
 	CMD_ADD:	t1 <= opa[31:0] + opb[31:0];
 	CMD_AND:	t1 <= opa[31:0] & opb[31:0];
@@ -1253,7 +1234,7 @@ fta_bus_pkg::tetra:
 	endcase
 `endif
 `ifdef SUPPORT_AMO_OCTA
-fta_bus_pkg::octa:
+wb_bus_pkg::octa:
 	case(req_fifoo.req.cmd)
 	CMD_ADD:	t1 <= opa[63:0] + opb[63:0];
 	CMD_AND:	t1 <= opa[63:0] & opb[63:0];
@@ -1279,10 +1260,10 @@ fta_bus_pkg::octa:
 `endif
 default:
 	case(req_fifoo.req.cmd)
-	fta_bus_pkg::CMD_ADD:	t1 <= opa[127:0] + opb[127:0];
-	fta_bus_pkg::CMD_AND:	t1 <= opa[127:0] & opb[127:0];
-	fta_bus_pkg::CMD_OR:		t1 <= opa[127:0] | opb[127:0];
-	fta_bus_pkg::CMD_EOR:	t1 <= opa[127:0] ^ opb[127:0];
+	wb_bus_pkg::CMD_ADD:	t1 <= opa[127:0] + opb[127:0];
+	wb_bus_pkg::CMD_AND:	t1 <= opa[127:0] & opb[127:0];
+	wb_bus_pkg::CMD_OR:		t1 <= opa[127:0] | opb[127:0];
+	wb_bus_pkg::CMD_EOR:	t1 <= opa[127:0] ^ opb[127:0];
 `ifdef SUPPORT_AMO_SHIFT
 	CMD_ASL:	t1 <= {opa[126:0],1'b0};
 	CMD_LSR:	t1 <= {1'b0,opa[127:1]};
@@ -1293,11 +1274,11 @@ default:
 	CMD_ASL:	t1 <= opa[127:0] << opb[6:0];
 	CMD_LSR:	t1 <= opa[127:0] >> opb[6:0];
 `endif	
-	fta_bus_pkg::CMD_MINU:	t1 <= opa[127:0] < opb[127:0] ? opa[127:0] : opb[127:0];
-	fta_bus_pkg::CMD_MAXU:	t1 <= opa[127:0] > opb[127:0] ? opa[127:0] : opb[127:0];
-	fta_bus_pkg::CMD_MIN:	t1 <= $signed(opa[127:0]) < $signed(opb[127:0]) ? opa[127:0] : opb[127:0];
-	fta_bus_pkg::CMD_MAX:	t1 <= $signed(opa[127:0]) > $signed(opb[127:0]) ? opa[127:0] : opb[127:0];
-	fta_bus_pkg::CMD_CAS:	t1 <= opa[127:0]==opb[127:0] ? opc[127:0] : opb[127:0];
+	wb_bus_pkg::CMD_MINU:	t1 <= opa[127:0] < opb[127:0] ? opa[127:0] : opb[127:0];
+	wb_bus_pkg::CMD_MAXU:	t1 <= opa[127:0] > opb[127:0] ? opa[127:0] : opb[127:0];
+	wb_bus_pkg::CMD_MIN:	t1 <= $signed(opa[127:0]) < $signed(opb[127:0]) ? opa[127:0] : opb[127:0];
+	wb_bus_pkg::CMD_MAX:	t1 <= $signed(opa[127:0]) > $signed(opb[127:0]) ? opa[127:0] : opb[127:0];
+	wb_bus_pkg::CMD_CAS:	t1 <= opa[127:0]==opb[127:0] ? opc[127:0] : opb[127:0];
 	default:	t1 <= opa[127:0];
 	endcase
 endcase
@@ -1358,7 +1339,7 @@ always_comb	ch7oc.ack = rmw_ack & rmw7;
 
 // Direct accesses to DDRAM.
 // Non-stream, non-cached
-fta_bus_pkg::fta_tranid_t [8:0] chod_tid;
+wb_bus_pkg::wb_tranid_t [8:0] chod_tid;
 wire [31:0] chod_adr [0:8];
 wire [8:0] chod_ack;
 wire [MDW-1:0] chod_dat [0:8];
@@ -1377,10 +1358,10 @@ generate begin : gPortDataAck
 		if (PORT_PRESENT[g] && !STREAM[g] && !CACHE[g]) begin
 mpmc11_od_tid_latch uodtl (.rst(irst), .clk(mem_ui_clk), .pclk(ch_clk[g]), .port(g[3:0]),
 	.req(req_fifoo), .rdy(rd_data_valid_r), .tid(chod_tid[g]));
-/*
+	
 mpmc11_od_addr_latch uodal (.rst(irst), .clk(mem_ui_clk), .pclk(ch_clk[g]), .port(g[3:0]),
 	.req(req_fifoo), .rdy(rd_data_valid_r), .addr(chod_adr[g]));
-*/	
+	
 mpmc11_od_data_latch #(.MDW(MDW)) uoddl (.rst(irst), .clk(mem_ui_clk), .pclk(ch_clk[g]), .port(g[3:0]),
 	.fifo_port(req_fifoo.port), .rdy(rd_data_valid_r), .rd_data(rd_data_r), .port_data(chod_dat[g]));
 
@@ -1406,7 +1387,6 @@ assign ch5od.tid = chod_tid[5];
 assign ch6od.tid = chod_tid[6];
 assign ch7od.tid = chod_tid[7];
 assign ch8od.tid = chod_tid[8];
-/*
 assign ch0od.adr = chod_adr[0];
 assign ch1od.adr = chod_adr[1];
 assign ch2od.adr = chod_adr[2];
@@ -1416,7 +1396,6 @@ assign ch5od.adr = chod_adr[5];
 assign ch6od.adr = chod_adr[6];
 assign ch7od.adr = chod_adr[7];
 assign ch8od.adr = chod_adr[8];
-*/
 assign ch0od.dat = chod_dat[0];
 assign ch1od.dat = chod_dat[1];
 assign ch2od.dat = chod_dat[2];

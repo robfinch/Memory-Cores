@@ -37,11 +37,11 @@
 import const_pkg::*;
 import mpmc11_pkg::*;
 
-module mpmc11_strm_read_fifo(rst, wclk, wr, wadr, wdat, last_strip, rclk, resp);
+module mpmc11_strm_read_fifo(rst, sleep, wclk, wr, wdat, last_strip, rclk, resp);
 input rst;
+input sleep;
 input wclk;
 input wr;
-input [31:0] wadr;
 input [WIDX8-1:0] wdat;
 input last_strip;
 input rclk;
@@ -168,7 +168,7 @@ always_comb rd_en = !empty;
                                      // unstable at the time of applying reset, but reset must be released only
                                      // after the clock(s) is/are stable.
 
-      .sleep(1'b0),                 // 1-bit input: Dynamic power saving: If sleep is High, the memory/fifo
+      .sleep(sleep),                 // 1-bit input: Dynamic power saving: If sleep is High, the memory/fifo
                                      // block is in power saving mode.
 
       .wr_clk(wclk),               // 1-bit input: Write clock: Used for write operation. wr_clk must be a
@@ -185,7 +185,6 @@ always_ff @(posedge wclk)
 if (rst)
 	resp1 <= {$bits(fta_cmd_response256_t){1'b0}};
 else begin
-	resp1.ack <= FALSE;
 	if (wr) begin
 //		if (last_strip)
 //			resp1.tid <= 13'h131;
@@ -193,11 +192,13 @@ else begin
 		// ToDo: add write tid
 		// Because a specific master is begin targetted, a dummy tid can be got 
 		// away with. tid.tranid 0 indicates burst response.
+		resp1 <= {$bits(fta_cmd_response256_t){1'b0}};
 		resp1.tid <= {6'h3f,3'd0,4'h0};
 		resp1.ack <= TRUE;
 		resp1.dat <= wdat;
-		resp1.adr <= wadr;
 	end
+	else
+		resp1 <= {$bits(fta_cmd_response256_t){1'b0}};
 end
 
 endmodule

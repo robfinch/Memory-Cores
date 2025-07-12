@@ -341,7 +341,7 @@ generate begin : gReaddat
 		ch0.resp.next = 1'b0;
 		ch0.resp.pri = 4'd7;
 		ch0.resp.ctag = 1'b0;
-		ch0.resp.adr = ch0.req.adr;
+//		ch0.resp.adr = ch0.req.adr;
 	end
 end
 endgenerate
