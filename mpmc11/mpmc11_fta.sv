@@ -1,7 +1,7 @@
 `timescale 1ns / 1ps
 // ============================================================================
 //        __
-//   \\__/ o\    (C) 2015-2025  Robert Finch, Waterloo
+//   \\__/ o\    (C) 2015-2026  Robert Finch, Waterloo
 //    \  __ /    All rights reserved.
 //     \/_//     robfinch<remove>@finitron.ca
 //       ||
@@ -94,6 +94,7 @@ parameter MDW = 256;
 
 wire clk100 = sys_clk_i;
 fta_cmd_request256_t [7:0] chi;
+reg [8:0] stream;
 
 always_comb
 begin
@@ -223,11 +224,21 @@ reg rmw5;
 reg rmw6;
 reg rmw7;
 
+always_comb stream[0] = STREAM[0] && ch0.req.tid==4'd0;
+always_comb stream[1] = STREAM[1] && ch1.req.tid==4'd0;
+always_comb stream[2] = STREAM[2] && ch2.req.tid==4'd0;
+always_comb stream[3] = STREAM[3] && ch3.req.tid==4'd0;
+always_comb stream[4] = STREAM[4] && ch4.req.tid==4'd0;
+always_comb stream[5] = STREAM[5] && ch5.req.tid==4'd0;
+always_comb stream[6] = STREAM[6] && ch6.req.tid==4'd0;
+always_comb stream[7] = STREAM[7] && ch7.req.tid==4'd0;
+always_comb stream[8] = 1'b0;
+
 wire ch7cache = ch7.req.adr[31:30]==2'b10;
 
 always_comb
 begin
-	if (STREAM[0]) begin
+	if (stream[0]) begin
 		ch0.resp.tid = ch0ob.tid;
 		ch0.resp.dat = ch0ob.dat;
 		ch0.resp.ack = ch0ob.ack;
@@ -252,7 +263,7 @@ begin
 		ch0.resp.rty = 1'b0;
 	end
 
-	if (STREAM[1]) begin
+	if (stream[1]) begin
 		ch1.resp.tid = ch1ob.tid;
 		ch1.resp.dat = ch1ob.dat;
 		ch1.resp.ack = ch1ob.ack;
@@ -277,7 +288,7 @@ begin
 		ch1.resp.rty = 1'b0;
 	end
 
-	if (STREAM[2]) begin
+	if (stream[2]) begin
 		ch2.resp.tid = ch2ob.tid;
 		ch2.resp.dat = ch2ob.dat;
 		ch2.resp.ack = ch2ob.ack;
@@ -302,7 +313,7 @@ begin
 		ch2.resp.rty = 1'b0;
 	end
 
-	if (STREAM[3]) begin
+	if (stream[3]) begin
 		ch3.resp.tid = ch3ob.tid;
 		ch3.resp.dat = ch3ob.dat;
 		ch3.resp.ack = ch3ob.ack;
@@ -323,7 +334,7 @@ begin
 		ch3.resp.ack = ch3od.ack;
 	end
 
-	if (STREAM[4]) begin
+	if (stream[4]) begin
 		ch4.resp.tid = ch4ob.tid;
 //		ch4.resp.adr = ch4ob.adr;
 		ch4.resp.dat = ch4ob.dat;
@@ -352,7 +363,7 @@ begin
 		ch4.resp.rty = 1'b0;
 	end
 
-	if (STREAM[5]) begin
+	if (stream[5]) begin
 		ch5.resp.tid = ch5ob.tid;
 //		ch5.resp.adr = ch5ob.adr;
 		ch5.resp.dat = ch5ob.dat;
@@ -377,7 +388,7 @@ begin
 		ch5.resp.ack = ch5od.ack;
 	end
 
-	if (STREAM[6]) begin
+	if (stream[6]) begin
 		ch6.resp.tid = ch6ob.tid;
 		ch6.resp.dat = ch6ob.dat;
 		ch6.resp.ack = ch6ob.ack;
@@ -402,7 +413,7 @@ begin
 		ch6.resp.rty = 1'b0;
 	end
 
-	if (STREAM[7]) begin
+	if (stream[7]) begin
 		ch7.resp.tid = ch7ob.tid;
 		ch7.resp.dat = ch7ob.dat;
 		ch7.resp.ack = ch7ob.ack;
@@ -648,14 +659,14 @@ begin
 	ch7wack <= 1'b0;
 	if (state==WRITE_DATA3)
 		case(uport)
-		4'd0:	ch0wack <= req_fifoo.req.cti==ERC;
-		4'd1: ch1wack <= req_fifoo.req.cti==ERC;
-		4'd2: ch2wack <= req_fifoo.req.cti==ERC;
-		4'd3:	ch3wack <= req_fifoo.req.cti==ERC;
-		4'd4:	ch4wack <= req_fifoo.req.cti==ERC;
-		4'd5:	ch5wack <= req_fifoo.req.cti==ERC;
-		4'd6:	ch6wack <= req_fifoo.req.cti==ERC;
-		4'd7:	ch7wack <= req_fifoo.req.cti==ERC;
+		4'd0:	ch0wack <= req_fifoo.req.cti==fta_bus_pkg::ERC;
+		4'd1: ch1wack <= req_fifoo.req.cti==fta_bus_pkg::ERC;
+		4'd2: ch2wack <= req_fifoo.req.cti==fta_bus_pkg::ERC;
+		4'd3:	ch3wack <= req_fifoo.req.cti==fta_bus_pkg::ERC;
+		4'd4:	ch4wack <= req_fifoo.req.cti==fta_bus_pkg::ERC;
+		4'd5:	ch5wack <= req_fifoo.req.cti==fta_bus_pkg::ERC;
+		4'd6:	ch6wack <= req_fifoo.req.cti==fta_bus_pkg::ERC;
+		4'd7:	ch7wack <= req_fifoo.req.cti==fta_bus_pkg::ERC;
 		default:	;
 		endcase
 end
@@ -671,7 +682,7 @@ begin
 	chw[6] <= 1'b0;
 	chw[7] <= 1'b0;
 	if (state==WRITE_DATA3)
-		chw[uport] <= req_fifoo.req.cti==ERC;
+		chw[uport] <= req_fifoo.req.cti==fta_bus_pkg::ERC;
 end
 
 fta_bus_interface #(.DATA_WIDTH(256)) ch0_if();
@@ -817,7 +828,7 @@ wire [7:0] src_wr;
 generate begin : gStreamCache
 for (g = 0; g < 8; g = g + 1) begin
 if (PORT_PRESENT[g] & STREAM[g]) begin
-	assign src_wr[g] = uport==g[3:0] && rd_data_valid_r;
+	assign src_wr[g] = uport==g[3:0] && rd_data_valid_r && fifoo.req.tid==4'd0;
 mpmc11_strm_read_fifo ustrm
 (
 	.rst(irst|fifo_rst[g]),
@@ -1120,7 +1131,7 @@ if (state==mpmc11_pkg::WRITE_DATA0 || state==mpmc11_pkg::READ_DATA0)
 	v <= 1'b0;
 else if (req_sel1 < 4'd9 && state==mpmc11_pkg::IDLE)
 	v <= req_fifog[req_sel1].req.cyc;//lcd_fifo[req_sel1];
-else
+else if (state==mpmc11_pkg::PRESET2)
 	v <= 1'b0;
 always_ff @(posedge sys_clk_i)
 if (irst)
@@ -1374,7 +1385,7 @@ assign ch_clk[7] = ch7.clk;
 assign ch_clk[8] = ch0.clk;
 generate begin : gPortDataAck
 	for (g = 0; g < 9; g = g + 1)
-		if (PORT_PRESENT[g] && !STREAM[g] && !CACHE[g]) begin
+		if (PORT_PRESENT[g] && !CACHE[g]) begin
 mpmc11_od_tid_latch uodtl (.rst(irst), .clk(mem_ui_clk), .pclk(ch_clk[g]), .port(g[3:0]),
 	.req(req_fifoo), .rdy(rd_data_valid_r), .tid(chod_tid[g]));
 /*

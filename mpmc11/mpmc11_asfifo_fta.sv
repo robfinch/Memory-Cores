@@ -69,7 +69,6 @@ else if ((16'd1 << $clog2(DEPTH)) != DEPTH) begin
 	$finish;
 end
 */
-
 wire ocd1;
 wire data_valid;
 wire rd_rst_busy1;
@@ -129,7 +128,7 @@ assign ocd = data_valid;
       .READ_MODE("fwft"),         // String
       .RELATED_CLOCKS(0),        // DECIMAL
       .SIM_ASSERT_CHK(0),        // DECIMAL; 0=disable simulation messages, 1=enable simulation messages
-      .USE_ADV_FEATURES("100E"), // String		enable data valid, almost full and prog full
+      .USE_ADV_FEATURES("101E"), // String		enable data valid, almost full and prog full, wr_ack
       .WAKEUP_TIME(0),           // DECIMAL
       .WRITE_DATA_WIDTH($bits(mpmc11_fifoe_t)),     // DECIMAL
       .WR_DATA_COUNT_WIDTH($clog2(DEPTH)+1)    // DECIMAL
@@ -173,13 +172,13 @@ assign ocd = data_valid;
       .underflow(),					         // 1-bit output: Underflow: Indicates that the read request (rd_en) during
                                      // the previous clock cycle was rejected because the FIFO is empty. Under
                                      // flowing the FIFO is not destructive to the FIFO.
-      .wr_ack(),			               // 1-bit output: Write Acknowledge: This signal indicates that a write
+      .wr_ack(wr_ack),			               // 1-bit output: Write Acknowledge: This signal indicates that a write
                                      // request (wr_en) during the prior clock cycle is succeeded.
       .wr_data_count(cnt),					 // WR_DATA_COUNT_WIDTH-bit output: Write Data Count: This bus indicates
                                      // the number of words written into the FIFO.
       .wr_rst_busy(wr_rst_busy1),     // 1-bit output: Write Reset Busy: Active-High indicator that the FIFO
                                      // write domain is currently in a reset state.
-      .din(req_fifoi),               // WRITE_DATA_WIDTH-bit input: Write Data: The input data bus used when
+      .din(req_fifoi),  		             // WRITE_DATA_WIDTH-bit input: Write Data: The input data bus used when
                                      // writing the FIFO.
       .injectdbiterr(1'b0),					 // 1-bit input: Double Bit Error Injection: Injects a double bit error if
                                      // the ECC feature is used on block RAMs or UltraRAM macros.
