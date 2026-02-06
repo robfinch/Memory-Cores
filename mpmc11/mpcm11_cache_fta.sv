@@ -349,7 +349,7 @@ generate begin : gReaddat
 		always_comb vbito8a[g] = vbit[g][radrr[8][HIBIT:LOBIT]];
 		
 		always_ff @(posedge ch0.clk)	if (rst1) hit0a[g] <= FALSE; else hit0a[g] <= (doutb[0].lines[g].tag==radrr[0][31:TAGLOBIT]) && (vbito0a[g]==1'b1) && hitv[0];
-		always_ff @(posedge ch1.clk)	if (rst1) hit1a[g] <= FALSE; else hit1a[g] <= (doutb[1].lines[g].tag==radrr[1][31:TAGLOBIT]) && (vbito1a[g]==1'b1) && hitv[1] && !(stb1 && !stb1a);
+		always_ff @(posedge ch1.clk)	if (rst1) hit1a[g] <= FALSE; else hit1a[g] <= (doutb[1].lines[g].tag==radrr[1][31:TAGLOBIT]) && (vbito1a[g]==1'b1) && hitv[1];// && !(stb1 && !stb1a);
 		always_ff @(posedge ch2.clk)	if (rst1) hit2a[g] <= FALSE; else hit2a[g] <= (doutb[2].lines[g].tag==radrr[2][31:TAGLOBIT]) && (vbito2a[g]==1'b1) && hitv[2];
 		always_ff @(posedge ch3.clk)	if (rst1) hit3a[g] <= FALSE; else hit3a[g] <= (doutb[3].lines[g].tag==radrr[3][31:TAGLOBIT]) && (vbito3a[g]==1'b1) && hitv[3];
 		always_ff @(posedge ch4.clk)	if (rst1) hit4a[g] <= FALSE; else hit4a[g] <= (doutb[4].lines[g].tag==radrr[4][31:TAGLOBIT]) && (vbito4a[g]==1'b1) && hitv[4];

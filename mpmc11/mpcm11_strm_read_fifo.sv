@@ -1,7 +1,7 @@
 `timescale 1ns / 1ps
 // ============================================================================
 //        __
-//   \\__/ o\    (C) 2015-2025  Robert Finch, Waterloo
+//   \\__/ o\    (C) 2015-2026  Robert Finch, Waterloo
 //    \  __ /    All rights reserved.
 //     \/_//     robfinch<remove>@finitron.ca
 //       ||
@@ -49,6 +49,7 @@ output fta_cmd_response256_t resp;
 
 fta_cmd_response256_t resp1;
 fta_cmd_response256_t resp2;
+wire last_strip2;
 
 wire empty;
 wire rd_rst_busy, wr_rst_busy;
@@ -58,6 +59,7 @@ always_ff @(posedge rclk)
 begin
 	resp <= resp2;
 	resp.ack <= data_valid & resp2.ack;
+	resp.err <= data_valid & resp2.ack & last_strip2 ? fta_bus_pkg::ERR_EOB : fta_bus_pkg::OKAY;
 end
 
 always_comb rd_en = !empty;
@@ -77,13 +79,13 @@ always_comb rd_en = !empty;
       .PROG_EMPTY_THRESH(5),    // DECIMAL
       .PROG_FULL_THRESH(248),     // DECIMAL
       .RD_DATA_COUNT_WIDTH(9),   // DECIMAL
-      .READ_DATA_WIDTH($bits(fta_cmd_response256_t)),      // DECIMAL
+      .READ_DATA_WIDTH($bits(fta_cmd_response256_t)+1),      // DECIMAL
       .READ_MODE("std"),         // String
       .RELATED_CLOCKS(0),        // DECIMAL
       .SIM_ASSERT_CHK(0),        // DECIMAL; 0=disable simulation messages, 1=enable simulation messages
       .USE_ADV_FEATURES("170F"), // String
       .WAKEUP_TIME(0),           // DECIMAL
-      .WRITE_DATA_WIDTH($bits(fta_cmd_response256_t)),     // DECIMAL
+      .WRITE_DATA_WIDTH($bits(fta_cmd_response256_t)+1),     // DECIMAL
       .WR_DATA_COUNT_WIDTH(9)    // DECIMAL
    )
    xpm_fifo_async_inst (
@@ -99,7 +101,7 @@ always_comb rd_en = !empty;
       .dbiterr(),             // 1-bit output: Double Bit Error: Indicates that the ECC decoder detected
                                      // a double-bit error and data in the FIFO core is corrupted.
 
-      .dout(resp2),                  // READ_DATA_WIDTH-bit output: Read Data: The output data bus is driven
+      .dout({last_strip2,resp2}),                  // READ_DATA_WIDTH-bit output: Read Data: The output data bus is driven
                                      // when reading the FIFO.
 
       .empty(empty),                 // 1-bit output: Empty Flag: When asserted, this signal indicates that the
@@ -148,7 +150,7 @@ always_comb rd_en = !empty;
       .wr_rst_busy(wr_rst_busy),     // 1-bit output: Write Reset Busy: Active-High indicator that the FIFO
                                      // write domain is currently in a reset state.
 
-      .din(resp1),                   // WRITE_DATA_WIDTH-bit input: Write Data: The input data bus used when
+      .din({last_strip,resp1}),                   // WRITE_DATA_WIDTH-bit input: Write Data: The input data bus used when
                                      // writing the FIFO.
 
       .injectdbiterr(1'b0), // 1-bit input: Double Bit Error Injection: Injects a double bit error if

@@ -20,6 +20,7 @@ always #5 clk100 = ~clk100;
 
 reg [9:0] cnt;
 reg [15:0] cnt1;
+reg [7:0] ack0_cnt;
 reg app_rdy;
 wire app_en;
 wire [2:0] app_cmd;
@@ -35,12 +36,12 @@ reg app_rd_data_end;
 mpmc11_state_t mpmc_state;
 reg [3:0] state;
 reg [31:0] addr;
-reg [31:0] rnd;
+reg [31:0] rnd, rnd7;
 reg [2:0] ch1_cmd;
-reg [31:0] ch1_adr;
+reg [31:0] ch1_adr, ch7_adr;
 reg ch1_we;
 reg [3:0] tidcnt;
-reg got_ack;
+reg got_ack, got_ack7;
 reg wb0_cs;
 reg wb1_cs;
 reg wb2_cs;
@@ -119,8 +120,8 @@ end
 
 mpmc11_fta #(
 	.STREAM(8'h01),
-	.CACHE(9'h002),
-	.PORT_PRESENT(9'h103))
+	.CACHE(9'h082),
+	.PORT_PRESENT(9'h183))
 umpmc1
 (
 	.rst(rst),
@@ -158,12 +159,47 @@ umpmc1
 	.rst_busy()
 );
 
+always_ff @(posedge clk)
+if (rst) begin
+	cnt <= 10'd0;
+	state <= 4'd0;
+	app_rd_data_valid <= 1'b0;
+	app_rd_data_end <= 1'b0;
+	app_rd_data <= {8{32'h0}};
+end
+else begin
+	case(state)
+	4'd0:
+		if (app_en) begin
+			cnt <= 10'd0;
+			state <= 4'd1;
+		end
+	4'd1:
+		begin
+			cnt <= cnt + 5'd1;
+			if (cnt > 10'd2) begin
+				app_rd_data_valid <= app_cmd==3'd1;
+				app_rd_data <= {8{32'hBEEFDEAD}};
+			end
+			if (cnt > 10'd30)
+				app_rd_data_end <= 1'b1;
+			if (cnt > 10'd32) begin
+				state <= 4'd2;
+			end
+		end
+	4'd2:	
+		begin
+			app_rd_data_valid <= 1'b0;
+			app_rd_data_end <= 1'b0;
+			state <= 4'd0;
+		end
+	endcase
+end
+
 always_ff @(posedge wb0_if.clk)
 if (rst) begin
-	state <= 4'd0;
 	cnt1 <= 16'd0;
 	addr <= $urandom(0);
-	app_rd_data_valid <= 1'b0;
 	wb0_if.req <= 1000'd0;
 	wb2_if.req <= 1000'd0;
 	wb3_if.req <= 1000'd0;
@@ -186,6 +222,7 @@ if (rst) begin
 	wb6_cs <= 1'b0;
 	wb7_cs <= 1'b0;
 	tidcnt <= 4'd0;
+	ack0_cnt <= 8'd0;
 end
 else begin
 	cnt1 <= cnt1 + 2'd1;
@@ -206,35 +243,14 @@ else begin
 	end
 	
 	if (wb0_if.resp.ack) begin
-		wb0_cs <= 1'b0;
-		wb0_if.req <= 1000'd0;
+		ack0_cnt <= ack0_cnt + 1;
+		if (ack0_cnt==8'd29) begin
+			ack0_cnt <= 8'd0;
+			wb0_cs <= 1'b0;
+			wb0_if.req <= 1000'd0;
+		end
 	end
 
-	case(state)
-	4'd0:
-		if (app_en) begin
-			cnt <= 10'd0;
-			state <= 4'd1;
-		end
-	4'd1:
-		begin
-			cnt <= cnt + 5'd1;
-			if (cnt > 10'd2) begin
-				app_rd_data_valid <= app_cmd==3'd1;
-				app_rd_data_end <= 1'b1;
-				app_rd_data <= {8{32'hBEEFDEAD}};
-			end
-			if (cnt > 10'd32) begin
-				state <= 4'd2;
-			end
-		end
-	4'd2:	
-		begin
-			app_rd_data_valid <= 1'b0;
-			app_rd_data_end <= 1'b0;
-			state <= 4'd0;
-		end
-	endcase
 end
 
 always_ff @(posedge ch1_if.clk)
@@ -275,6 +291,47 @@ else begin
 		wb1_if.req.sel <= 32'hFFFFFFFF;
 		wb1_if.req.we <= rnd;//ch1_we;
 		wb1_if.req.dat <= {8{32'hDEADBEEF}};
+	end
+end
+
+always_ff @(posedge ch7_if.clk)
+if (rst) begin
+	got_ack7 <= 1'b1;
+	wb7_cs <= 1'b0;
+	wb7_if.req <= 1000'd0;
+end
+else begin
+	if (!ch7_if.resp.stall && ($urandom() % 100) < 20 && got_ack7) begin
+		got_ack7 <= 1'b0;
+		rnd7 = $urandom();
+		wb7_cs <= 1'b1;
+		wb7_if.req <= 1000'd0;
+		wb7_if.req.tid <= {6'd2,3'd0,tidcnt};
+		wb7_if.req.blen <= 8'd0;
+		wb7_if.req.cyc <= 1'b1;//(rnd % 100) < 10;
+		wb7_if.req.stb <= 1'b1;//(rnd % 100) < 10;
+		wb7_if.req.adr <= (rnd7 % 100) < 30 ? $urandom() : 32'h0;
+//		wb7_if.req.adr <= ch1_adr;
+		wb7_if.req.sel <= 32'hFFFFFFFF;
+		wb7_if.req.we <= rnd7;
+//		wb7_if.req.we <= ch1_we;
+		wb7_if.req.dat <= {8{32'hDEADBEEF}};
+	end
+	if (wb7_if.resp.ack) begin
+		got_ack7 <= 1'b1;
+		wb7_if.req <= 1000'd0;
+		wb7_cs <= 1'b0;
+	end
+	if (wb7_if.resp.rty) begin
+		wb7_if.req <= 1000'd0;
+		wb7_if.req.tid <= {6'd2,3'd0,tidcnt};
+		wb7_if.req.blen <= 8'd0;
+		wb7_if.req.cyc <= (rnd7 % 100) < 10;
+		wb7_if.req.stb <= (rnd7 % 100) < 10;
+		wb7_if.req.adr <= ch7_adr;
+		wb7_if.req.sel <= 32'hFFFFFFFF;
+		wb7_if.req.we <= rnd7;//ch1_we;
+		wb7_if.req.dat <= {8{32'hDEADBEEF}};
 	end
 end
 

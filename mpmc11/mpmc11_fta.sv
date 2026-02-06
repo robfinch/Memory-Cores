@@ -242,6 +242,7 @@ begin
 		ch0.resp.tid = ch0ob.tid;
 		ch0.resp.dat = ch0ob.dat;
 		ch0.resp.ack = ch0ob.ack;
+		ch0.resp.err = ch0ob.err;
 		ch0.resp.rty = 1'b0;
 	end
 	else if (rmw0) begin
@@ -267,6 +268,7 @@ begin
 		ch1.resp.tid = ch1ob.tid;
 		ch1.resp.dat = ch1ob.dat;
 		ch1.resp.ack = ch1ob.ack;
+		ch1.resp.err = ch1ob.err;
 		ch1.resp.rty = 1'b0;
 	end
 	else if (rmw1) begin
@@ -292,6 +294,7 @@ begin
 		ch2.resp.tid = ch2ob.tid;
 		ch2.resp.dat = ch2ob.dat;
 		ch2.resp.ack = ch2ob.ack;
+		ch2.resp.err = ch2ob.err;
 		ch2.resp.rty = 1'b0;
 	end
 	else if (rmw2) begin
@@ -317,6 +320,7 @@ begin
 		ch3.resp.tid = ch3ob.tid;
 		ch3.resp.dat = ch3ob.dat;
 		ch3.resp.ack = ch3ob.ack;
+		ch3.resp.err = ch3ob.err;
 	end
 	else if (rmw3) begin
 		ch3.resp.tid = ch3oc.tid;
@@ -339,6 +343,7 @@ begin
 //		ch4.resp.adr = ch4ob.adr;
 		ch4.resp.dat = ch4ob.dat;
 		ch4.resp.ack = ch4ob.ack;
+		ch4.resp.err = ch4ob.err;
 		ch4.resp.rty = 1'b0;
 	end
 	else if (rmw4) begin
@@ -368,6 +373,7 @@ begin
 //		ch5.resp.adr = ch5ob.adr;
 		ch5.resp.dat = ch5ob.dat;
 		ch5.resp.ack = ch5ob.ack;
+		ch5.resp.err = ch5ob.err;
 	end
 	else if (rmw5) begin
 		ch5.resp.tid = ch5oc.tid;
@@ -392,6 +398,7 @@ begin
 		ch6.resp.tid = ch6ob.tid;
 		ch6.resp.dat = ch6ob.dat;
 		ch6.resp.ack = ch6ob.ack;
+		ch6.resp.err = ch6ob.err;
 		ch6.resp.rty = 1'b0;
 	end
 	else if (rmw6) begin
@@ -417,6 +424,7 @@ begin
 		ch7.resp.tid = ch7ob.tid;
 		ch7.resp.dat = ch7ob.dat;
 		ch7.resp.ack = ch7ob.ack;
+		ch7.resp.err = ch7ob.err;
 		ch7.resp.rty = 1'b0;
 		ch7.resp.err = fta_bus_pkg::OKAY;
 	end

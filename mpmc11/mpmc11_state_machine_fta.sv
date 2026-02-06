@@ -160,7 +160,7 @@ else begin
 	// Could it take so long to do the request that we start getting responses
 	// back?
 	READ_DATA1:
-		if (resp_burst_cnt<=8'd1)
+		if (resp_burst_cnt==8'd1)
 			next_state = WAIT_NACK;
 		else
 			next_state = READ_DATA1;
