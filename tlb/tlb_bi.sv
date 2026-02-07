@@ -38,7 +38,7 @@ import wishbone_pkg::*;
 import mmu_pkg::*;
 
 module tlb_bi(clk, cs_tlb, bus, dly, douta,
-	hold_entry, hold_entry_no, hold_way);
+	hold_entry, hold_entry_no, hold_way, lock_map);
 parameter TLB_ASSOC=4;
 input clk;
 input cs_tlb;
@@ -48,6 +48,7 @@ input tlb_entry_t [TLB_ASSOC-1:0] douta;
 output tlb_entry_t hold_entry;
 output reg [15:0] hold_entry_no;
 output reg [7:0] hold_way;
+output reg [63:0] lock_map;
 
 reg read_bit;
 
@@ -59,6 +60,7 @@ if (bus.rst) begin
 	hold_entry_no <= 16'h0;
 	hold_way <= TLB_ASSOC-1;
 	read_bit <= 1'b0;
+	lock_map <= 64'hFF00000000000000;
 end
 else begin
 	if (cs_tlb & bus.req.cyc & bus.req.stb & bus.req.we)
@@ -71,14 +73,16 @@ else begin
 				hold_way <= bus.req.dat[17:16];
 				read_bit <= bus.req.dat[30];
 			end
+		3'd5:	lock_map <= bus.req.dat;
 		default:	;
 		endcase
 	if (cs_tlb & bus.req.cyc & bus.req.stb) begin
 		bus.resp <= {$bits(wb_cmd_response64_t){1'b0}};
-		case(bus.req.adr[5:3])
+		case(bus.req.adr[6:3])
 		3'd0:	bus.resp.dat <= read_bit ? douta[hold_way][ 63: 0] : hold_entry[ 63: 0];
 		3'd1:	bus.resp.dat <= read_bit ? douta[hold_way][127:64] : hold_entry[127:64];
 		3'd4:	bus.resp.dat <= {46'd0,hold_way,hold_entry_no};
+		3'd5:	bus.resp.dat <= lock_map;
 		default:	bus.resp.dat <= 64'd0;
 		endcase
 		bus.resp.tid <= bus.req.tid;

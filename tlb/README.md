@@ -22,7 +22,6 @@ To read a TLB entry specify the entry number in register 28h with bit 30 set the
 Note that for LRU operation the highest way should be used to update an entry in the TLB. LRU operates by shifting data from next higher way into the current way. Data in the lowest way is lost. The second highest way may be used if it is desired to keep the translations in the highest way.
 
 ## Registers
-|--------|---------|-------------------------------------|
 | Number | Name    | Description                         |
 |--------|---------|-------------------------------------|
 |  00h   | TLBEL   | Low order 64-bits of TLBE (the PTE) |
@@ -30,9 +29,12 @@ Note that for LRU operation the highest way should be used to update an entry in
 |  10h   |         | reserved                            |
 |  18h   |         | reserved                            |
 |  20h   | ENTRYNO | TLB entry number to read or update  |
+|  28h   | LOCK    | specifies bitmap of locked entries  |
 
 * Bits 0 to 15 of the ENTRYNO register specify the entry number
 * Bits 16 to 23 specify the way to update
 * Bit 30 indicates to read the TLB
 * Bit 31 indicates to update the TLB
+
+* Please see the docs in the rfTLB.docx or rfTLB.pdf file.
 

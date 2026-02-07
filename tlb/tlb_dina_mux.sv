@@ -36,7 +36,7 @@
 
 import mmu_pkg::*;
 
-module tlb_dina_mux(rstcnt, paging_en, lfsro, dinb, hold_entry, rst_entry, dina);
+module tlb_dina_mux(rstcnt, paging_en, lfsro, dinb, hold_entry, rst_entry, dina, lock);
 parameter TLB_ASSOC = 4;
 parameter TLB_ABITS = 9;
 parameter LRU = 1;
@@ -48,6 +48,7 @@ input tlb_entry_t [TLB_ASSOC-1:0] dinb;
 input tlb_entry_t hold_entry;
 input tlb_entry_t rst_entry;
 output tlb_entry_t [TLB_ASSOC-1:0] dina;
+input lock;
 
 genvar g;
 
@@ -59,14 +60,16 @@ generate begin : gDinaMux
 					dina[g] = dinb[g];
 				else begin
 					if (LRU) begin
-						if (g==TLB_ASSOC-1)
-							dina[g] = hold_entry;
-						else
-							dina[g] = dinb[g+1];
+						case({g,lock})
+						{TLB_ASSOC-1,1'b1}:	dina[g] = dinb[g];
+						{TLB_ASSOC-2,1'b1}:	dina[g] = hold_entry;
+						{TLB_ASSOC-1,1'b0}:	dina[g] = hold_entry;
+						default:	dina[g] = dinb[g+1];
+						endcase
 					end
 					else begin
 						dina[g] = dinb[g];
-						dina[lfsro & LFSR_MASK] = hold_entry;
+						dina[(lfsro^(lock ? lfsro==TLB_ASSOC-1 : 0)) & LFSR_MASK] = hold_entry;
 					end
 				end
 			end

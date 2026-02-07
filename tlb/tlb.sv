@@ -33,7 +33,7 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
-// 2810 LUTs / 550 FFs / 8 BRAMs / 200 MHz
+// 3010 LUTs / 500 FFs / 8 BRAMs / 200 MHz
 // ============================================================================
 
 import const_pkg::*;
@@ -108,6 +108,7 @@ tlb_entry_t [TLB_ASSOC-1:0] doutb;
 tlb_entry_t [TLB_ASSOC-1:0] dina;
 tlb_entry_t [TLB_ASSOC-1:0] dinb;
 wire update_bit;
+wire [63:0] lock_map;
 
 wire [26:0] lfsro;
 
@@ -147,7 +148,8 @@ ubi1
 	.douta(douta),
 	.hold_entry(hold_entry),
 	.hold_entry_no(hold_entry_no),
-	.hold_way(hold_way)
+	.hold_way(hold_way),
+	.lock_map(lock_map)
 );
 
 always_comb
@@ -164,6 +166,7 @@ always_comb
 	way = hold_way;
 
 generate begin : gAssoc
+    
 	for (g = 0; g < TLB_ASSOC; g = g + 1) begin
 
 always_comb
@@ -184,12 +187,14 @@ udinam1
 	.dinb(dinb),
 	.hold_entry(hold_entry),
 	.rst_entry(rst_entry),
-	.dina(dina)
+	.dina(dina),
+	.lock(lock_map[hold_entry_no[TLB_ABITS-1:TLB_ABITS-6 < 0 ? 0 : TLB_ABITS-6]])
 );
 
 always_comb
 	wea[g] = rstcnt[TLB_ABITS] ? (paging_en ? {16{web[g]}} :
-		{16{bus.req.we && bus.req.adr[5:3]==3'd4 && bus.req.dat[31]}}) :
+			{16{bus.req.we && bus.req.adr[5:3]==3'd4 && bus.req.dat[31] &&
+			!(lock_map[hold_entry_no[TLB_ABITS-1:TLB_ABITS-6 < 0 ? 0 : TLB_ABITS-6]] && g==TLB_ASSOC-1)}}) :
 		{16{1'b1}};
 always_comb
 	ena[g] = rstcnt[TLB_ABITS] ? (paging_en ? enb[g] : bus.req.cyc & bus.req.stb & cs_tlb && g==way) : g==TLB_ASSOC-1;
