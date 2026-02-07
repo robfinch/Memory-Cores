@@ -211,7 +211,7 @@ always_comb
 always_comb
 	hit[g] = douta[g].pte.v &&
 		(douta[g].vpn[$bits(virtual_address_t)-LOG_PAGESIZE-TLB_ABITS-1:0]==vadr[$bits(virtual_address_t)-1:LOG_PAGESIZE+TLB_ABITS] &&
-		(douta[g].pte.g ? TRUE : douta[g].asid==miss_asid && douta[g].count==iv_count));
+		(douta[g].pte.g ? TRUE : douta[g].asid==asid && douta[g].count==iv_count));
 
 always_comb
 	empty[g] = ~douta[g].pte.v;

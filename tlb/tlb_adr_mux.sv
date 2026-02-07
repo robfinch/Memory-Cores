@@ -137,8 +137,8 @@ else begin
 	end
 	else begin
 		padr <= vadr;
- 		padrv <= vadr_v & !pe_ne;
-		tlb_v <= idle;
+ 		padrv <= FALSE;//vadr_v & !pe_ne;
+		tlb_v <= FALSE;//idle & vadr_v & !pe_ne;
 		miss1 <= INV;
 	end
 
