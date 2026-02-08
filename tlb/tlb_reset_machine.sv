@@ -42,6 +42,7 @@ import mmu_pkg::*;
 module tlb_reset_machine(rst, clk, rstcnt, entry_no, entry);
 parameter TLB_ENTRIES=512;
 parameter LOG_PAGESIZE=13;
+parameter LOG_PAGESIZE2=23;
 parameter WID=$clog2(TLB_ENTRIES);
 input rst;
 input clk;
@@ -112,8 +113,8 @@ begin
 				entry.lock = 1'b1;
 				entry.pte.v = 1'b1;
 				entry.pte.lvl = 3'd1;
-				entry.pte.ppn = (43'hD0000000 >> LOG_PAGESIZE) | rstcnt[4:0];
-				entry.vpn = 48'hD0000000 >> LOG_PAGESIZE;	// Bits 16 to 31 of address
+				entry.pte.ppn = (43'hD0000000 >> LOG_PAGESIZE2) | rstcnt[4:0];
+				entry.vpn = 48'hD0000000 >> (LOG_PAGESIZE2 + WID);	// Bits 16 to 31 of address
 			end
 		// Upper 8MB are locked
 		8'b11_1111_1:
@@ -121,16 +122,16 @@ begin
 				entry.lock = 1'b1;
 				entry.pte.v = 1'b1;
 				entry.pte.lvl = 3'd1;
-				entry.pte.ppn = (43'hF0000000 >> LOG_PAGESIZE)|5'h1F;
-				entry.vpn = 48'hF0000000 >> LOG_PAGESIZE;	// Bits 16 to 31 of address
+				entry.pte.ppn = (43'hFF800000 >> LOG_PAGESIZE2);
+				entry.vpn = 48'hFF800000 >> (LOG_PAGESIZE2 + WID);	// Bits 16 to 31 of address
 			end
 		// Remaining pages are mapped to DRAM
 		default:
 			begin
 				entry.pte.v = 1'b1;
 				entry.pte.lvl = 3'd1;
-				entry.pte.ppn = 43'h40000000 >> (LOG_PAGESIZE)|rstcnt[6:0];
-				entry.vpn = 48'h40000000 >> LOG_PAGESIZE;	// Bits 16 to 31 of address
+				entry.pte.ppn = 43'h40000000 >> (LOG_PAGESIZE2)|rstcnt[6:0];
+				entry.vpn = 48'h40000000 >> (LOG_PAGESIZE2 + WID);	// Bits 16 to 31 of address
 			end
 		endcase
 	default:	;

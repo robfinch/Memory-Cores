@@ -280,6 +280,7 @@ else begin
 		end
 	st_asid1:
 		if (padr_v) begin
+			$display("Test ASID matching.");
 			vadr <= 32'hFFF80025;
 			asid <= 16'h1234;
 			state <= st_asid2a;
@@ -299,6 +300,7 @@ else begin
 	// Unlock the entries
 	st_asid3:
 		begin
+			$display("Test unlock entries.");
 			paging_en <= FALSE;
 			cs_tlb <= HIGH;
 			bus.req.cyc <= HIGH;
