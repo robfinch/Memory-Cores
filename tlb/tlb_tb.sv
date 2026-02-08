@@ -239,7 +239,6 @@ else begin
 		if (bus.resp.ack) begin
 			cs_tlb <= LOW;
 			bus.req <= {$bits(wb_cmd_request64_t){1'b0}};
-			vadr <= 32'd0;
 			state <= st_add_xlat6;
 		end
 	// Write entry number and way to update
@@ -251,14 +250,13 @@ else begin
 			bus.req.we <= HIGH;
 			bus.req.sel <= 8'hFF;
 			bus.req.adr <= 32'h20;//mmu_adr | ({(miss_adr >> LOG_PAGESIZE),4'b1000} & 32'h01FFF);
-			bus.req.dat <= ((miss_adr >> LOG_PAGESIZE) & 32'hffff) | 32'h80030000;	// way 3
+			bus.req.dat <= ((miss_adr >> LOG_PAGESIZE) & 32'h1ff) | 32'h80030000;	// way 3
 			state <= st_add_xlat7;
 		end
 	st_add_xlat7:
 		if (bus.resp.ack) begin
 			cs_tlb <= LOW;
 			bus.req <= {$bits(wb_cmd_request64_t){1'b0}};
-			vadr <= 32'd0;
 			state <= st_add_xlat10;
 		end
 	// Write trigger register (defunct)
@@ -277,16 +275,17 @@ else begin
 		if (bus.resp.ack) begin
 			cs_tlb <= LOW;
 			bus.req <= {$bits(wb_cmd_request64_t){1'b0}};
-			vadr <= 32'd0;
 			state <= st_add_xlat10;
 		end
 	st_add_xlat10:
 		begin
 			idle <= 1;
 			paging_en <= TRUE;
-			vadr <= miss_adr;
-			state <= st_asid1;
+//			vadr <= miss_adr;
+			state <= st_add_xlat11;
 		end
+	st_add_xlat11:
+		state <= st_asid1;
 	st_asid1:
 		if (tlb_v) begin
 			$display("Test ASID matching.");
@@ -294,6 +293,8 @@ else begin
 			asid <= 16'h1234;
 			state <= st_asid2;
 		end
+		else if (miss_o)
+				miss_adr <= miss_adr_o;
 	st_asid2a:
 		state <= st_asid2;
 	st_asid2:
@@ -390,10 +391,8 @@ else begin
 	st_asid11:
 		begin
 			if (tlb_v)
-				$finish;
+				state <= st_3;
 		end
-	st_add_xlat11:
-		state <= st_3;
 	default:	state <= st_reset;
 	endcase
 end

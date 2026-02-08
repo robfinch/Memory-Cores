@@ -163,14 +163,14 @@ if (rst)
 else begin
 	if (paging_en) begin
 		miss1 <= !cd_vadr;
-		if (|hit & vadrv1 & !cd_vadr)
-			miss1 <= INV;
+		if (!(|hit & vadrv1 & !pe_pe))
+			miss1 <= VAL;
 	end
 	else
 		miss1 <= INV;
 end
 
-always_comb
-	miss_v = miss1 & !cd_vadr;
+always_ff @(posedge clk)
+	miss_v <= miss1 & !tlb_v;
 
 endmodule
