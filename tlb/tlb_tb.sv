@@ -128,10 +128,13 @@ else begin
 			state <= st_1;
 		end
 	st_1:
-		if (padr_v) begin
+		if (tlb_v) begin
 			count <= count + 1;
-			if (count < 20)
-				state <= st_reset;
+			if (count < 20) begin
+				vadr <= 32'hFFFC0000 | ($urandom() & 32'h3FFFF);
+				vadr_v <= VAL;
+				state <= st_1;
+			end
 			else begin
 				count <= 0;
 				state <= st_2;
@@ -141,26 +144,32 @@ else begin
 		begin
 			vadr <= $urandom();
 			vadr_v <= VAL;
-			state <= st_2a;
+			state <= st_2b;
 		end
 	st_2a:
 		state <= st_3;
 	st_2b:
-		begin
-			vadr[15:0] <= $urandom() & 32'hffff;
+		if (tlb_v) begin
+			vadr[12:0] <= $urandom() & 32'h1fff;
 			vadr_v <= VAL;
 			state <= st_2a;
+		end
+		else if (miss_o) begin
+			padrv_cnt <= 0;
+			missack <= 1'b1;
+			miss_adr <= miss_adr_o;
+			state <= st_add_xlat;
 		end
 	st_3:
 		begin
 			count <= count + 1;
-			if (padr_v) begin
+			if (tlb_v) begin
 				padrv_cnt <= padrv_cnt + 1;
 				if (padrv_cnt > 30)
 					$finish;
 				if (count < 40000) begin
 					if (($random() & 32'hff) > 13)
-						state <= st_2b;
+						state <= st_3;
 					else
 						state <= st_2;
 				end
@@ -192,7 +201,7 @@ else begin
 			tlbe.pte.g <= FALSE;
 			tlbe.pte.a <= FALSE;
 			tlbe.pte.m <= FALSE;
-			tlbe.pte.s <= FALSE;
+			tlbe.pte.typ <= PTE;
 			tlbe.pte.u <= $random() & 1;
 			tlbe.pte.rwx <= $random() & 7;
 			tlbe.pte.ppn <= $urandom() & 16'hFFFF;
@@ -279,17 +288,17 @@ else begin
 			state <= st_asid1;
 		end
 	st_asid1:
-		if (padr_v) begin
+		if (tlb_v) begin
 			$display("Test ASID matching.");
 			vadr <= 32'hFFF80025;
 			asid <= 16'h1234;
-			state <= st_asid2a;
+			state <= st_asid2;
 		end
 	st_asid2a:
 		state <= st_asid2;
 	st_asid2:
 		begin
-			if (padr_v) begin
+			if (tlb_v) begin
 				$display("ASID should not have matched.");
 				$finish;
 			end
@@ -324,7 +333,7 @@ else begin
 			tlbe.pte.g <= FALSE;
 			tlbe.pte.a <= FALSE;
 			tlbe.pte.m <= FALSE;
-			tlbe.pte.s <= FALSE;
+			tlbe.pte.typ <= PTE;
 			tlbe.pte.u <= $random() & 1;
 			tlbe.pte.rwx <= $random() & 7;
 			tlbe.pte.ppn <= 32'hFFF80000 >> LOG_PAGESIZE;
@@ -380,7 +389,7 @@ else begin
 		end
 	st_asid11:
 		begin
-			if (padr_v)
+			if (tlb_v)
 				$finish;
 		end
 	st_add_xlat11:

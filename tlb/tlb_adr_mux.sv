@@ -66,7 +66,6 @@ reg miss1;
 reg tlb;
 reg pe;
 reg pe_ne, pe_pe;
-reg padrv;
 wire cd_vadr;
 physical_address_t adr;
 wire pe_vadr_v;
@@ -118,16 +117,8 @@ end
 
 always_comb
 begin
-	if (paging_en)
-		padrv = |hit & vadrv1 & !cd_vadr;
-	else
- 		padrv = FALSE;//vadr_v & !pe_ne;
-end
-
-always_comb
-begin
 	if (paging_en) begin
-		if (|hit & vadrv1 & !cd_vadr)
+		if (|hit & vadrv1 & !pe_pe)
 			tlb_v = idle;
 		else
 			tlb_v = FALSE;
@@ -181,7 +172,5 @@ end
 
 always_comb
 	miss_v = miss1 & !cd_vadr;
-
-//		tlb_v = tlb & !cd_vadr;
 
 endmodule
