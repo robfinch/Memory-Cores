@@ -70,7 +70,7 @@ else begin
 		3'd4:	
 			begin
 				hold_entry_no <= bus.req.dat[15:0];
-				hold_way <= bus.req.dat[17:16];
+				hold_way <= bus.req.dat[23:16];
 				read_bit <= bus.req.dat[30];
 			end
 		3'd5:	lock_map <= bus.req.dat;

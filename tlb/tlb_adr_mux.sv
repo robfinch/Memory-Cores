@@ -62,7 +62,7 @@ output virtual_address_t miss_adr = 32'h0;
 output asid_t miss_asid;
 output reg miss_v;
 
-reg miss1;
+reg miss1,miss2;
 reg tlb;
 reg pe;
 reg pe_ne, pe_pe;
@@ -171,6 +171,8 @@ else begin
 end
 
 always_ff @(posedge clk)
-	miss_v <= miss1 & !tlb_v;
+	miss2 <= miss1 & !tlb_v;
+always_comb
+	miss_v = miss2 & !tlb_v;
 
 endmodule

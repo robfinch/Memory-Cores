@@ -82,8 +82,8 @@ wire [TLB_ABITS:0] rstcnt;
 wire [TLB_ABITS-1:0] rst_entry_no;
 wire [TLB_ABITS-1:0] hold_entry_no;
 tlb_entry_t rst_entry, hold_entry;
-reg [1:0] way;
-wire [15:0] hold_way;
+reg [7:0] way;
+wire [7:0] hold_way;
 reg dly;
 virtual_address_t miss_adr;
 asid_t miss_asid;
@@ -197,7 +197,9 @@ always_comb
 			!(lock_map[hold_entry_no[TLB_ABITS-1:TLB_ABITS-6 < 0 ? 0 : TLB_ABITS-6]] && g==TLB_ASSOC-1)}}) :
 		{16{1'b1}};
 always_comb
-	ena[g] = rstcnt[TLB_ABITS] ? (paging_en ? enb[g] : bus.req.cyc & bus.req.stb & cs_tlb && g==way) : g==TLB_ASSOC-1;
+	ena[g] = rstcnt[TLB_ABITS] ? (paging_en ? enb[g] : bus.req.cyc & bus.req.stb & cs_tlb && (
+		LRU ? !(lock_map[hold_entry_no[TLB_ABITS-1:TLB_ABITS-6 < 0 ? 0 : TLB_ABITS-6]] && g==TLB_ASSOC-1) :
+		g==way)) : g==TLB_ASSOC-1;
 
 always_comb
 	addrb[g] = vadr[LOG_PAGESIZE+TLB_ABITS-1:LOG_PAGESIZE];
