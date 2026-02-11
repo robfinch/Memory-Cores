@@ -33,7 +33,9 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
-// 3010 LUTs / 500 FFs / 8 BRAMs / 200 MHz
+// 3000 LUTs / 500 FFs / 8 BRAMs / 205 MHz RANDOM
+// 2900 LUTs / 500 FFs / 8 BRAMs / 205 MHz LRU
+// 2000 LUTs / 475 FFs / 8 BRAMs / 205 MHz NRU
 // ============================================================================
 
 import const_pkg::*;
@@ -47,10 +49,12 @@ module tlb (clk, bus, stall, idle, paging_en, cs_tlb, iv_count, store_i, id,
 parameter TLB_ENTRIES=512;
 parameter TLB_ASSOC=4;
 parameter LOG_PAGESIZE=13;
-parameter LRU = 1;
+parameter UPDATE_STRATEGY = 2;
 localparam TLB_ABITS=$clog2(TLB_ENTRIES);
 localparam TLB_WBITS=$clog2(TLB_ASSOC);
 localparam LFSR_MASK = (16'd1 << (TLB_ASSOC-1)) - 1;
+localparam LRU = UPDATE_STRATEGY==1;
+localparam NRU = UPDATE_STRATEGY==2;
 input clk;
 wb_bus_interface.slave bus;
 input stall;
@@ -97,6 +101,8 @@ wire clkb = clk;
 
 wire cd_vadr;
 reg [TLB_ASSOC-1:0] hit;
+reg [TLB_ASSOC-1:0] nru;
+reg nru_reset;
 reg [TLB_ASSOC-1:0] ena,enb;
 reg [15:0] wea [0:TLB_ASSOC-1];
 reg [15:0] web [0:TLB_ASSOC-1];
@@ -123,12 +129,15 @@ end
 // update access counts, count is saturating, and shifted right every so often.
 task tam;
 input hit;
+input nru_reset;
 input store;
 input tlb_entry_t i;
 output tlb_entry_t o;
 reg of;
 begin
 	o = i;
+	if (nru_reset)
+		o.nru = 1'b0;
 	o.pte.a = 1'b1;
 	if (hit & store)
 		o.pte.m = 1'b1;
@@ -164,6 +173,8 @@ change_det #(.WID($bits(virtual_address_t)-LOG_PAGESIZE+1))
 
 always_comb
 	way = hold_way;
+always_comb
+	nru_reset = &nru;
 
 generate begin : gAssoc
     
@@ -174,7 +185,7 @@ always_comb
 
 tlb_dina_mux
 #(
-	.LRU(LRU),
+	.UPDATE_STRATEGY(UPDATE_STRATEGY),
 	.TLB_ASSOC(TLB_ASSOC),
 	.TLB_ABITS(TLB_ABITS),
 	.LFSR_MASK(LFSR_MASK)
@@ -187,6 +198,7 @@ udinam1
 	.dinb(dinb),
 	.hold_entry(hold_entry),
 	.rst_entry(rst_entry),
+	.nru(nru),
 	.dina(dina),
 	.lock(lock_map[hold_entry_no[TLB_ABITS-1:TLB_ABITS-6 < 0 ? 0 : TLB_ABITS-6]])
 );
@@ -204,7 +216,7 @@ always_comb
 always_comb
 	addrb[g] = vadr[LOG_PAGESIZE+TLB_ABITS-1:LOG_PAGESIZE];
 always_comb
-	tam(.hit(hit[g]), .store(store_i), .i(douta[g]), .o(dinb[g]));
+	tam(.hit(hit[g]), .nru_reset(nru_reset), .store(store_i), .i(douta[g]), .o(dinb[g]));
 always_comb
 	enb[g] = 1'b1;
 always_comb
@@ -217,7 +229,9 @@ always_comb
 
 always_comb
 	empty[g] = ~douta[g].pte.v;
-
+always_comb
+	nru[g] = douta[g].nru;
+	
 always_ff @(posedge clk)
 begin
 	$display("vadr=%h", vadr);	

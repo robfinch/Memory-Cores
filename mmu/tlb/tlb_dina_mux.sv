@@ -36,10 +36,12 @@
 
 import mmu_pkg::*;
 
-module tlb_dina_mux(rstcnt, paging_en, lfsro, dinb, hold_entry, rst_entry, dina, lock);
+module tlb_dina_mux(rstcnt, paging_en, lfsro, dinb, hold_entry, rst_entry, nru, dina, lock);
 parameter TLB_ASSOC = 4;
 parameter TLB_ABITS = 9;
-parameter LRU = 1;
+parameter UPDATE_STRATEGY=2;
+localparam LRU = UPDATE_STRATEGY==1;
+localparam NRU = UPDATE_STRATEGY==2;
 parameter LFSR_MASK = 16'h3;
 input [TLB_ABITS:0] rstcnt;
 input paging_en;
@@ -47,10 +49,14 @@ input [26:0] lfsro;
 input tlb_entry_t [TLB_ASSOC-1:0] dinb;
 input tlb_entry_t hold_entry;
 input tlb_entry_t rst_entry;
+input [TLB_ASSOC-1:0] nru;
 output tlb_entry_t [TLB_ASSOC-1:0] dina;
 input lock;
 
 genvar g;
+
+wire [3:0] nrun;
+ffz12 uffo61 (.i({12'hFFF,nru}), .o(nrun));
 
 generate begin : gDinaMux
 	for (g = 0; g < TLB_ASSOC; g = g + 1)
@@ -59,7 +65,19 @@ generate begin : gDinaMux
 				if (paging_en)
 					dina[g] = dinb[g];
 				else begin
-					if (LRU) begin
+					if (NRU) begin
+						if (nrun==4'hF || (lock && nrun==TLB_ASSOC-1)) begin
+							dina[0] = hold_entry;
+							dina[0].nru = 1'b1;
+						end
+						else if(g[3:0]==nrun) begin
+							dina[g] = hold_entry;
+							dina[g].nru = 1'b1;
+						end
+						else
+							dina[g] = dinb[g];
+					end
+					else if (LRU) begin
 						case({g,lock})
 						{TLB_ASSOC-1,1'b1}:	dina[g] = dinb[g];
 						{TLB_ASSOC-2,1'b1}:	dina[g] = hold_entry;
